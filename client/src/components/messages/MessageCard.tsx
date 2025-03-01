@@ -7,6 +7,11 @@ interface MessageCardProps {
   message: Message;
 }
 
+function getInstagramPostId(url: string): string | null {
+  const match = url.match(/instagram\.com\/p\/([^/?]+)/);
+  return match ? match[1] : null;
+}
+
 export function MessageCard({ message }: MessageCardProps) {
   const formattedContent = message.content.split(" ").map((word, i) => {
     if (word.startsWith("#")) {
@@ -23,6 +28,8 @@ export function MessageCard({ message }: MessageCardProps) {
     return word + " ";
   });
 
+  const instagramPostId = getInstagramPostId(message.content);
+
   return (
     <Card className="mb-4">
       <CardHeader className="pb-2">
@@ -32,7 +39,17 @@ export function MessageCard({ message }: MessageCardProps) {
       </CardHeader>
       <CardContent>
         <p className="text-foreground">{formattedContent}</p>
-        {message.mediaUrl && (
+        {instagramPostId && (
+          <div className="mt-4">
+            <iframe
+              src={`https://www.instagram.com/p/${instagramPostId}/embed`}
+              className="w-full aspect-square rounded-md border-0"
+              loading="lazy"
+              allowFullScreen
+            />
+          </div>
+        )}
+        {message.mediaUrl && !instagramPostId && (
           <div className="mt-4">
             {message.mediaType?.startsWith("image/") ? (
               <img 
