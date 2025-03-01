@@ -67,8 +67,10 @@ export async function registerRoutes(app: Express) {
     try {
       log("Received webhook request:", {
         method: req.method,
+        path: req.path,
         headers: req.headers,
         body: req.body,
+        query: req.query,
       });
 
       const smsData = await processSMSWebhook(req.body);
@@ -88,10 +90,10 @@ export async function registerRoutes(app: Express) {
       log("SMS webhook error:", errorMessage);
 
       // Send a more detailed error response
-      res.status(400).json({ 
+      res.status(400).json({
         error: "Failed to process SMS",
         details: errorMessage,
-        receivedPayload: req.body 
+        receivedPayload: req.body,
       });
     }
   });
