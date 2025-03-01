@@ -12,11 +12,11 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen relative">
-      {/* Mobile menu button */}
+      {/* Mobile menu button - moved to the right */}
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden fixed top-4 left-4 z-50"
+        className="lg:hidden fixed top-4 right-4 z-50"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         <Menu className="h-6 w-6" />
