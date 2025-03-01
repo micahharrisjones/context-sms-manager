@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { storage } from "./storage";
 import { insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
+import { WebSocketManager } from "./websocket";
 
 const processSMSWebhook = async (body: any) => {
   if (!body.message || !body.from) {
@@ -29,6 +30,9 @@ const processSMSWebhook = async (body: any) => {
 };
 
 export async function registerRoutes(app: Express) {
+  const httpServer = createServer(app);
+  const wsManager = new WebSocketManager(httpServer);
+
   app.get("/api/messages", async (_req, res) => {
     const messages = await storage.getMessages();
     res.json(messages);
@@ -53,6 +57,7 @@ export async function registerRoutes(app: Express) {
       const message = insertMessageSchema.parse(smsData);
       const created = await storage.createMessage(message);
       console.log("Created message:", JSON.stringify(created));
+      wsManager.broadcastNewMessage();
       res.json(created);
     } catch (error) {
       console.error("SMS webhook error:", error);
@@ -60,6 +65,5 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  const httpServer = createServer(app);
   return httpServer;
 }

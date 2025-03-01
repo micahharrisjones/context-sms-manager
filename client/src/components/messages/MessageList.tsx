@@ -1,16 +1,37 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageCard } from "./MessageCard";
 import { Message } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useEffect } from "react";
 
 interface MessageListProps {
   tag?: string;
 }
 
 export function MessageList({ tag }: MessageListProps) {
+  const queryClient = useQueryClient();
   const { data: messages, isLoading } = useQuery<Message[]>({
     queryKey: tag ? [`/api/messages/tag/${tag}`] : ["/api/messages"],
   });
+
+  useEffect(() => {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/messages`);
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "NEW_MESSAGE") {
+        // Invalidate both messages and tags queries
+        queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+        queryClient.invalidateQueries({ queryKey: [`/api/messages/tag/${tag}`] });
+        queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+      }
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, [queryClient, tag]);
 
   if (isLoading) {
     return (
