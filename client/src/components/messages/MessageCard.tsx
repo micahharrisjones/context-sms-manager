@@ -28,7 +28,7 @@ export function MessageCard({ message }: MessageCardProps) {
     return word + " ";
   });
 
-  const instagramPostId = getInstagramPostId(message.content);
+  const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
 
   return (
     <Card className="mb-4">

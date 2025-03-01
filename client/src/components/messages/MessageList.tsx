@@ -23,8 +23,10 @@ export function MessageList({ tag }: MessageListProps) {
       if (data.type === "NEW_MESSAGE") {
         // Invalidate both messages and tags queries
         queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
-        queryClient.invalidateQueries({ queryKey: [`/api/messages/tag/${tag}`] });
         queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+        if (tag) {
+          queryClient.invalidateQueries({ queryKey: [`/api/messages/tag/${tag}`] });
+        }
       }
     };
 
