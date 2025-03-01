@@ -65,18 +65,26 @@ export class MemStorage implements IStorage {
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    // Check for recent duplicate messages (within 5 seconds)
+    // Look for recent messages from the same sender (within 5 seconds)
     const recentMessages = Array.from(this.messages.values())
       .filter(msg => 
-        msg.content === insertMessage.content &&
         msg.senderId === insertMessage.senderId &&
         (new Date().getTime() - new Date(msg.timestamp).getTime()) < 5000
       );
 
+    // If we found a recent message, merge the content and tags
     if (recentMessages.length > 0) {
-      return recentMessages[0]; // Return the existing message instead of creating a duplicate
+      const existingMessage = recentMessages[0];
+      const updatedMessage: Message = {
+        ...existingMessage,
+        content: `${existingMessage.content} ${insertMessage.content}`.trim(),
+        tags: [...new Set([...existingMessage.tags, ...insertMessage.tags])],
+      };
+      this.messages.set(existingMessage.id, updatedMessage);
+      return updatedMessage;
     }
 
+    // Otherwise create a new message
     const id = this.currentId++;
     const message: Message = {
       ...insertMessage,

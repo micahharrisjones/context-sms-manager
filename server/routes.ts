@@ -12,6 +12,7 @@ const processSMSWebhook = async (body: any) => {
 
   const content = body.message;
   const senderId = body.from;
+
   // Extract hashtags from the message content
   const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
 
