@@ -4,6 +4,20 @@ import { storage } from "./storage";
 import { insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 
+const processSMSWebhook = async (body: any) => {
+  const content = body.message;
+  const senderId = body.from;
+  const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
+
+  return {
+    content,
+    senderId,
+    tags,
+    mediaUrl: null,
+    mediaType: null,
+  };
+};
+
 export async function registerRoutes(app: Express) {
   app.get("/api/messages", async (_req, res) => {
     const messages = await storage.getMessages();
@@ -32,6 +46,19 @@ export async function registerRoutes(app: Express) {
       } else {
         res.status(500).json({ error: "Internal server error" });
       }
+    }
+  });
+
+  // ClickSend webhook endpoint
+  app.post("/api/webhook/sms", async (req, res) => {
+    try {
+      const smsData = await processSMSWebhook(req.body);
+      const message = insertMessageSchema.parse(smsData);
+      const created = await storage.createMessage(message);
+      res.json(created);
+    } catch (error) {
+      console.error("SMS webhook error:", error);
+      res.status(500).json({ error: "Failed to process SMS" });
     }
   });
 
