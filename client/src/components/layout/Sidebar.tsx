@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "./Logo";
 
 export function Sidebar() {
   const [location] = useLocation();
@@ -16,9 +17,7 @@ export function Sidebar() {
       <div className="p-6 border-b">
         <Link href="/">
           <div className="flex items-center gap-2 mb-2">
-            {/* Logo placeholder - we'll update this when we get the logo */}
-            <div className="w-8 h-8 bg-primary rounded-md"></div>
-            <h1 className="text-xl font-semibold">Context</h1>
+            <Logo />
           </div>
         </Link>
         <Button 
