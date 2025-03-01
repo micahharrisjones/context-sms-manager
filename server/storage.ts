@@ -14,6 +14,43 @@ export class MemStorage implements IStorage {
   constructor() {
     this.messages = new Map();
     this.currentId = 1;
+
+    // Add some initial test messages
+    const testMessages: InsertMessage[] = [
+      {
+        content: "Important meeting notes #work #notes",
+        senderId: "test-user",
+        tags: ["work", "notes"],
+        mediaUrl: null,
+        mediaType: null,
+      },
+      {
+        content: "Remember to buy groceries #shopping #todo",
+        senderId: "test-user",
+        tags: ["shopping", "todo"],
+        mediaUrl: null,
+        mediaType: null,
+      },
+      {
+        content: "Great article about React #dev #learning",
+        senderId: "test-user",
+        tags: ["dev", "learning"],
+        mediaUrl: null,
+        mediaType: null,
+      }
+    ];
+
+    // Initialize with test messages
+    testMessages.forEach(msg => {
+      const message: Message = {
+        ...msg,
+        id: this.currentId++,
+        timestamp: new Date(),
+        mediaUrl: null,
+        mediaType: null
+      };
+      this.messages.set(message.id, message);
+    });
   }
 
   async getMessages(): Promise<Message[]> {
@@ -33,6 +70,8 @@ export class MemStorage implements IStorage {
       ...insertMessage,
       id,
       timestamp: new Date(),
+      mediaUrl: insertMessage.mediaUrl || null,
+      mediaType: insertMessage.mediaType || null
     };
     this.messages.set(id, message);
     return message;
@@ -43,7 +82,7 @@ export class MemStorage implements IStorage {
     for (const message of this.messages.values()) {
       message.tags.forEach(tag => tags.add(tag));
     }
-    return Array.from(tags);
+    return Array.from(tags).sort();
   }
 }
 
