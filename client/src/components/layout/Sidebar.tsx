@@ -13,18 +13,23 @@ export function Sidebar() {
 
   return (
     <div className="w-64 border-r h-screen">
-      <div className="p-4 border-b">
+      <div className="p-6 border-b">
         <Link href="/">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start"
-            size="lg"
-          >
-            All Messages
-          </Button>
+          <div className="flex items-center gap-2 mb-2">
+            {/* Logo placeholder - we'll update this when we get the logo */}
+            <div className="w-8 h-8 bg-primary rounded-md"></div>
+            <h1 className="text-xl font-semibold">Context</h1>
+          </div>
         </Link>
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start mt-4"
+          size="lg"
+        >
+          All Messages
+        </Button>
       </div>
-      <ScrollArea className="h-[calc(100vh-65px)]">
+      <ScrollArea className="h-[calc(100vh-125px)]">
         <div className="p-4 space-y-2">
           {tags?.map((tag) => (
             <Link key={tag} href={`/tag/${tag}`}>
