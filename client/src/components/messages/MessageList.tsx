@@ -9,7 +9,7 @@ interface MessageListProps {
 
 export function MessageList({ tag }: MessageListProps) {
   const { data: messages, isLoading } = useQuery<Message[]>({
-    queryKey: tag ? ["/api/messages/tag", tag] : ["/api/messages"],
+    queryKey: tag ? [`/api/messages/tag/${tag}`] : ["/api/messages"],
   });
 
   if (isLoading) {
