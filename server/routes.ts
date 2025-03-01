@@ -6,13 +6,18 @@ import { z } from "zod";
 import { WebSocketManager } from "./websocket";
 import { log } from "./vite";
 
-const processSMSWebhook = async (body: any) => {
-  if (!body.message || !body.from) {
-    throw new Error("Invalid SMS webhook payload");
-  }
+const clicksendWebhookSchema = z.object({
+  message: z.string(),
+  from: z.string(),
+  media_url: z.string().optional().nullable(),
+  media_type: z.string().optional().nullable(),
+});
 
-  const content = body.message;
-  const senderId = body.from;
+const processSMSWebhook = async (body: unknown) => {
+  log("Raw webhook payload:", JSON.stringify(body, null, 2));
+
+  const validatedData = clicksendWebhookSchema.parse(body);
+  const { message: content, from: senderId, media_url: mediaUrl, media_type: mediaType } = validatedData;
 
   // Extract hashtags from the message content
   const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
@@ -25,13 +30,16 @@ const processSMSWebhook = async (body: any) => {
   // Remove any duplicate tags
   const uniqueTags = [...new Set(tags)];
 
-  return {
+  const processedData = {
     content,
     senderId,
     tags: uniqueTags,
-    mediaUrl: body.media_url || null,
-    mediaType: body.media_type || null,
+    mediaUrl: mediaUrl || null,
+    mediaType: mediaType || null,
   };
+
+  log("Processed webhook data:", JSON.stringify(processedData, null, 2));
+  return processedData;
 };
 
 export async function registerRoutes(app: Express) {
@@ -57,17 +65,29 @@ export async function registerRoutes(app: Express) {
   // ClickSend webhook endpoint
   app.post("/api/webhook/sms", async (req, res) => {
     try {
-      log("Received SMS webhook payload:", JSON.stringify(req.body, null, 2));
+      log("Received webhook request:", {
+        method: req.method,
+        headers: req.headers,
+        body: req.body,
+      });
+
       const smsData = await processSMSWebhook(req.body);
-      log("Processed SMS data:", JSON.stringify(smsData, null, 2));
       const message = insertMessageSchema.parse(smsData);
       const created = await storage.createMessage(message);
-      log("Created message:", JSON.stringify(created, null, 2));
+
+      log("Successfully created message:", JSON.stringify(created, null, 2));
       wsManager.broadcastNewMessage();
       res.json(created);
     } catch (error) {
-      log("SMS webhook error:", error);
-      res.status(500).json({ error: "Failed to process SMS" });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      log("SMS webhook error:", errorMessage);
+
+      // Send a more detailed error response
+      res.status(400).json({ 
+        error: "Failed to process SMS",
+        details: errorMessage,
+        receivedPayload: req.body 
+      });
     }
   });
 
