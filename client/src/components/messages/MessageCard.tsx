@@ -21,8 +21,8 @@ export function MessageCard({ message }: MessageCardProps) {
   const formattedContent = message.content.split(" ").map((word, i) => {
     if (word.startsWith("#")) {
       return (
-        <Link 
-          key={i} 
+        <Link
+          key={i}
           href={`/tag/${word.slice(1)}`}
           className="text-primary hover:underline"
         >
@@ -37,54 +37,53 @@ export function MessageCard({ message }: MessageCardProps) {
   const pinterestId = message.content ? getPinterestId(message.content) : null;
 
   return (
-    <Card className="mb-4">
-      <CardHeader className="pb-2">
+    <Card className="mb-4 mx-auto max-w-2xl">
+      <CardHeader className="pb-2 space-y-1">
         <div className="text-sm text-muted-foreground">
           {format(new Date(message.timestamp), "PPp")}
         </div>
       </CardHeader>
-      <CardContent>
-        <p className="text-foreground">{formattedContent}</p>
+      <CardContent className="space-y-4">
+        <p className="text-foreground break-words">{formattedContent}</p>
         {instagramPostId && (
-          <div className="mt-4">
+          <div className="aspect-square w-full max-w-lg mx-auto">
             <iframe
               src={`https://www.instagram.com/p/${instagramPostId}/embed`}
-              className="w-full aspect-square rounded-md border-0"
+              className="w-full h-full rounded-md border-0"
               loading="lazy"
               allowFullScreen
             />
           </div>
         )}
         {pinterestId && (
-          <div className="mt-4">
+          <div className="w-full max-w-lg mx-auto">
             <a
               data-pin-do="embedPin"
-              data-pin-width="large"
+              data-pin-width="medium"
               href={`https://www.pinterest.com/pin/${pinterestId}/`}
               className="block w-full min-h-[400px]"
             />
-            {/* Add Pinterest embed script dynamically */}
-            <script 
-              async 
-              defer 
+            <script
+              async
+              defer
               src="//assets.pinterest.com/js/pinit.js"
               type="text/javascript"
             />
           </div>
         )}
         {message.mediaUrl && !instagramPostId && !pinterestId && (
-          <div className="mt-4">
+          <div className="w-full max-w-lg mx-auto">
             {message.mediaType?.startsWith("image/") ? (
-              <img 
-                src={message.mediaUrl} 
+              <img
+                src={message.mediaUrl}
                 alt="Message attachment"
-                className="rounded-md max-h-64 w-auto" 
+                className="rounded-md max-h-64 w-auto mx-auto"
               />
             ) : (
-              <a 
+              <a
                 href={message.mediaUrl}
                 target="_blank"
-                rel="noopener noreferrer" 
+                rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
                 View Attachment
