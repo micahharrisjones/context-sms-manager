@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import { WebSocketManager } from "./websocket";
+import { log } from "./vite";
 
 const processSMSWebhook = async (body: any) => {
   if (!body.message || !body.from) {
@@ -56,15 +57,16 @@ export async function registerRoutes(app: Express) {
   // ClickSend webhook endpoint
   app.post("/api/webhook/sms", async (req, res) => {
     try {
-      console.log("Received SMS webhook:", JSON.stringify(req.body));
+      log("Received SMS webhook payload:", JSON.stringify(req.body, null, 2));
       const smsData = await processSMSWebhook(req.body);
+      log("Processed SMS data:", JSON.stringify(smsData, null, 2));
       const message = insertMessageSchema.parse(smsData);
       const created = await storage.createMessage(message);
-      console.log("Created message:", JSON.stringify(created));
+      log("Created message:", JSON.stringify(created, null, 2));
       wsManager.broadcastNewMessage();
       res.json(created);
     } catch (error) {
-      console.error("SMS webhook error:", error);
+      log("SMS webhook error:", error);
       res.status(500).json({ error: "Failed to process SMS" });
     }
   });

@@ -30,6 +30,14 @@ export function MessageList({ tag }: MessageListProps) {
       }
     };
 
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
+
     return () => {
       ws.close();
     };
