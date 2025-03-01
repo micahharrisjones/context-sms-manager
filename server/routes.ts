@@ -76,7 +76,12 @@ export async function registerRoutes(app: Express) {
       const created = await storage.createMessage(message);
 
       log("Successfully created message:", JSON.stringify(created, null, 2));
+
+      // Add logging for WebSocket broadcast
+      log("Broadcasting new message to WebSocket clients");
       wsManager.broadcastNewMessage();
+      log("Broadcast complete");
+
       res.json(created);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
