@@ -12,6 +12,11 @@ function getInstagramPostId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+function getPinterestId(url: string): string | null {
+  const match = url.match(/pin\.it\/(\w+)|pinterest\.com\/pin\/(\d+)/);
+  return match ? (match[1] || match[2]) : null;
+}
+
 export function MessageCard({ message }: MessageCardProps) {
   const formattedContent = message.content.split(" ").map((word, i) => {
     if (word.startsWith("#")) {
@@ -29,6 +34,7 @@ export function MessageCard({ message }: MessageCardProps) {
   });
 
   const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
+  const pinterestId = message.content ? getPinterestId(message.content) : null;
 
   return (
     <Card className="mb-4">
@@ -49,7 +55,24 @@ export function MessageCard({ message }: MessageCardProps) {
             />
           </div>
         )}
-        {message.mediaUrl && !instagramPostId && (
+        {pinterestId && (
+          <div className="mt-4">
+            <a
+              data-pin-do="embedPin"
+              data-pin-width="large"
+              href={`https://www.pinterest.com/pin/${pinterestId}/`}
+              className="block w-full min-h-[400px]"
+            />
+            {/* Add Pinterest embed script dynamically */}
+            <script 
+              async 
+              defer 
+              src="//assets.pinterest.com/js/pinit.js"
+              type="text/javascript"
+            />
+          </div>
+        )}
+        {message.mediaUrl && !instagramPostId && !pinterestId && (
           <div className="mt-4">
             {message.mediaType?.startsWith("image/") ? (
               <img 

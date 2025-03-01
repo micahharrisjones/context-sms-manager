@@ -20,10 +20,13 @@ const processSMSWebhook = async (body: any) => {
     tags.push("untagged");
   }
 
+  // Remove any duplicate tags
+  const uniqueTags = [...new Set(tags)];
+
   return {
     content,
     senderId,
-    tags,
+    tags: uniqueTags,
     mediaUrl: body.media_url || null,
     mediaType: body.media_type || null,
   };
