@@ -14,13 +14,32 @@ if (!process.env.DATABASE_URL) {
 
 log("Connecting to database with URL:", process.env.DATABASE_URL.replace(/:[^:@]+@/, ':***@'));
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Configure the pool with better defaults for serverless environment
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  max: 1,
+  connectionTimeoutMillis: 5000,
+  idleTimeoutMillis: 30000
+});
+
 export const db = drizzle({ client: pool, schema });
 
-// Test the database connection
-pool.connect()
-  .then(() => log("Successfully connected to the database"))
-  .catch(error => {
+// Test the database connection and set up reconnection handling
+async function validateConnection() {
+  try {
+    await pool.connect();
+    log("Successfully connected to the database");
+  } catch (error) {
     log("Failed to connect to database:", error);
-    throw error;
-  });
+    // Wait 5 seconds before retrying
+    setTimeout(validateConnection, 5000);
+  }
+}
+
+validateConnection();
+
+// Handle pool errors
+pool.on('error', (err) => {
+  log("Unexpected database error:", err);
+  validateConnection();
+});
