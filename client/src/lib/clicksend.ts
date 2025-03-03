@@ -9,10 +9,11 @@ interface SendSMSResponse {
 export async function sendTestMessage(content: string): Promise<SendSMSResponse> {
   try {
     console.log("Sending test message:", content);
-    const response = await apiRequest("POST", "/api/messages", {
-      content,
-      senderId: "test-user",
-      tags: content.match(/#\w+/g)?.map(tag => tag.slice(1)) || ["test"],
+    const response = await apiRequest("POST", "/api/webhook/sms", {
+      message: content,
+      from: "test-user",
+      media_url: null,
+      media_type: null
     });
 
     const data = await response.json();
