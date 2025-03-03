@@ -37,12 +37,20 @@ const clicksendWebhookSchema = z.object({
   from: z.string(),
   media_url: z.string().optional().nullable(),
   media_type: z.string().optional().nullable(),
+  originalmessage: z.string().optional(),
 });
 
 const processSMSWebhook = async (body: unknown) => {
   log("Raw webhook payload:", JSON.stringify(body, null, 2));
 
   const validatedData = clicksendWebhookSchema.parse(body);
+
+  // Skip processing if this is a "Message saved with tags" notification
+  if (validatedData.originalmessage?.includes("Message saved with tags")) {
+    log("Skipping tag confirmation message");
+    return null;
+  }
+
   const { message: content, from: senderId, media_url: mediaUrl, media_type: mediaType } = validatedData;
 
   // Extract hashtags from the message content
@@ -124,6 +132,12 @@ export async function registerRoutes(app: Express) {
       });
 
       const smsData = await processSMSWebhook(req.body);
+
+      // If smsData is null, this was a tag confirmation message we want to skip
+      if (!smsData) {
+        return res.json({ status: "skipped" });
+      }
+
       const message = insertMessageSchema.parse(smsData);
       const created = await storage.createMessage(message);
 
