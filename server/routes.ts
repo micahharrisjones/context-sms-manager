@@ -5,32 +5,6 @@ import { insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import { WebSocketManager } from "./websocket";
 import { log } from "./vite";
-import { pool } from "./db";
-
-// Middleware to check database connection
-async function checkDatabaseConnection(req: any, res: any, next: any) {
-  try {
-    const client = await pool.connect();
-    client.release();
-    next();
-  } catch (error) {
-    log("Database connection check failed:", error);
-    res.status(503).json({ 
-      error: "Database connection unavailable",
-      message: "Please try again in a few moments"
-    });
-  }
-}
-
-// Request logging middleware
-function logRequest(req: any, res: any, next: any) {
-  log(`${req.method} ${req.url}`, {
-    headers: req.headers,
-    body: req.body,
-    query: req.query,
-  });
-  next();
-}
 
 const clicksendWebhookSchema = z.object({
   message: z.string(),
@@ -83,8 +57,6 @@ export async function registerRoutes(app: Express) {
   // Add request logging middleware
   app.use(logRequest);
 
-  // Add database connection check middleware to all API routes
-  app.use("/api", checkDatabaseConnection);
 
   app.get("/api/messages", async (_req, res) => {
     try {
@@ -167,4 +139,13 @@ export async function registerRoutes(app: Express) {
   app.post("/webhook/sms", handleWebhook); // Add alternate path without /api prefix
 
   return httpServer;
+}
+
+function logRequest(req: any, res: any, next: any) {
+  log(`${req.method} ${req.url}`, {
+    headers: req.headers,
+    body: req.body,
+    query: req.query,
+  });
+  next();
 }
