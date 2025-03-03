@@ -5,6 +5,22 @@ import { insertMessageSchema } from "@shared/schema";
 import { z } from "zod";
 import { WebSocketManager } from "./websocket";
 import { log } from "./vite";
+import { pool } from "./db";
+
+// Middleware to check database connection
+async function checkDatabaseConnection(req: any, res: any, next: any) {
+  try {
+    const client = await pool.connect();
+    client.release();
+    next();
+  } catch (error) {
+    log("Database connection check failed:", error);
+    res.status(503).json({ 
+      error: "Database connection unavailable",
+      message: "Please try again in a few moments"
+    });
+  }
+}
 
 const clicksendWebhookSchema = z.object({
   message: z.string(),
@@ -28,7 +44,7 @@ const processSMSWebhook = async (body: unknown) => {
   }
 
   // Remove any duplicate tags
-  const uniqueTags = [...new Set(tags)];
+  const uniqueTags = Array.from(new Set(tags));
 
   const processedData = {
     content,
@@ -45,6 +61,9 @@ const processSMSWebhook = async (body: unknown) => {
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
   const wsManager = new WebSocketManager(httpServer);
+
+  // Add database connection check middleware to all API routes
+  app.use("/api", checkDatabaseConnection);
 
   app.get("/api/messages", async (_req, res) => {
     try {
