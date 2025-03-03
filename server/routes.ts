@@ -60,10 +60,10 @@ export async function registerRoutes(app: Express) {
   app.get("/api/messages", async (_req, res) => {
     try {
       const messages = await storage.getMessages();
-      log("Retrieved messages:", messages.length);
+      log(`Retrieved ${messages.length} messages`);
       res.json(messages);
     } catch (error) {
-      log("Error retrieving messages:", error);
+      log(`Error retrieving messages: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({ error: "Failed to retrieve messages" });
     }
   });
@@ -72,10 +72,10 @@ export async function registerRoutes(app: Express) {
     try {
       const tag = req.params.tag;
       const messages = await storage.getMessagesByTag(tag);
-      log(`Retrieved messages for tag ${tag}:`, messages.length);
+      log(`Retrieved ${messages.length} messages for tag ${tag}`);
       res.json(messages);
     } catch (error) {
-      log(`Error retrieving messages for tag ${req.params.tag}:`, error);
+      log(`Error retrieving messages for tag ${req.params.tag}: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({ error: "Failed to retrieve messages by tag" });
     }
   });
@@ -83,10 +83,10 @@ export async function registerRoutes(app: Express) {
   app.get("/api/tags", async (_req, res) => {
     try {
       const tags = await storage.getTags();
-      log("Retrieved tags:", tags);
+      log(`Retrieved ${tags.length} tags`);
       res.json(tags);
     } catch (error) {
-      log("Error retrieving tags:", error);
+      log(`Error retrieving tags: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({ error: "Failed to retrieve tags" });
     }
   });
@@ -125,8 +125,8 @@ export async function registerRoutes(app: Express) {
       // Add logging for WebSocket broadcast
       log("Broadcasting new message to WebSocket clients:", JSON.stringify(created, null, 2));
       log("Before broadcastNewMessage");
-      const broadcastResult = wsManager.broadcastNewMessage();
-      log("After broadcastNewMessage", broadcastResult);
+      wsManager.broadcastNewMessage();
+      log("After broadcastNewMessage");
       log("Broadcast complete");
 
       res.json(created);
@@ -152,10 +152,6 @@ export async function registerRoutes(app: Express) {
 }
 
 function logRequest(req: any, res: any, next: any) {
-  log(`${req.method} ${req.url}`, {
-    headers: req.headers,
-    body: req.body,
-    query: req.query,
-  });
+  log(`${req.method} ${req.url}`);
   next();
 }

@@ -31,7 +31,7 @@ export class WebSocketManager {
       });
 
       ws.on("error", (error) => {
-        log(`WebSocket error: ${error.message}`);
+        log(`WebSocket error: ${error instanceof Error ? error.message : String(error)}`);
         this.clients.delete(ws);
         clearInterval(pingInterval);
       });
@@ -43,24 +43,29 @@ export class WebSocketManager {
     });
 
     this.wss.on("error", (error) => {
-      log(`WebSocket server error: ${error.message}`);
+      log(`WebSocket server error: ${error instanceof Error ? error.message : String(error)}`);
     });
   }
 
   broadcastNewMessage() {
     const message = JSON.stringify({ type: "NEW_MESSAGE" });
     let disconnectedClients = new Set<WebSocket>();
+    let successfulBroadcasts = 0;
+
+    log(`Broadcasting to ${this.clients.size} connected clients`);
 
     this.clients.forEach((client) => {
       if (client.readyState === WebSocket.OPEN) {
         try {
           client.send(message);
+          successfulBroadcasts++;
           log("Successfully sent WebSocket message to client");
         } catch (error) {
-          log(`Error broadcasting to client: ${error.message}`);
+          log(`Error broadcasting to client: ${error instanceof Error ? error.message : String(error)}`);
           disconnectedClients.add(client);
         }
       } else {
+        log(`Client in non-open state: ${client.readyState}`);
         disconnectedClients.add(client);
       }
     });
@@ -70,5 +75,7 @@ export class WebSocketManager {
       this.clients.delete(client);
       log("Removed disconnected client from clients set");
     });
+
+    log(`Broadcast complete. ${successfulBroadcasts} successful, ${disconnectedClients.size} clients removed`);
   }
 }
