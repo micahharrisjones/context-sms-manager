@@ -25,8 +25,16 @@ export function MessageList({ tag }: MessageListProps) {
       return;
     }
 
+    // Close any existing connection before creating a new one
+    if (wsRef.current) {
+      console.log("Closing existing WebSocket connection");
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${window.location.host}/ws/messages`);
+    console.log("Attempting WebSocket connection to:", `${protocol}//${window.location.host}/ws/messages`);
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -70,6 +78,9 @@ export function MessageList({ tag }: MessageListProps) {
     ws.onclose = () => {
       console.log("WebSocket connection closed");
       // Attempt to reconnect after 5 seconds
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log("Attempting to reconnect...");
         connectWebSocket();
@@ -85,6 +96,7 @@ export function MessageList({ tag }: MessageListProps) {
         clearTimeout(reconnectTimeoutRef.current);
       }
       if (wsRef.current) {
+        console.log("Cleaning up WebSocket connection");
         wsRef.current.close();
         wsRef.current = null;
       }
