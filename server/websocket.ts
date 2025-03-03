@@ -55,6 +55,7 @@ export class WebSocketManager {
       if (client.readyState === WebSocket.OPEN) {
         try {
           client.send(message);
+          log("Successfully sent WebSocket message to client");
         } catch (error) {
           log(`Error broadcasting to client: ${error.message}`);
           disconnectedClients.add(client);

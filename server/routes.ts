@@ -144,7 +144,7 @@ export async function registerRoutes(app: Express) {
       log("Successfully created message:", JSON.stringify(created, null, 2));
 
       // Add logging for WebSocket broadcast
-      log("Broadcasting new message to WebSocket clients");
+      log("Broadcasting new message to WebSocket clients:", JSON.stringify(created, null, 2));
       wsManager.broadcastNewMessage();
       log("Broadcast complete");
 

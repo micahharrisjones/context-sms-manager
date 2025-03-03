@@ -39,14 +39,20 @@ export function MessageList({ tag }: MessageListProps) {
 
     ws.onmessage = (event) => {
       try {
+        console.log("WebSocket message received:", event.data);
         const data = JSON.parse(event.data);
         if (data.type === "NEW_MESSAGE") {
+          console.log("Invalidating queries due to new message");
           // Invalidate both messages and tags queries
           queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
           queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
           if (tag) {
             queryClient.invalidateQueries({ queryKey: [`/api/messages/tag/${tag}`] });
           }
+          toast({
+            description: "New message received",
+            duration: 2000,
+          });
         }
       } catch (error) {
         console.error("Error processing message:", error);
