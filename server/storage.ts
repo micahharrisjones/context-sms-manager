@@ -1,4 +1,6 @@
-import { type Message, type InsertMessage } from "@shared/schema";
+import { type Message, type InsertMessage, messages } from "@shared/schema";
+import { db } from "./db";
+import { desc, eq, sql } from "drizzle-orm";
 
 export interface IStorage {
   getMessages(): Promise<Message[]>;
@@ -7,103 +9,68 @@ export interface IStorage {
   getTags(): Promise<string[]>;
 }
 
-export class MemStorage implements IStorage {
-  private messages: Map<number, Message>;
-  private currentId: number;
-
-  constructor() {
-    this.messages = new Map();
-    this.currentId = 1;
-
-    // Add some initial test messages
-    const testMessages: InsertMessage[] = [
-      {
-        content: "Important meeting notes #work #notes",
-        senderId: "test-user",
-        tags: ["work", "notes"],
-        mediaUrl: null,
-        mediaType: null,
-      },
-      {
-        content: "Remember to buy groceries #shopping #todo",
-        senderId: "test-user",
-        tags: ["shopping", "todo"],
-        mediaUrl: null,
-        mediaType: null,
-      },
-      {
-        content: "Great article about React #dev #learning",
-        senderId: "test-user",
-        tags: ["dev", "learning"],
-        mediaUrl: null,
-        mediaType: null,
-      }
-    ];
-
-    // Initialize with test messages
-    testMessages.forEach(msg => {
-      const message: Message = {
-        ...msg,
-        id: this.currentId++,
-        timestamp: new Date(),
-        mediaUrl: null,
-        mediaType: null
-      };
-      this.messages.set(message.id, message);
-    });
-  }
-
+export class DatabaseStorage implements IStorage {
   async getMessages(): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return await db
+      .select()
+      .from(messages)
+      .orderBy(desc(messages.timestamp));
   }
 
   async getMessagesByTag(tag: string): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .filter(message => message.tags.includes(tag))
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    return await db
+      .select()
+      .from(messages)
+      .where(sql`${messages.tags} @> ARRAY[${tag}]::text[]`)
+      .orderBy(desc(messages.timestamp));
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
     // Look for recent messages from the same sender (within 5 seconds)
-    const recentMessages = Array.from(this.messages.values())
-      .filter(msg => 
-        msg.senderId === insertMessage.senderId &&
-        (new Date().getTime() - new Date(msg.timestamp).getTime()) < 5000
-      );
+    const recentMessages = await db
+      .select()
+      .from(messages)
+      .where(sql`
+        sender_id = ${insertMessage.senderId} 
+        AND timestamp > NOW() - INTERVAL '5 seconds'
+      `);
 
     // If we found a recent message, merge the content and tags
     if (recentMessages.length > 0) {
       const existingMessage = recentMessages[0];
-      const updatedMessage: Message = {
-        ...existingMessage,
-        content: `${existingMessage.content} ${insertMessage.content}`.trim(),
-        tags: [...new Set([...existingMessage.tags, ...insertMessage.tags])],
-      };
-      this.messages.set(existingMessage.id, updatedMessage);
+      const updatedMessage = await db
+        .update(messages)
+        .set({
+          content: `${existingMessage.content} ${insertMessage.content}`.trim(),
+          tags: [...new Set([...existingMessage.tags, ...insertMessage.tags])],
+        })
+        .where(eq(messages.id, existingMessage.id))
+        .returning()
+        .then(rows => rows[0]);
+
       return updatedMessage;
     }
 
     // Otherwise create a new message
-    const id = this.currentId++;
-    const message: Message = {
-      ...insertMessage,
-      id,
-      timestamp: new Date(),
-      mediaUrl: insertMessage.mediaUrl || null,
-      mediaType: insertMessage.mediaType || null
-    };
-    this.messages.set(id, message);
+    const [message] = await db
+      .insert(messages)
+      .values({
+        ...insertMessage,
+        timestamp: new Date(),
+      })
+      .returning();
+
     return message;
   }
 
   async getTags(): Promise<string[]> {
-    const tags = new Set<string>();
-    for (const message of this.messages.values()) {
-      message.tags.forEach(tag => tags.add(tag));
-    }
-    return Array.from(tags).sort();
+    const result = await db.execute<{ tag: string }>(sql`
+      SELECT DISTINCT unnest(tags) as tag 
+      FROM messages 
+      ORDER BY tag
+    `);
+    return result.rows.map(row => row.tag);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

@@ -30,7 +30,24 @@ export function MessageCard({ message }: MessageCardProps) {
         </Link>
       );
     }
-    return word + " ";
+
+    // Check if the word is a URL
+    try {
+      new URL(word);
+      return (
+        <a
+          key={i}
+          href={word}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary hover:underline"
+        >
+          {word}{" "}
+        </a>
+      );
+    } catch {
+      return word + " ";
+    }
   });
 
   const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
@@ -77,7 +94,15 @@ export function MessageCard({ message }: MessageCardProps) {
               <img
                 src={message.mediaUrl}
                 alt="Message attachment"
-                className="rounded-md max-h-64 w-auto mx-auto"
+                className="rounded-md max-h-96 w-auto mx-auto object-contain"
+                loading="lazy"
+              />
+            ) : message.mediaType?.startsWith("video/") ? (
+              <video
+                src={message.mediaUrl}
+                className="rounded-md max-h-96 w-auto mx-auto"
+                controls
+                preload="metadata"
               />
             ) : (
               <a
