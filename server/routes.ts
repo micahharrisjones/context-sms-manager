@@ -57,7 +57,6 @@ export async function registerRoutes(app: Express) {
   // Add request logging middleware
   app.use(logRequest);
 
-
   app.get("/api/messages", async (_req, res) => {
     try {
       const messages = await storage.getMessages();
@@ -94,6 +93,7 @@ export async function registerRoutes(app: Express) {
 
   // ClickSend webhook endpoint - handle both /api/webhook/sms and /webhook/sms
   const handleWebhook = async (req: any, res: any) => {
+    log("Entering handleWebhook function");
     try {
       log("Received webhook request:", {
         method: req.method,
@@ -104,20 +104,29 @@ export async function registerRoutes(app: Express) {
       });
 
       const smsData = await processSMSWebhook(req.body);
+      log("processSMSWebhook completed");
 
       // If smsData is null, this was a tag confirmation message we want to skip
       if (!smsData) {
+        log("Skipping message due to null smsData");
         return res.json({ status: "skipped" });
       }
 
+      log("Parsing smsData with insertMessageSchema");
       const message = insertMessageSchema.parse(smsData);
+      log("insertMessageSchema parsing complete");
+
+      log("Creating message in storage");
       const created = await storage.createMessage(message);
+      log("Message creation complete");
 
       log("Successfully created message:", JSON.stringify(created, null, 2));
 
       // Add logging for WebSocket broadcast
       log("Broadcasting new message to WebSocket clients:", JSON.stringify(created, null, 2));
-      wsManager.broadcastNewMessage();
+      log("Before broadcastNewMessage");
+      const broadcastResult = wsManager.broadcastNewMessage();
+      log("After broadcastNewMessage", broadcastResult);
       log("Broadcast complete");
 
       res.json(created);
@@ -132,6 +141,7 @@ export async function registerRoutes(app: Express) {
         receivedPayload: req.body,
       });
     }
+    log("Exiting handleWebhook function");
   };
 
   // Register webhook handler for both paths
