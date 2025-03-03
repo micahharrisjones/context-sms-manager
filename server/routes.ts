@@ -47,19 +47,37 @@ export async function registerRoutes(app: Express) {
   const wsManager = new WebSocketManager(httpServer);
 
   app.get("/api/messages", async (_req, res) => {
-    const messages = await storage.getMessages();
-    res.json(messages);
+    try {
+      const messages = await storage.getMessages();
+      log("Retrieved messages:", messages.length);
+      res.json(messages);
+    } catch (error) {
+      log("Error retrieving messages:", error);
+      res.status(500).json({ error: "Failed to retrieve messages" });
+    }
   });
 
   app.get("/api/messages/tag/:tag", async (req, res) => {
-    const tag = req.params.tag;
-    const messages = await storage.getMessagesByTag(tag);
-    res.json(messages);
+    try {
+      const tag = req.params.tag;
+      const messages = await storage.getMessagesByTag(tag);
+      log(`Retrieved messages for tag ${tag}:`, messages.length);
+      res.json(messages);
+    } catch (error) {
+      log(`Error retrieving messages for tag ${req.params.tag}:`, error);
+      res.status(500).json({ error: "Failed to retrieve messages by tag" });
+    }
   });
 
   app.get("/api/tags", async (_req, res) => {
-    const tags = await storage.getTags();
-    res.json(tags);
+    try {
+      const tags = await storage.getTags();
+      log("Retrieved tags:", tags);
+      res.json(tags);
+    } catch (error) {
+      log("Error retrieving tags:", error);
+      res.status(500).json({ error: "Failed to retrieve tags" });
+    }
   });
 
   // ClickSend webhook endpoint
