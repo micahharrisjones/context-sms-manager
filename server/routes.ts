@@ -22,6 +22,16 @@ async function checkDatabaseConnection(req: any, res: any, next: any) {
   }
 }
 
+// Request logging middleware
+function logRequest(req: any, res: any, next: any) {
+  log(`${req.method} ${req.url}`, {
+    headers: req.headers,
+    body: req.body,
+    query: req.query,
+  });
+  next();
+}
+
 const clicksendWebhookSchema = z.object({
   message: z.string(),
   from: z.string(),
@@ -62,6 +72,9 @@ export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
   const wsManager = new WebSocketManager(httpServer);
 
+  // Add request logging middleware
+  app.use(logRequest);
+
   // Add database connection check middleware to all API routes
   app.use("/api", checkDatabaseConnection);
 
@@ -99,8 +112,8 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // ClickSend webhook endpoint
-  app.post("/api/webhook/sms", async (req, res) => {
+  // ClickSend webhook endpoint - handle both /api/webhook/sms and /webhook/sms
+  const handleWebhook = async (req: any, res: any) => {
     try {
       log("Received webhook request:", {
         method: req.method,
@@ -133,7 +146,11 @@ export async function registerRoutes(app: Express) {
         receivedPayload: req.body,
       });
     }
-  });
+  };
+
+  // Register webhook handler for both paths
+  app.post("/api/webhook/sms", handleWebhook);
+  app.post("/webhook/sms", handleWebhook); // Add alternate path without /api prefix
 
   return httpServer;
 }
