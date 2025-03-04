@@ -23,11 +23,19 @@ async function checkDatabaseConnection(req: any, res: any, next: any) {
 }
 
 const clicksendWebhookSchema = z.object({
-  message: z.string(),
-  from: z.string(),
+  message: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
+  from: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
+  sms: z.string().optional(),
+  originalsenderid: z.string(),
+  to: z.string(),
+  body: z.string(),
   media_url: z.string().optional().nullable(),
   media_type: z.string().optional().nullable(),
   originalmessage: z.string().optional(),
+  custom_string: z.string().optional(),
+}).refine((data) => data.from !== "" || data.originalsenderid, {
+  message: "Either 'from' or 'originalsenderid' must be provided",
+  path: ["from"],
 });
 
 const processSMSWebhook = async (body: unknown) => {
@@ -41,7 +49,10 @@ const processSMSWebhook = async (body: unknown) => {
     return null;
   }
 
-  const { message: content, from: senderId, media_url: mediaUrl, media_type: mediaType } = validatedData;
+  // Use originalsenderid if from is not provided
+  const senderId = validatedData.from || validatedData.originalsenderid;
+  // Use message if available, otherwise use body
+  const content = validatedData.message || validatedData.body;
 
   // Extract hashtags from the message content
   const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
@@ -58,8 +69,8 @@ const processSMSWebhook = async (body: unknown) => {
     content,
     senderId,
     tags: uniqueTags,
-    mediaUrl: mediaUrl || null,
-    mediaType: mediaType || null,
+    mediaUrl: validatedData.media_url || null,
+    mediaType: validatedData.media_type || null,
   };
 
   log("Processed webhook data:", JSON.stringify(processedData, null, 2));
@@ -170,7 +181,14 @@ export async function registerRoutes(app: Express) {
   return httpServer;
 }
 
+// Request logging middleware
 function logRequest(req: any, res: any, next: any) {
-  log(`${req.method} ${req.url}`);
+  log("Request received:", {
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    body: req.body,
+    query: req.query,
+  });
   next();
 }
