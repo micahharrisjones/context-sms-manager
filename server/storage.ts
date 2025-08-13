@@ -30,6 +30,7 @@ export interface IStorage {
   getMessageById(messageId: number): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
   deleteMessage(messageId: number): Promise<void>;
+  deleteMessagesByTag(userId: number, tag: string): Promise<void>;
   getTags(userId: number): Promise<string[]>;
   getRecentMessagesBySender(userId: number, senderId: string, since: Date): Promise<Message[]>;
   updateMessageTags(messageId: number, tags: string[]): Promise<void>;
@@ -280,6 +281,23 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully deleted message ${messageId}`);
     } catch (error) {
       log(`Error deleting message ${messageId}:`, error);
+      throw error;
+    }
+  }
+
+  async deleteMessagesByTag(userId: number, tag: string): Promise<void> {
+    try {
+      log(`Deleting all messages with tag "${tag}" for user ${userId}`);
+      await db
+        .delete(messages)
+        .where(and(
+          eq(messages.userId, userId),
+          sql`${messages.tags} @> ARRAY[${tag}]::text[]`
+        ));
+      
+      log(`Successfully deleted all messages with tag "${tag}" for user ${userId}`);
+    } catch (error) {
+      log(`Error deleting messages with tag "${tag}":`, error);
       throw error;
     }
   }

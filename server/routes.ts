@@ -436,6 +436,41 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // DELETE endpoint for removing all messages with a specific tag
+  app.delete("/api/tags/:tag", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const tag = decodeURIComponent(req.params.tag);
+      
+      if (!tag || typeof tag !== 'string') {
+        return res.status(400).json({ error: "Tag is required" });
+      }
+
+      // Get all messages with this tag to count them
+      const messagesToDelete = await storage.getMessagesByTag(userId, tag);
+      
+      if (messagesToDelete.length === 0) {
+        return res.status(404).json({ error: "No messages found with this tag" });
+      }
+
+      // Delete all messages with this tag
+      await storage.deleteMessagesByTag(userId, tag);
+      log(`Deleted ${messagesToDelete.length} messages with tag "${tag}" for user ${userId}`);
+
+      // Broadcast to WebSocket clients
+      wsManager.broadcastNewMessage();
+
+      res.json({ 
+        success: true, 
+        message: `Deleted ${messagesToDelete.length} messages with tag #${tag}`,
+        deletedCount: messagesToDelete.length
+      });
+    } catch (error) {
+      log(`Error deleting tag "${req.params.tag}": ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to delete tag" });
+    }
+  });
+
   // Twilio webhook endpoint - handle both /api/webhook/sms and /webhook/sms
   const handleWebhook = async (req: any, res: any) => {
     log("Entering handleWebhook function");
