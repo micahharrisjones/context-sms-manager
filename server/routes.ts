@@ -14,7 +14,7 @@ async function checkDatabaseConnection(req: any, res: any, next: any) {
     client.release();
     next();
   } catch (error) {
-    log("Database connection check failed:", error);
+    log("Database connection check failed:", error instanceof Error ? error.message : String(error));
     res.status(503).json({ 
       error: "Database connection unavailable",
       message: "Please try again in a few moments"
@@ -22,37 +22,29 @@ async function checkDatabaseConnection(req: any, res: any, next: any) {
   }
 }
 
-const clicksendWebhookSchema = z.object({
-  message: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
-  from: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
-  sms: z.string().optional(),
-  originalsenderid: z.string(),
-  to: z.string(),
-  body: z.string(),
-  media_url: z.string().optional().nullable(),
-  media_type: z.string().optional().nullable(),
-  originalmessage: z.string().optional(),
-  custom_string: z.string().optional(),
-}).refine((data) => data.from !== "" || data.originalsenderid, {
-  message: "Either 'from' or 'originalsenderid' must be provided",
-  path: ["from"],
+const twilioWebhookSchema = z.object({
+  Body: z.string(),
+  From: z.string(),
+  To: z.string(),
+  MessageSid: z.string(),
+  AccountSid: z.string(),
+  NumMedia: z.string().optional().default("0"),
+  MediaUrl0: z.string().optional().nullable(),
+  MediaContentType0: z.string().optional().nullable(),
 });
 
 const processSMSWebhook = async (body: unknown) => {
   log("Raw webhook payload:", JSON.stringify(body, null, 2));
 
-  const validatedData = clicksendWebhookSchema.parse(body);
+  const validatedData = twilioWebhookSchema.parse(body);
 
-  // Skip processing if this is a "Message saved with tags" notification
-  if (validatedData.originalmessage?.includes("Message saved with tags")) {
-    log("Skipping tag confirmation message");
-    return null;
+  // Verify this is from our Twilio account
+  if (validatedData.AccountSid !== process.env.TWILIO_ACCOUNT_SID) {
+    throw new Error("Invalid account SID");
   }
 
-  // Use originalsenderid if from is not provided
-  const senderId = validatedData.from || validatedData.originalsenderid;
-  // Use message if available, otherwise use body
-  const content = validatedData.message || validatedData.body;
+  const content = validatedData.Body;
+  const senderId = validatedData.From;
 
   // Extract hashtags from the message content
   const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
@@ -65,12 +57,17 @@ const processSMSWebhook = async (body: unknown) => {
   // Remove any duplicate tags
   const uniqueTags = Array.from(new Set(tags));
 
+  // Handle media if present
+  const numMedia = parseInt(validatedData.NumMedia || "0");
+  const mediaUrl = numMedia > 0 ? validatedData.MediaUrl0 : null;
+  const mediaType = numMedia > 0 ? validatedData.MediaContentType0 : null;
+
   const processedData = {
     content,
     senderId,
     tags: uniqueTags,
-    mediaUrl: validatedData.media_url || null,
-    mediaType: validatedData.media_type || null,
+    mediaUrl,
+    mediaType,
   };
 
   log("Processed webhook data:", JSON.stringify(processedData, null, 2));
@@ -121,17 +118,17 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // ClickSend webhook endpoint - handle both /api/webhook/sms and /webhook/sms
+  // Twilio webhook endpoint - handle both /api/webhook/sms and /webhook/sms
   const handleWebhook = async (req: any, res: any) => {
     log("Entering handleWebhook function");
     try {
-      log("Received webhook request:", {
+      log("Received webhook request:", JSON.stringify({
         method: req.method,
         path: req.path,
         headers: req.headers,
         body: req.body,
         query: req.query,
-      });
+      }, null, 2));
 
       const smsData = await processSMSWebhook(req.body);
       log("processSMSWebhook completed");
@@ -174,21 +171,23 @@ export async function registerRoutes(app: Express) {
     log("Exiting handleWebhook function");
   };
 
-  // Register webhook handler for both paths
+  // Register Twilio webhook handler for both paths
   app.post("/api/webhook/sms", handleWebhook);
   app.post("/webhook/sms", handleWebhook); // Add alternate path without /api prefix
+  app.post("/api/webhook/twilio", handleWebhook); // Twilio-specific endpoint
+  app.post("/webhook/twilio", handleWebhook); // Twilio-specific endpoint without /api prefix
 
   return httpServer;
 }
 
 // Request logging middleware
 function logRequest(req: any, res: any, next: any) {
-  log("Request received:", {
+  log("Request received:", JSON.stringify({
     method: req.method,
     url: req.url,
     headers: req.headers,
     body: req.body,
     query: req.query,
-  });
+  }, null, 2));
   next();
 }
