@@ -5,7 +5,7 @@ A robust SMS management platform that enables persistent message storage and sea
 
 ## Current Status
 - **Phase**: Multi-user system fully operational with message association
-- **Last Updated**: August 13, 2025
+- **Last Updated**: August 13, 2025 (8:50 PM)
 - **Status**: Authentication, message storage, and user account management working correctly across multiple users
 
 ## Architecture
@@ -14,7 +14,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - **Database**: PostgreSQL with Drizzle ORM
 - **Real-time**: WebSocket connections
 - **SMS Integration**: Twilio (migrating from ClickSend)
-- **Features**: Social media link previews (Instagram, Pinterest)
+- **Features**: Rich social media embeds (Instagram, Pinterest, X/Twitter, Reddit, Facebook, YouTube, TikTok)
 
 ## Recent Changes
 - ✅ Implemented complete MVP with React frontend and Express backend
@@ -37,6 +37,9 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Implemented user-specific WebSocket notifications to prevent cross-user toast spam**
 - ✅ **Added tag deletion feature with bulk message removal**
 - ✅ **Enhanced UI with hover-to-reveal delete buttons on messages and sidebar tags**
+- ✅ **Fixed tag deletion to include hashtag-only messages - tags can now be deleted even when they only contain hidden categorization messages**
+- ✅ **Enhanced social media previews to show actual embedded content instead of basic links**
+- ✅ **Added comprehensive social media support: Instagram, Pinterest, X/Twitter, Reddit, Facebook, YouTube, and TikTok with rich iframe embeds**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive

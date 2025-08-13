@@ -446,14 +446,15 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Tag is required" });
       }
 
-      // Get all messages with this tag to count them
-      const messagesToDelete = await storage.getMessagesByTag(userId, tag);
+      // Get all messages with this tag to count them (including hashtag-only messages)
+      const messagesToDelete = await storage.getAllMessagesByTagForDeletion(userId, tag);
+      log(`Found ${messagesToDelete.length} messages with tag "${tag}" for user ${userId}`);
       
       if (messagesToDelete.length === 0) {
         return res.status(404).json({ error: "No messages found with this tag" });
       }
 
-      // Delete all messages with this tag
+      // Delete all messages with this tag (including hashtag-only messages)
       await storage.deleteMessagesByTag(userId, tag);
       log(`Deleted ${messagesToDelete.length} messages with tag "${tag}" for user ${userId}`);
 

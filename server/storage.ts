@@ -27,6 +27,7 @@ export interface IStorage {
   // Message management (now user-scoped)
   getMessages(userId: number): Promise<Message[]>;
   getMessagesByTag(userId: number, tag: string): Promise<Message[]>;
+  getAllMessagesByTagForDeletion(userId: number, tag: string): Promise<Message[]>;
   getMessageById(messageId: number): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
   deleteMessage(messageId: number): Promise<void>;
@@ -298,6 +299,27 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully deleted all messages with tag "${tag}" for user ${userId}`);
     } catch (error) {
       log(`Error deleting messages with tag "${tag}":`, error);
+      throw error;
+    }
+  }
+
+  // Get all messages with a tag WITHOUT filtering hashtag-only messages (for tag deletion count)
+  async getAllMessagesByTagForDeletion(userId: number, tag: string): Promise<Message[]> {
+    try {
+      log(`Fetching ALL messages (including hashtag-only) with tag: ${tag} for user ${userId}`);
+      const result = await db
+        .select()
+        .from(messages)
+        .where(and(
+          eq(messages.userId, userId),
+          sql`${messages.tags} @> ARRAY[${tag}]::text[]`
+        ))
+        .orderBy(desc(messages.timestamp));
+      
+      log(`Successfully retrieved ${result.length} total messages for tag ${tag} (including hashtag-only)`);
+      return result;
+    } catch (error) {
+      log(`Error fetching all messages by tag ${tag}:`, error);
       throw error;
     }
   }
