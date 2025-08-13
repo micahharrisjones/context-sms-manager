@@ -41,6 +41,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             variant="ghost" 
             className="w-full justify-start"
             size="lg"
+            onClick={onClose}
           >
             All Messages
           </Button>
@@ -56,6 +57,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   "w-full justify-start",
                   location === `/tag/${tag}` && "bg-muted"
                 )}
+                onClick={onClose}
               >
                 <Hash className="w-4 h-4 mr-2" />
                 {tag}
