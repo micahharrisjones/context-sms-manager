@@ -13,12 +13,13 @@ interface BoardMember {
   userId: number;
   boardId: number;
   role: string;
-  createdAt: string;
+  joinedAt: string;
   user: {
     id: number;
     phoneNumber: string;
+    displayName: string;
     createdAt: string;
-    lastLogin: string | null;
+    lastLoginAt: string | null;
   };
 }
 
@@ -85,7 +86,7 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
                         {formatPhoneNumber(member.user.phoneNumber)}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Joined {new Date(member.createdAt).toLocaleDateString()}
+                        Joined {new Date(member.joinedAt).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
@@ -93,9 +94,9 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
                     <div className="text-sm font-medium capitalize text-primary">
                       {member.role}
                     </div>
-                    {member.user.lastLogin && (
+                    {member.user.lastLoginAt && (
                       <div className="text-xs text-muted-foreground">
-                        Last active: {new Date(member.user.lastLogin).toLocaleDateString()}
+                        Last active: {new Date(member.user.lastLoginAt).toLocaleDateString()}
                       </div>
                     )}
                   </div>
