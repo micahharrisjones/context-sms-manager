@@ -402,6 +402,40 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // DELETE endpoint for removing messages
+  app.delete("/api/messages/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const messageId = parseInt(req.params.id);
+      
+      if (isNaN(messageId)) {
+        return res.status(400).json({ error: "Invalid message ID" });
+      }
+
+      // Check if message exists and belongs to the user
+      const existingMessage = await storage.getMessageById(messageId);
+      if (!existingMessage) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+
+      if (existingMessage.userId !== userId) {
+        return res.status(403).json({ error: "Unauthorized to delete this message" });
+      }
+
+      // Delete the message
+      await storage.deleteMessage(messageId);
+      log(`Deleted message ${messageId} for user ${userId}`);
+
+      // Broadcast to WebSocket clients
+      wsManager.broadcastNewMessage();
+
+      res.json({ success: true, message: "Message deleted successfully" });
+    } catch (error) {
+      log(`Error deleting message: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to delete message" });
+    }
+  });
+
   // Twilio webhook endpoint - handle both /api/webhook/sms and /webhook/sms
   const handleWebhook = async (req: any, res: any) => {
     log("Entering handleWebhook function");

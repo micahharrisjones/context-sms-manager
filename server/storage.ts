@@ -27,7 +27,9 @@ export interface IStorage {
   // Message management (now user-scoped)
   getMessages(userId: number): Promise<Message[]>;
   getMessagesByTag(userId: number, tag: string): Promise<Message[]>;
+  getMessageById(messageId: number): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
+  deleteMessage(messageId: number): Promise<void>;
   getTags(userId: number): Promise<string[]>;
   getRecentMessagesBySender(userId: number, senderId: string, since: Date): Promise<Message[]>;
   updateMessageTags(messageId: number, tags: string[]): Promise<void>;
@@ -196,6 +198,22 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async getMessageById(messageId: number): Promise<Message | undefined> {
+    try {
+      log(`Fetching message by ID: ${messageId}`);
+      const [message] = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.id, messageId));
+      
+      log(`Message ${messageId} ${message ? 'found' : 'not found'}`);
+      return message || undefined;
+    } catch (error) {
+      log(`Error fetching message by ID ${messageId}:`, error);
+      throw error;
+    }
+  }
+
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
     try {
       log("Creating new message:", JSON.stringify(insertMessage, null, 2));
@@ -248,6 +266,20 @@ export class DatabaseStorage implements IStorage {
       return message;
     } catch (error) {
       log("Error creating message:", error);
+      throw error;
+    }
+  }
+
+  async deleteMessage(messageId: number): Promise<void> {
+    try {
+      log(`Deleting message ${messageId}`);
+      await db
+        .delete(messages)
+        .where(eq(messages.id, messageId));
+      
+      log(`Successfully deleted message ${messageId}`);
+    } catch (error) {
+      log(`Error deleting message ${messageId}:`, error);
       throw error;
     }
   }

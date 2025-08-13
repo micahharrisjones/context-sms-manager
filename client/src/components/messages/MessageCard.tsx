@@ -1,7 +1,11 @@
 import { Message } from "@shared/schema";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Link } from "wouter";
+import { X } from "lucide-react";
+import { useState } from "react";
+import { DeleteMessageModal } from "./DeleteMessageModal";
 
 interface MessageCardProps {
   message: Message;
@@ -18,6 +22,8 @@ function getPinterestId(url: string): string | null {
 }
 
 export function MessageCard({ message }: MessageCardProps) {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
   const formattedContent = message.content.split(" ").map((word, i) => {
     if (word.startsWith("#")) {
       return (
@@ -54,12 +60,23 @@ export function MessageCard({ message }: MessageCardProps) {
   const pinterestId = message.content ? getPinterestId(message.content) : null;
 
   return (
-    <Card className="mb-4 mx-auto max-w-2xl">
-      <CardHeader className="pb-2 space-y-1">
-        <div className="text-sm text-muted-foreground">
-          {format(new Date(message.timestamp), "PPp")}
-        </div>
-      </CardHeader>
+    <>
+      <Card className="mb-4 mx-auto max-w-2xl relative group">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowDeleteModal(true)}
+          className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
+          aria-label="Delete message"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+        
+        <CardHeader className="pb-2 space-y-1">
+          <div className="text-sm text-muted-foreground">
+            {format(new Date(message.timestamp), "PPp")}
+          </div>
+        </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-foreground break-words">{formattedContent}</p>
         {instagramPostId && (
@@ -118,5 +135,13 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
       </CardContent>
     </Card>
+
+    <DeleteMessageModal
+      isOpen={showDeleteModal}
+      onClose={() => setShowDeleteModal(false)}
+      messageId={message.id}
+      messagePreview={message.content}
+    />
+    </>
   );
 }
