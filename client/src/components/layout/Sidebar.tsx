@@ -48,13 +48,20 @@ export function Sidebar({ onClose }: SidebarProps) {
         )}
       </div>
       <div className="p-4">
-        <div className="border border-border rounded-lg bg-muted/30">
+        <div className={cn(
+          "border rounded-lg transition-colors",
+          location === "/" 
+            ? "border-primary/20 bg-primary/5" 
+            : "border-border bg-muted/30"
+        )}>
           <Link href="/">
             <Button 
               variant="ghost" 
               className={cn(
-                "w-full justify-start m-1",
-                location === "/" && "bg-muted"
+                "w-full justify-start m-1 hover:bg-transparent",
+                location === "/" 
+                  ? "bg-transparent text-primary font-medium" 
+                  : "hover:bg-muted/50"
               )}
               size="lg"
               onClick={onClose}
