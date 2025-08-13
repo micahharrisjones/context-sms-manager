@@ -23,6 +23,12 @@ async function checkDatabaseConnection(req: any, res: any, next: any) {
   }
 }
 
+// Helper function to extract hashtags from content
+function extractHashtags(content: string): string[] {
+  const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
+  return Array.from(new Set(tags)); // Remove duplicates
+}
+
 const twilioWebhookSchema = z.object({
   Body: z.string(),
   From: z.string(),
@@ -71,11 +77,7 @@ async function fixUntaggedUrlMessage(messageId: number, userId: number, senderId
       log(`Updated message ${messageId} with inherited tags: [${recentTags.join(', ')}]`);
       
       // Broadcast WebSocket update for the corrected message
-      wsManager.broadcast({
-        type: "MESSAGE_UPDATED",
-        messageId,
-        tags: recentTags
-      });
+      wsManager.broadcastNewMessage();
     }
   } catch (error) {
     log("Error in post-processing:", error instanceof Error ? error.message : String(error));
@@ -144,7 +146,7 @@ const processSMSWebhook = async (body: unknown) => {
     }
 
     // Extract hashtags from the message content
-    let tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
+    let tags = extractHashtags(content);
 
     // If no tags were found, try to inherit from recent message from same sender
     if (tags.length === 0) {
@@ -213,7 +215,7 @@ const processSMSWebhook = async (body: unknown) => {
   }
 
   // Extract hashtags from the message content
-  let tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
+  let tags = extractHashtags(content);
 
   // If no tags were found, try to inherit from recent message from same sender
   if (tags.length === 0) {
@@ -270,7 +272,7 @@ export async function registerRoutes(app: Express) {
         code: verificationCode // Remove this in production
       });
     } catch (error) {
-      log("Error requesting verification code:", error);
+      log("Error requesting verification code:", error instanceof Error ? error.message : String(error));
       res.status(500).json({ error: "Failed to send verification code" });
     }
   });
@@ -300,7 +302,7 @@ export async function registerRoutes(app: Express) {
         });
       }
     } catch (error) {
-      log("Error verifying code:", error);
+      log("Error verifying code:", error instanceof Error ? error.message : String(error));
       res.status(500).json({ error: "Authentication failed" });
     }
   });
