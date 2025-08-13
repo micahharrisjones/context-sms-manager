@@ -16,7 +16,7 @@ import {
   boardMemberships
 } from "@shared/schema";
 import { db } from "./db";
-import { desc, eq, sql, gte, and } from "drizzle-orm";
+import { desc, eq, sql, gte, and, inArray } from "drizzle-orm";
 import { log } from "./vite";
 
 export interface IStorage {
@@ -580,8 +580,8 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(messages)
         .where(and(
-          sql`${messages.userId} = ANY(ARRAY[${memberIds.join(',')}])`,
-          sql`${messages.tags} @> ARRAY[${boardName}]::text[]`
+          inArray(messages.userId, memberIds),
+          sql`${messages.tags} @> ARRAY[${boardName}]`
         ))
         .orderBy(desc(messages.timestamp));
 
