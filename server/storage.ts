@@ -580,8 +580,8 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(messages)
         .where(and(
-          sql`${messages.userId} = ANY(${memberIds})`,
-          sql`${boardName} = ANY(${messages.tags})`
+          sql`${messages.userId} = ANY(ARRAY[${memberIds.join(',')}])`,
+          sql`${messages.tags} @> ARRAY[${boardName}]::text[]`
         ))
         .orderBy(desc(messages.timestamp));
 
