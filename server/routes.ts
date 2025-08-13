@@ -58,6 +58,29 @@ async function getRecentTagsFromSender(senderId: string): Promise<string[]> {
   }
 }
 
+// Post-processing function to fix untagged URL messages
+async function fixUntaggedUrlMessage(messageId: number, senderId: string): Promise<void> {
+  try {
+    // Wait a bit for any concurrent messages to be processed
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const recentTags = await getRecentTagsFromSender(senderId);
+    if (recentTags.length > 0) {
+      await storage.updateMessageTags(messageId, recentTags);
+      log(`Updated message ${messageId} with inherited tags: [${recentTags.join(', ')}]`);
+      
+      // Broadcast WebSocket update for the corrected message
+      wsManager.broadcast({
+        type: "MESSAGE_UPDATED",
+        messageId,
+        tags: recentTags
+      });
+    }
+  } catch (error) {
+    log("Error in post-processing:", error instanceof Error ? error.message : String(error));
+  }
+}
+
 // Support both ClickSend and Twilio webhook formats
 const clicksendWebhookSchema = z.object({
   message: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
@@ -254,6 +277,14 @@ export async function registerRoutes(app: Express) {
       log("Message creation complete");
 
       log("Successfully created message:", JSON.stringify(created, null, 2));
+
+      // If this message was untagged and contains a URL, schedule post-processing to check for recent hashtags
+      const hasUrl = /https?:\/\/[^\s]+/.test(created.content);
+      if (created.tags.includes("untagged") && hasUrl) {
+        log("Scheduling post-processing for potentially untagged URL message");
+        // Don't await this - let it run in the background
+        fixUntaggedUrlMessage(created.id, created.senderId, wsManager);
+      }
 
       // Add logging for WebSocket broadcast
       log("Broadcasting new message to WebSocket clients:", JSON.stringify(created, null, 2));

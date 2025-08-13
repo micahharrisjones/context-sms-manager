@@ -9,6 +9,7 @@ export interface IStorage {
   createMessage(message: InsertMessage): Promise<Message>;
   getTags(): Promise<string[]>;
   getRecentMessagesBySender(senderId: string, since: Date): Promise<Message[]>;
+  updateMessageTags(messageId: number, tags: string[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -129,6 +130,22 @@ export class DatabaseStorage implements IStorage {
       return result;
     } catch (error) {
       log("Error fetching recent messages by sender:", error);
+      throw error;
+    }
+  }
+
+  async updateMessageTags(messageId: number, tags: string[]): Promise<void> {
+    try {
+      log(`Updating message ${messageId} with tags: [${tags.join(', ')}]`);
+      await db
+        .update(messages)
+        .set({
+          tags: tags
+        })
+        .where(eq(messages.id, messageId));
+      log(`Successfully updated message ${messageId} tags`);
+    } catch (error) {
+      log("Error updating message tags:", error);
       throw error;
     }
   }
