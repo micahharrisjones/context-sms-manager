@@ -22,20 +22,25 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsLoading(true);
 
     try {
+      console.log('Sending verification request for:', phoneNumber);
       const response = await apiRequest('/api/auth/request-code', {
         method: 'POST',
         body: JSON.stringify({ phoneNumber }),
       });
 
+      console.log('Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Verification response:', data);
         toast({
           title: "Verification code sent",
-          description: `Code: ${data.code}`, // Remove this in production
+          description: `Enter the 6-digit code: ${data.code}`, // Remove this in production
         });
         setStep('code');
       } else {
         const error = await response.json();
+        console.error('API error response:', error);
         toast({
           title: "Error",
           description: error.error || "Failed to send verification code",
@@ -43,9 +48,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         });
       }
     } catch (error) {
+      console.error('Request code error:', error);
       toast({
-        title: "Error",
-        description: "Network error. Please try again.",
+        title: "Error", 
+        description: `Network error: ${error instanceof Error ? error.message : 'Please try again.'}`,
         variant: "destructive",
       });
     } finally {
@@ -58,12 +64,14 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsLoading(true);
 
     try {
+      console.log('Verifying code:', verificationCode, 'for phone:', phoneNumber);
       const response = await apiRequest('/api/auth/verify', {
         method: 'POST',
         body: JSON.stringify({ phoneNumber, code: verificationCode }),
       });
 
       const data = await response.json();
+      console.log('Verify response:', data);
 
       if (response.ok && data.success) {
         toast({
@@ -79,9 +87,10 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         });
       }
     } catch (error) {
+      console.error('Verify code error:', error);
       toast({
         title: "Error",
-        description: "Network error. Please try again.",
+        description: `Network error: ${error instanceof Error ? error.message : 'Please try again.'}`,
         variant: "destructive",
       });
     } finally {
