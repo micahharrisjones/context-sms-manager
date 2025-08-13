@@ -16,15 +16,17 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen relative">
-      {/* Mobile menu button - positioned to avoid logout button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="lg:hidden fixed top-4 left-4 z-50"
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        <Menu className="h-6 w-6" />
-      </Button>
+      {/* Mobile menu button - hidden when sidebar is open */}
+      {!sidebarOpen && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden fixed top-4 left-4 z-50"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Menu className="h-6 w-6" />
+        </Button>
+      )}
 
       {/* Sidebar with mobile overlay */}
       <div className={`
