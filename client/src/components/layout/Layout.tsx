@@ -16,11 +16,11 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="flex min-h-screen relative">
-      {/* Mobile menu button - moved to the right */}
+      {/* Mobile menu button - positioned to avoid logout button */}
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden fixed top-4 right-4 z-50"
+        className="lg:hidden fixed top-4 left-4 z-50"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         <Menu className="h-6 w-6" />
@@ -38,22 +38,24 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
-        {/* Persistent header with logo */}
+        {/* Persistent header with logo and logout */}
         <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 lg:p-6 flex items-center gap-4">
-          <Link href="/" className="lg:hidden">
+          {/* Mobile: spacer for menu button */}
+          <div className="lg:hidden w-10" /> 
+          
+          <Link href="/" className="lg:hidden flex-1 flex justify-center">
             <Logo className="w-auto h-8" />
           </Link>
-          <div className="lg:hidden flex-1" /> {/* Spacer */}
           
-          {/* Logout button - visible on all screen sizes */}
+          {/* Logout button - positioned at right edge */}
           <Button
             variant="ghost"
             size="sm"
             onClick={logout}
             className="text-gray-600 hover:text-red-600 hover:bg-red-50"
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            <span className="hidden sm:inline">Logout</span>
+            <LogOut className="h-4 w-4 lg:mr-2" />
+            <span className="hidden lg:inline">Logout</span>
           </Button>
         </div>
         
