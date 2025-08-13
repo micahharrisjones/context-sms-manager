@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
+import { Logo } from "./Logo";
+import { Link } from "wouter";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -33,8 +35,19 @@ export function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main content */}
-      <main className="flex-1 p-6 pt-16 lg:pt-6 overflow-auto">
-        {children}
+      <main className="flex-1 overflow-auto">
+        {/* Persistent header with logo */}
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 lg:p-6 flex items-center gap-4">
+          <Link href="/" className="lg:hidden">
+            <Logo className="w-auto h-8" />
+          </Link>
+          <div className="lg:hidden flex-1" /> {/* Spacer */}
+        </div>
+        
+        {/* Content area */}
+        <div className="p-6 pt-4 lg:pt-6">
+          {children}
+        </div>
       </main>
 
       {/* Mobile overlay backdrop */}
