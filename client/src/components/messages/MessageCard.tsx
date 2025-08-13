@@ -51,6 +51,15 @@ function getTikTokVideoId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+function getIMDbInfo(url: string): { type: string; id: string } | null {
+  // Match IMDB URLs for movies and TV shows
+  const movieMatch = url.match(/imdb\.com\/title\/(tt\d+)/);
+  if (movieMatch) {
+    return { type: 'title', id: movieMatch[1] };
+  }
+  return null;
+}
+
 export function MessageCard({ message }: MessageCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -93,6 +102,7 @@ export function MessageCard({ message }: MessageCardProps) {
   const facebookPostId = message.content ? getFacebookPostId(message.content) : null;
   const youtubeVideoId = message.content ? getYouTubeVideoId(message.content) : null;
   const tiktokVideoId = message.content ? getTikTokVideoId(message.content) : null;
+  const imdbInfo = message.content ? getIMDbInfo(message.content) : null;
 
   return (
     <>
@@ -205,7 +215,37 @@ export function MessageCard({ message }: MessageCardProps) {
             />
           </div>
         )}
-        {message.mediaUrl && !instagramPostId && !pinterestId && !twitterPostId && !redditPostInfo && !facebookPostId && !youtubeVideoId && !tiktokVideoId && (
+        {imdbInfo && (
+          <div className="w-full">
+            <div className="rounded-md border bg-gradient-to-br from-yellow-50 to-amber-50 p-6">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <svg className="w-12 h-12 text-yellow-600" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M22.3 5.9l-1.4-3.8c-.4-1-.4-1.1-1.4-1.1H4.6c-1 0-1 .1-1.4 1.1L1.8 5.9c-.3.8-.3 1.5.3 2.1.6.6 1.3.6 2.1.3l.8-.3v10c0 2.2 1.8 4 4 4h6c2.2 0 4-1.8 4-4V8l.8.3c.8.3 1.5.3 2.1-.3.6-.6.6-1.3.3-2.1zM20 6c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5zM4 6c-.3 0-.5-.2-.5-.5S3.7 5 4 5s.5.2.5.5S4.3 6 4 6zm14 12c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V8.5l1-.4c.3-.1.5-.4.5-.7 0-.4-.2-.7-.5-.9L6 6.2l1-2.7h10l1 2.7-1 .3c-.3.2-.5.5-.5.9 0 .3.2.6.5.7l1 .4V18z"/>
+                    <path d="M8 10h2v6H8zm4-1h2v7h-2z"/>
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <a 
+                    href={`https://www.imdb.com/title/${imdbInfo.id}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-yellow-800 hover:text-yellow-900 transition-colors"
+                  >
+                    <div className="font-semibold text-lg mb-1">View on IMDb</div>
+                    <div className="text-sm text-yellow-700 mb-2">
+                      Movie & TV Database • {imdbInfo.id}
+                    </div>
+                    <div className="text-xs text-yellow-600 bg-yellow-100 rounded px-2 py-1 inline-block">
+                      Click to view ratings, cast, reviews & more
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {message.mediaUrl && !instagramPostId && !pinterestId && !twitterPostId && !redditPostInfo && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && (
           <div className="w-full max-w-lg mx-auto">
             {message.mediaType?.startsWith("image/") ? (
               <img
