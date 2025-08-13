@@ -31,6 +31,10 @@ const twilioWebhookSchema = z.object({
   NumMedia: z.string().optional().default("0"),
   MediaUrl0: z.string().optional().nullable(),
   MediaContentType0: z.string().optional().nullable(),
+  // Handle multi-part SMS messages
+  NumSegments: z.string().optional(),
+  MessageStatus: z.string().optional(),
+  SmsStatus: z.string().optional(),
 });
 
 // Support both ClickSend and Twilio webhook formats
@@ -58,6 +62,11 @@ const processSMSWebhook = async (body: unknown) => {
   if (twilioResult.success) {
     log("Processing as Twilio webhook");
     const validatedData = twilioResult.data;
+
+    // Log multi-part message info
+    if (validatedData.NumSegments) {
+      log(`Multi-part message detected: ${validatedData.NumSegments} segments`);
+    }
 
     // Verify this is from our Twilio account
     if (validatedData.AccountSid !== process.env.TWILIO_ACCOUNT_SID) {
