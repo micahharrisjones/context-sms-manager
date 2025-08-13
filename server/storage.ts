@@ -37,10 +37,32 @@ export class DatabaseStorage implements IStorage {
   // User management methods
   async getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined> {
     try {
-      const [user] = await db
+      // Normalize phone number for lookup - remove +1 prefix if present
+      const normalizedPhone = phoneNumber.replace(/^\+?1?/, '');
+      
+      // Try exact match first
+      let [user] = await db
         .select()
         .from(users)
         .where(eq(users.phoneNumber, phoneNumber));
+      
+      // If not found, try normalized version
+      if (!user) {
+        [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.phoneNumber, normalizedPhone));
+      }
+      
+      // If still not found, try with +1 prefix
+      if (!user) {
+        [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.phoneNumber, `+1${normalizedPhone}`));
+      }
+      
+      log(`Phone lookup for ${phoneNumber}: found user ${user?.id || 'none'}`);
       return user || undefined;
     } catch (error) {
       log("Error fetching user by phone number:", error);

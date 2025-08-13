@@ -64,17 +64,21 @@ export function useAuth() {
 
   const logout = async () => {
     try {
+      console.log('Attempting logout...');
       await apiRequest('/api/auth/logout', {
         method: 'POST',
       });
+      console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Clear auth state regardless of API call success
       setAuthState({
         user: null,
         isLoading: false,
         isAuthenticated: false,
       });
+      console.log('Auth state cleared');
     }
   };
 
