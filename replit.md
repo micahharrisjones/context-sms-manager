@@ -33,6 +33,10 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Resolved message association problems between webhook and authenticated users**
 - ✅ **Enhanced logout functionality with proper error handling**
 - ✅ **Cleaned up duplicate user accounts and consolidated message storage**
+- ✅ **Added comprehensive delete functionality with X buttons and confirmation modals**
+- ✅ **Implemented user-specific WebSocket notifications to prevent cross-user toast spam**
+- ✅ **Added tag deletion feature with bulk message removal**
+- ✅ **Enhanced UI with hover-to-reveal delete buttons on messages and sidebar tags**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive

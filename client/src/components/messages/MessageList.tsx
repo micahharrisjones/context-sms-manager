@@ -15,6 +15,11 @@ export function MessageList({ tag }: MessageListProps) {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
+  // Get user session for WebSocket identification
+  const { data: session } = useQuery<{ authenticated: boolean; userId?: number }>({
+    queryKey: ["/api/auth/session"],
+  });
+
   const { data: messages, isLoading } = useQuery<Message[]>({
     queryKey: tag ? [`/api/messages/tag/${tag}`] : ["/api/messages"],
   });
@@ -39,6 +44,16 @@ export function MessageList({ tag }: MessageListProps) {
 
     ws.onopen = () => {
       console.log("WebSocket connected successfully");
+      
+      // Send user identification if authenticated
+      if (session?.authenticated && session.userId) {
+        ws.send(JSON.stringify({
+          type: "IDENTIFY",
+          userId: session.userId
+        }));
+        console.log(`Sent user identification: ${session.userId}`);
+      }
+      
       toast({
         description: "Connected to message service",
         duration: 2000,
@@ -57,10 +72,8 @@ export function MessageList({ tag }: MessageListProps) {
           if (tag) {
             queryClient.invalidateQueries({ queryKey: [`/api/messages/tag/${tag}`] });
           }
-          toast({
-            description: "New message received",
-            duration: 2000,
-          });
+          // Note: No toast notification since this should only be received by the message owner
+          // and user-initiated actions (like adding messages) already have their own feedback
         }
       } catch (error) {
         console.error("Error processing message:", error);
@@ -89,7 +102,10 @@ export function MessageList({ tag }: MessageListProps) {
   };
 
   useEffect(() => {
-    connectWebSocket();
+    // Only connect WebSocket if user is authenticated
+    if (session?.authenticated) {
+      connectWebSocket();
+    }
 
     return () => {
       if (reconnectTimeoutRef.current) {
@@ -101,7 +117,7 @@ export function MessageList({ tag }: MessageListProps) {
         wsRef.current = null;
       }
     };
-  }, []);
+  }, [session?.authenticated, session?.userId]);
 
   if (isLoading) {
     return (

@@ -392,8 +392,8 @@ export async function registerRoutes(app: Express) {
       const created = await storage.createMessage(message);
       log(`Created UI message for user ${userId}:`, JSON.stringify(created, null, 2));
 
-      // Broadcast to WebSocket clients
-      wsManager.broadcastNewMessage();
+      // Broadcast to WebSocket clients for this user
+      wsManager.broadcastNewMessageToUser(userId);
 
       res.status(201).json(created);
     } catch (error) {
@@ -426,8 +426,8 @@ export async function registerRoutes(app: Express) {
       await storage.deleteMessage(messageId);
       log(`Deleted message ${messageId} for user ${userId}`);
 
-      // Broadcast to WebSocket clients
-      wsManager.broadcastNewMessage();
+      // Broadcast to WebSocket clients for this user
+      wsManager.broadcastNewMessageToUser(userId);
 
       res.json({ success: true, message: "Message deleted successfully" });
     } catch (error) {
@@ -457,8 +457,8 @@ export async function registerRoutes(app: Express) {
       await storage.deleteMessagesByTag(userId, tag);
       log(`Deleted ${messagesToDelete.length} messages with tag "${tag}" for user ${userId}`);
 
-      // Broadcast to WebSocket clients
-      wsManager.broadcastNewMessage();
+      // Broadcast to WebSocket clients for this user
+      wsManager.broadcastNewMessageToUser(userId);
 
       res.json({ 
         success: true, 
@@ -513,7 +513,7 @@ export async function registerRoutes(app: Express) {
       // Add logging for WebSocket broadcast
       log("Broadcasting new message to WebSocket clients:", JSON.stringify(created, null, 2));
       log("Before broadcastNewMessage");
-      wsManager.broadcastNewMessage();
+      wsManager.broadcastNewMessageToUser(created.userId);
       log("After broadcastNewMessage");
       log("Broadcast complete");
 
