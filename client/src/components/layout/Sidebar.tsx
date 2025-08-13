@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { useState } from "react";
 import { DeleteTagModal } from "./DeleteTagModal";
+import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
 import { SharedBoard } from "@shared/schema";
 
 interface SidebarProps {
@@ -17,6 +18,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [location] = useLocation();
   const [deleteTagModalOpen, setDeleteTagModalOpen] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
+  const [createBoardModalOpen, setCreateBoardModalOpen] = useState(false);
   
   const { data: tags } = useQuery<string[]>({ 
     queryKey: ["/api/tags"]
@@ -107,38 +109,51 @@ export function Sidebar({ onClose }: SidebarProps) {
         </div>
         
         {/* Shared Boards Section */}
+        <div className="px-4 py-2">
+          <div className="border-t border-border mb-4"></div>
+          <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Shared Boards
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 hover:bg-muted"
+              onClick={() => setCreateBoardModalOpen(true)}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
         {sharedBoards && sharedBoards.length > 0 && (
-          <>
-            <div className="px-4 py-2">
-              <div className="border-t border-border mb-4"></div>
-              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
-                <Users className="w-4 h-4" />
-                Shared Boards
+          <div className="px-4 space-y-2">
+            {sharedBoards.map((board) => (
+              <div key={board.id} className="relative group">
+                <Link href={`/shared/${board.name}`}>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start pr-8",
+                      location === `/shared/${board.name}` && "bg-muted"
+                    )}
+                    onClick={onClose}
+                  >
+                    <Hash className="w-4 h-4 mr-2" />
+                    {board.name}
+                    {board.role === "owner" && (
+                      <span className="ml-auto text-xs text-muted-foreground">owner</span>
+                    )}
+                  </Button>
+                </Link>
               </div>
-            </div>
-            <div className="px-4 space-y-2">
-              {sharedBoards.map((board) => (
-                <div key={board.id} className="relative group">
-                  <Link href={`/shared/${board.name}`}>
-                    <Button
-                      variant="ghost"
-                      className={cn(
-                        "w-full justify-start pr-8",
-                        location === `/shared/${board.name}` && "bg-muted"
-                      )}
-                      onClick={onClose}
-                    >
-                      <Hash className="w-4 h-4 mr-2" />
-                      {board.name}
-                      {board.role === "owner" && (
-                        <span className="ml-auto text-xs text-muted-foreground">owner</span>
-                      )}
-                    </Button>
-                  </Link>
-                </div>
-              ))}
-            </div>
-          </>
+            ))}
+          </div>
+        )}
+        {sharedBoards && sharedBoards.length === 0 && (
+          <div className="px-4 text-xs text-muted-foreground">
+            No shared boards yet. Click + to create one.
+          </div>
         )}
       </ScrollArea>
       
@@ -146,6 +161,11 @@ export function Sidebar({ onClose }: SidebarProps) {
         isOpen={deleteTagModalOpen}
         onClose={() => setDeleteTagModalOpen(false)}
         tag={selectedTag}
+      />
+      
+      <CreateSharedBoardModal
+        isOpen={createBoardModalOpen}
+        onClose={() => setCreateBoardModalOpen(false)}
       />
     </div>
   );
