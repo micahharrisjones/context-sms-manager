@@ -30,10 +30,13 @@ interface BoardMembersModalProps {
 }
 
 export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersModalProps) {
-  const { data: members, isLoading } = useQuery<BoardMember[]>({
-    queryKey: ['/api/shared-boards', boardName, 'members'],
+  const { data: members, isLoading, error } = useQuery<BoardMember[]>({
+    queryKey: [`/api/shared-boards/${boardName}/members`],
     enabled: isOpen && !!boardName,
   });
+
+  // Debug logging
+  console.log('BoardMembersModal:', { isOpen, boardName, members, isLoading, error });
 
   // Format phone number for display
   const formatPhoneNumber = (phone: string) => {
@@ -64,6 +67,10 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
             <div className="text-center py-6">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
               <p className="text-sm text-muted-foreground mt-2">Loading members...</p>
+            </div>
+          ) : error ? (
+            <div className="text-center py-6">
+              <p className="text-sm text-red-600">Error loading members: {String(error)}</p>
             </div>
           ) : !members || members.length === 0 ? (
             <div className="text-center py-6">
