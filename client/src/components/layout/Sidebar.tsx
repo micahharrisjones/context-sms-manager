@@ -21,7 +21,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       <div className="p-6 border-b flex justify-between items-center">
         <Link href="/">
           <div className="flex items-center gap-2">
-            <Logo className="w-auto h-6 lg:h-8" />
+            <Logo className="w-auto h-8 lg:h-10" />
           </div>
         </Link>
         {onClose && (
