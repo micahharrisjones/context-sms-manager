@@ -6,6 +6,7 @@ import { z } from "zod";
 import { WebSocketManager } from "./websocket";
 import { log } from "./vite";
 import { pool } from "./db";
+import { AuthService, generateTwilioResponse, requireAuth } from "./auth";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -37,12 +38,12 @@ const twilioWebhookSchema = z.object({
   SmsStatus: z.string().optional(),
 });
 
-// Helper function to get recent tags from the same sender
-async function getRecentTagsFromSender(senderId: string): Promise<string[]> {
+// Helper function to get recent tags from the same sender for a specific user
+async function getRecentTagsFromSender(userId: number, senderId: string): Promise<string[]> {
   try {
-    // Get messages from the last 5 minutes from the same sender
+    // Get messages from the last 5 minutes from the same sender for this user
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const recentMessages = await storage.getRecentMessagesBySender(senderId, fiveMinutesAgo);
+    const recentMessages = await storage.getRecentMessagesBySender(userId, senderId, fiveMinutesAgo);
     
     // Find the most recent message with hashtags (excluding "untagged")
     for (const message of recentMessages) {
@@ -59,12 +60,12 @@ async function getRecentTagsFromSender(senderId: string): Promise<string[]> {
 }
 
 // Post-processing function to fix untagged URL messages
-async function fixUntaggedUrlMessage(messageId: number, senderId: string): Promise<void> {
+async function fixUntaggedUrlMessage(messageId: number, userId: number, senderId: string, wsManager: WebSocketManager): Promise<void> {
   try {
     // Wait a bit for any concurrent messages to be processed
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    const recentTags = await getRecentTagsFromSender(senderId);
+    const recentTags = await getRecentTagsFromSender(userId, senderId);
     if (recentTags.length > 0) {
       await storage.updateMessageTags(messageId, recentTags);
       log(`Updated message ${messageId} with inherited tags: [${recentTags.join(', ')}]`);
@@ -119,13 +120,23 @@ const processSMSWebhook = async (body: unknown) => {
 
     const content = validatedData.Body;
     const senderId = validatedData.From;
+    
+    // Get or create user based on phone number
+    let user = await storage.getUserByPhoneNumber(senderId);
+    if (!user) {
+      user = await storage.createUser({
+        phoneNumber: senderId,
+        displayName: `User ${senderId.slice(-4)}`
+      });
+      log(`Created new user for phone ${senderId}`);
+    }
 
     // Extract hashtags from the message content
     let tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
 
     // If no tags were found, try to inherit from recent message from same sender
     if (tags.length === 0) {
-      const recentTags = await getRecentTagsFromSender(senderId);
+      const recentTags = await getRecentTagsFromSender(user.id, senderId);
       if (recentTags.length > 0) {
         tags = recentTags;
         log(`Inherited tags [${tags.join(', ')}] from recent message by ${senderId}`);
@@ -145,6 +156,7 @@ const processSMSWebhook = async (body: unknown) => {
     const processedData = {
       content,
       senderId,
+      userId: user.id,
       tags: uniqueTags,
       mediaUrl,
       mediaType,
@@ -174,12 +186,22 @@ const processSMSWebhook = async (body: unknown) => {
   // Use message if available, otherwise use body
   const content = validatedData.message || validatedData.body;
 
+  // Get or create user based on phone number
+  let user = await storage.getUserByPhoneNumber(senderId);
+  if (!user) {
+    user = await storage.createUser({
+      phoneNumber: senderId,
+      displayName: `User ${senderId.slice(-4)}`
+    });
+    log(`Created new user for phone ${senderId}`);
+  }
+
   // Extract hashtags from the message content
   let tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
 
   // If no tags were found, try to inherit from recent message from same sender
   if (tags.length === 0) {
-    const recentTags = await getRecentTagsFromSender(senderId);
+    const recentTags = await getRecentTagsFromSender(user.id, senderId);
     if (recentTags.length > 0) {
       tags = recentTags;
       log(`Inherited tags [${tags.join(', ')}] from recent message by ${senderId}`);
@@ -194,6 +216,7 @@ const processSMSWebhook = async (body: unknown) => {
   const processedData = {
     content,
     senderId,
+    userId: user.id,
     tags: uniqueTags,
     mediaUrl: validatedData.media_url || null,
     mediaType: validatedData.media_type || null,
@@ -213,10 +236,82 @@ export async function registerRoutes(app: Express) {
   // Add database connection check middleware to all API routes
   app.use("/api", checkDatabaseConnection);
 
-  app.get("/api/messages", async (_req, res) => {
+  // Authentication routes
+  app.post("/api/auth/request-code", async (req, res) => {
     try {
-      const messages = await storage.getMessages();
-      log(`Retrieved ${messages.length} messages`);
+      const { phoneNumber } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+      
+      const verificationCode = await AuthService.initializeVerification(phoneNumber);
+      
+      // In a real app, this would be sent via SMS
+      // For now, return it in the response for testing
+      res.json({ 
+        message: "Verification code sent",
+        code: verificationCode // Remove this in production
+      });
+    } catch (error) {
+      log("Error requesting verification code:", error);
+      res.status(500).json({ error: "Failed to send verification code" });
+    }
+  });
+
+  app.post("/api/auth/verify", async (req, res) => {
+    try {
+      const { phoneNumber, code } = req.body;
+      
+      if (!phoneNumber || !code) {
+        return res.status(400).json({ error: "Phone number and code are required" });
+      }
+      
+      const result = await AuthService.verifyAndAuthenticate(phoneNumber, code);
+      
+      if (result.success && result.user) {
+        // Set session
+        req.session.userId = result.user.id;
+        res.json({ 
+          success: true, 
+          user: result.user,
+          message: result.message 
+        });
+      } else {
+        res.status(401).json({ 
+          success: false, 
+          message: result.message 
+        });
+      }
+    } catch (error) {
+      log("Error verifying code:", error);
+      res.status(500).json({ error: "Authentication failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Failed to logout" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  app.get("/api/auth/session", (req, res) => {
+    if (req.session.userId) {
+      res.json({ authenticated: true, userId: req.session.userId });
+    } else {
+      res.json({ authenticated: false });
+    }
+  });
+
+  // Protected message routes (require authentication)
+  app.get("/api/messages", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const messages = await storage.getMessages(userId);
+      log(`Retrieved ${messages.length} messages for user ${userId}`);
       res.json(messages);
     } catch (error) {
       log(`Error retrieving messages: ${error instanceof Error ? error.message : String(error)}`);
@@ -224,11 +319,12 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/messages/tag/:tag", async (req, res) => {
+  app.get("/api/messages/tag/:tag", requireAuth, async (req, res) => {
     try {
+      const userId = req.userId!;
       const tag = req.params.tag;
-      const messages = await storage.getMessagesByTag(tag);
-      log(`Retrieved ${messages.length} messages for tag ${tag}`);
+      const messages = await storage.getMessagesByTag(userId, tag);
+      log(`Retrieved ${messages.length} messages for tag ${tag} for user ${userId}`);
       res.json(messages);
     } catch (error) {
       log(`Error retrieving messages for tag ${req.params.tag}: ${error instanceof Error ? error.message : String(error)}`);
@@ -236,10 +332,11 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  app.get("/api/tags", async (_req, res) => {
+  app.get("/api/tags", requireAuth, async (req, res) => {
     try {
-      const tags = await storage.getTags();
-      log(`Retrieved ${tags.length} tags`);
+      const userId = req.userId!;
+      const tags = await storage.getTags(userId);
+      log(`Retrieved ${tags.length} tags for user ${userId}`);
       res.json(tags);
     } catch (error) {
       log(`Error retrieving tags: ${error instanceof Error ? error.message : String(error)}`);
@@ -283,7 +380,7 @@ export async function registerRoutes(app: Express) {
       if (created.tags.includes("untagged") && hasUrl) {
         log("Scheduling post-processing for potentially untagged URL message");
         // Don't await this - let it run in the background
-        fixUntaggedUrlMessage(created.id, created.senderId, wsManager);
+        fixUntaggedUrlMessage(created.id, created.userId, created.senderId, wsManager);
       }
 
       // Add logging for WebSocket broadcast

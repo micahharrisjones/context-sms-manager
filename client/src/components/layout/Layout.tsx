@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, LogOut } from "lucide-react";
 import { Logo } from "./Logo";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { logout } = useAuth();
 
   return (
     <div className="flex min-h-screen relative">
@@ -42,6 +44,17 @@ export function Layout({ children }: LayoutProps) {
             <Logo className="w-auto h-8" />
           </Link>
           <div className="lg:hidden flex-1" /> {/* Spacer */}
+          
+          {/* Logout button - visible on all screen sizes */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={logout}
+            className="text-gray-600 hover:text-red-600 hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Logout</span>
+          </Button>
         </div>
         
         {/* Content area */}

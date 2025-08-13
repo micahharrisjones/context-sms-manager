@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import { Layout } from "@/components/layout/Layout";
+import { LoginScreen } from "@/components/auth/LoginScreen";
+import { useAuth } from "@/hooks/useAuth";
 
 function Router() {
   return (
@@ -18,10 +20,33 @@ function Router() {
   );
 }
 
+function AuthenticatedApp() {
+  const { isAuthenticated, isLoading, login } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-[#ed2024] rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <span className="text-white font-bold text-xl">C</span>
+          </div>
+          <p className="text-gray-600">Loading Context...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginScreen onLogin={login} />;
+  }
+
+  return <Router />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
+      <AuthenticatedApp />
       <Toaster />
     </QueryClientProvider>
   );

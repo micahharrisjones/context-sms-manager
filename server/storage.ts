@@ -1,24 +1,133 @@
-import { type Message, type InsertMessage, messages } from "@shared/schema";
+import { 
+  type Message, 
+  type InsertMessage, 
+  type User, 
+  type InsertUser, 
+  type AuthSession, 
+  type InsertAuthSession, 
+  messages, 
+  users, 
+  authSessions 
+} from "@shared/schema";
 import { db } from "./db";
 import { desc, eq, sql, gte, and } from "drizzle-orm";
 import { log } from "./vite";
 
 export interface IStorage {
-  getMessages(): Promise<Message[]>;
-  getMessagesByTag(tag: string): Promise<Message[]>;
+  // User management
+  getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  updateUserLastLogin(userId: number): Promise<void>;
+  
+  // Auth session management
+  createAuthSession(session: InsertAuthSession): Promise<AuthSession>;
+  getValidAuthSession(phoneNumber: string, code: string): Promise<AuthSession | undefined>;
+  markSessionAsVerified(sessionId: number): Promise<void>;
+  
+  // Message management (now user-scoped)
+  getMessages(userId: number): Promise<Message[]>;
+  getMessagesByTag(userId: number, tag: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
-  getTags(): Promise<string[]>;
-  getRecentMessagesBySender(senderId: string, since: Date): Promise<Message[]>;
+  getTags(userId: number): Promise<string[]>;
+  getRecentMessagesBySender(userId: number, senderId: string, since: Date): Promise<Message[]>;
   updateMessageTags(messageId: number, tags: string[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getMessages(): Promise<Message[]> {
+  // User management methods
+  async getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined> {
     try {
-      log("Fetching all messages from database");
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.phoneNumber, phoneNumber));
+      return user || undefined;
+    } catch (error) {
+      log("Error fetching user by phone number:", error);
+      throw error;
+    }
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    try {
+      log("Creating new user:", JSON.stringify(insertUser, null, 2));
+      const [user] = await db
+        .insert(users)
+        .values(insertUser)
+        .returning();
+      return user;
+    } catch (error) {
+      log("Error creating user:", error);
+      throw error;
+    }
+  }
+
+  async updateUserLastLogin(userId: number): Promise<void> {
+    try {
+      await db
+        .update(users)
+        .set({ lastLoginAt: new Date() })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      log("Error updating user last login:", error);
+      throw error;
+    }
+  }
+
+  // Auth session management methods
+  async createAuthSession(insertSession: InsertAuthSession): Promise<AuthSession> {
+    try {
+      log("Creating auth session for phone:", insertSession.phoneNumber);
+      const [session] = await db
+        .insert(authSessions)
+        .values(insertSession)
+        .returning();
+      return session;
+    } catch (error) {
+      log("Error creating auth session:", error);
+      throw error;
+    }
+  }
+
+  async getValidAuthSession(phoneNumber: string, code: string): Promise<AuthSession | undefined> {
+    try {
+      const [session] = await db
+        .select()
+        .from(authSessions)
+        .where(and(
+          eq(authSessions.phoneNumber, phoneNumber),
+          eq(authSessions.verificationCode, code),
+          gte(authSessions.expiresAt, new Date()),
+          eq(authSessions.verified, "false")
+        ))
+        .orderBy(desc(authSessions.createdAt));
+      return session || undefined;
+    } catch (error) {
+      log("Error fetching valid auth session:", error);
+      throw error;
+    }
+  }
+
+  async markSessionAsVerified(sessionId: number): Promise<void> {
+    try {
+      await db
+        .update(authSessions)
+        .set({ verified: "true" })
+        .where(eq(authSessions.id, sessionId));
+    } catch (error) {
+      log("Error marking session as verified:", error);
+      throw error;
+    }
+  }
+
+  // Message management methods (now user-scoped)
+  async getMessages(userId: number): Promise<Message[]> {
+    try {
+      log(`Fetching all messages from database for user ${userId}`);
       const result = await db
         .select()
         .from(messages)
+        .where(eq(messages.userId, userId))
         .orderBy(desc(messages.timestamp));
       
       // Filter out hashtag-only messages (messages that are just hashtags with no other content)
@@ -37,13 +146,16 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getMessagesByTag(tag: string): Promise<Message[]> {
+  async getMessagesByTag(userId: number, tag: string): Promise<Message[]> {
     try {
-      log(`Fetching messages with tag: ${tag}`);
+      log(`Fetching messages with tag: ${tag} for user ${userId}`);
       const result = await db
         .select()
         .from(messages)
-        .where(sql`${messages.tags} @> ARRAY[${tag}]::text[]`)
+        .where(and(
+          eq(messages.userId, userId),
+          sql`${messages.tags} @> ARRAY[${tag}]::text[]`
+        ))
         .orderBy(desc(messages.timestamp));
       
       // Filter out hashtag-only messages (messages that are just hashtags with no other content)
@@ -73,6 +185,7 @@ export class DatabaseStorage implements IStorage {
         .from(messages)
         .where(and(
           eq(messages.senderId, insertMessage.senderId),
+          eq(messages.userId, insertMessage.userId),
           gte(messages.timestamp, fiveSecondsAgo)
         ));
 
@@ -117,12 +230,13 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getTags(): Promise<string[]> {
+  async getTags(userId: number): Promise<string[]> {
     try {
-      log("Fetching all unique tags");
+      log(`Fetching all unique tags for user ${userId}`);
       const result = await db.execute<{ tag: string }>(sql`
         SELECT DISTINCT unnest(tags) as tag 
         FROM messages 
+        WHERE user_id = ${userId}
         ORDER BY tag
       `);
       log(`Successfully retrieved ${result.rows.length} unique tags`);
@@ -133,14 +247,15 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getRecentMessagesBySender(senderId: string, since: Date): Promise<Message[]> {
+  async getRecentMessagesBySender(userId: number, senderId: string, since: Date): Promise<Message[]> {
     try {
-      log(`Fetching recent messages from ${senderId} since ${since.toISOString()}`);
+      log(`Fetching recent messages from ${senderId} since ${since.toISOString()} for user ${userId}`);
       const result = await db
         .select()
         .from(messages)
         .where(and(
           eq(messages.senderId, senderId),
+          eq(messages.userId, userId),
           gte(messages.timestamp, since)
         ))
         .orderBy(desc(messages.timestamp));
