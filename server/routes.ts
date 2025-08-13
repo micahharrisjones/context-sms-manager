@@ -360,6 +360,46 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // POST endpoint for creating messages via UI
+  app.post("/api/messages", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      
+      // Validate request body
+      const { content, source = 'ui' } = req.body;
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      // Extract hashtags from content
+      const tags = extractHashtags(content);
+      
+      // Create message data
+      const messageData = {
+        content: content.trim(),
+        senderId: `user-${userId}`, // Use a special sender ID for UI messages
+        userId,
+        tags: tags.length > 0 ? tags : ["untagged"],
+        source
+      };
+
+      // Validate with schema
+      const message = insertMessageSchema.parse(messageData);
+      
+      // Create message in storage
+      const created = await storage.createMessage(message);
+      log(`Created UI message for user ${userId}:`, JSON.stringify(created, null, 2));
+
+      // Broadcast to WebSocket clients
+      wsManager.broadcastNewMessage();
+
+      res.status(201).json(created);
+    } catch (error) {
+      log(`Error creating UI message: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to create message" });
+    }
+  });
+
   // Twilio webhook endpoint - handle both /api/webhook/sms and /webhook/sms
   const handleWebhook = async (req: any, res: any) => {
     log("Entering handleWebhook function");
