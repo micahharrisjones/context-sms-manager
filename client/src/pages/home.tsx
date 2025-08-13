@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-6">
-        {tag ? `#${tag}` : "All Messages"}
+        {tag ? `#${tag}` : "All Texts"}
       </h1>
       <MessageList tag={tag} />
     </div>
