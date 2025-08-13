@@ -20,8 +20,17 @@ export class DatabaseStorage implements IStorage {
         .select()
         .from(messages)
         .orderBy(desc(messages.timestamp));
-      log(`Successfully retrieved ${result.length} messages`);
-      return result;
+      
+      // Filter out hashtag-only messages (messages that are just hashtags with no other content)
+      const filteredMessages = result.filter(message => {
+        // Remove hashtags and whitespace to see if there's any actual content
+        const contentWithoutHashtags = message.content.replace(/#\w+/g, '').replace(/\s/g, '');
+        const isHashtagOnly = contentWithoutHashtags.length === 0;
+        return !isHashtagOnly;
+      });
+      
+      log(`Successfully retrieved ${result.length} messages, ${filteredMessages.length} after filtering hashtag-only messages`);
+      return filteredMessages;
     } catch (error) {
       log("Error fetching messages:", error);
       throw error;
@@ -36,8 +45,17 @@ export class DatabaseStorage implements IStorage {
         .from(messages)
         .where(sql`${messages.tags} @> ARRAY[${tag}]::text[]`)
         .orderBy(desc(messages.timestamp));
-      log(`Successfully retrieved ${result.length} messages for tag ${tag}`);
-      return result;
+      
+      // Filter out hashtag-only messages (messages that are just hashtags with no other content)
+      const filteredMessages = result.filter(message => {
+        // Remove hashtags and whitespace to see if there's any actual content
+        const contentWithoutHashtags = message.content.replace(/#\w+/g, '').replace(/\s/g, '');
+        const isHashtagOnly = contentWithoutHashtags.length === 0;
+        return !isHashtagOnly;
+      });
+      
+      log(`Successfully retrieved ${result.length} messages for tag ${tag}, ${filteredMessages.length} after filtering hashtag-only messages`);
+      return filteredMessages;
     } catch (error) {
       log(`Error fetching messages by tag ${tag}:`, error);
       throw error;

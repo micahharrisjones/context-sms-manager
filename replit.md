@@ -66,3 +66,4 @@ A robust SMS management platform that enables persistent message storage and sea
 - **Hashtag extraction**: Automatic detection of #hashtags in SMS messages
 - **iOS message splitting support**: When iOS separates messages, URLs inherit hashtags from recent messages (within 5 minutes) from the same sender
 - **Tag inheritance**: Link preview messages automatically get categorized with hashtags from preceding text messages
+- **Clean interface**: Hashtag-only messages are hidden from the UI but still used for categorization, providing a cleaner content-focused experience
