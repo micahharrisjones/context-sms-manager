@@ -394,6 +394,15 @@ export async function registerRoutes(app: Express) {
 
       // Broadcast to WebSocket clients for this user
       wsManager.broadcastNewMessageToUser(userId);
+      
+      // Also notify shared board members if message has relevant tags
+      if (created.tags && created.tags.length > 0) {
+        const sharedBoardUsers = await storage.getUsersForSharedBoardNotification(created.tags);
+        if (sharedBoardUsers.length > 0) {
+          log(`Notifying shared board users of UI message: [${sharedBoardUsers.join(', ')}]`);
+          wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
+        }
+      }
 
       res.status(201).json(created);
     } catch (error) {
@@ -700,7 +709,19 @@ export async function registerRoutes(app: Express) {
       // Add logging for WebSocket broadcast
       log("Broadcasting new message to WebSocket clients:", JSON.stringify(created, null, 2));
       log("Before broadcastNewMessage");
+      
+      // Notify the original user
       wsManager.broadcastNewMessageToUser(created.userId);
+      
+      // Also notify all users who have shared boards matching this message's tags
+      if (created.tags && created.tags.length > 0) {
+        const sharedBoardUsers = await storage.getUsersForSharedBoardNotification(created.tags);
+        if (sharedBoardUsers.length > 0) {
+          log(`Notifying shared board users: [${sharedBoardUsers.join(', ')}]`);
+          wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
+        }
+      }
+      
       log("After broadcastNewMessage");
       log("Broadcast complete");
 

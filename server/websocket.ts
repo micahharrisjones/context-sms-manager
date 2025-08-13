@@ -102,6 +102,44 @@ export class WebSocketManager {
     log(`Broadcast complete for user ${userId}. ${targetClients} target clients, ${successfulBroadcasts} successful, ${disconnectedClients.size} clients removed`);
   }
 
+  broadcastNewMessageToUsers(userIds: number[]) {
+    if (userIds.length === 0) return;
+    
+    const message = JSON.stringify({ type: "NEW_MESSAGE" });
+    let disconnectedClients = new Set<WebSocket>();
+    let successfulBroadcasts = 0;
+    let targetClients = 0;
+
+    log(`Broadcasting to ${userIds.length} users: [${userIds.join(', ')}]`);
+
+    this.clients.forEach((clientConnection, ws) => {
+      if (clientConnection.userId && userIds.includes(clientConnection.userId)) {
+        targetClients++;
+        if (ws.readyState === WebSocket.OPEN) {
+          try {
+            ws.send(message);
+            successfulBroadcasts++;
+            log(`Successfully sent WebSocket message to user ${clientConnection.userId}`);
+          } catch (error) {
+            log(`Error broadcasting to user ${clientConnection.userId}: ${error instanceof Error ? error.message : String(error)}`);
+            disconnectedClients.add(ws);
+          }
+        } else {
+          log(`Client for user ${clientConnection.userId} in non-open state: ${ws.readyState}`);
+          disconnectedClients.add(ws);
+        }
+      }
+    });
+
+    // Clean up disconnected clients
+    disconnectedClients.forEach(ws => {
+      this.clients.delete(ws);
+      log("Removed disconnected client from clients set");
+    });
+
+    log(`Broadcast complete for users [${userIds.join(', ')}]. ${targetClients} target clients, ${successfulBroadcasts} successful, ${disconnectedClients.size} clients removed`);
+  }
+
   // Keep the old method for backward compatibility but make it deprecated
   broadcastNewMessage() {
     log("Warning: Using deprecated broadcastNewMessage method. Use broadcastNewMessageToUser instead.");

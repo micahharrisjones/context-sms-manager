@@ -52,6 +52,7 @@ export interface IStorage {
   getUserBoardMemberships(userId: number): Promise<(BoardMembership & { board: SharedBoard })[]>;
   removeBoardMember(boardId: number, userId: number): Promise<void>;
   getSharedMessages(userId: number, boardName: string): Promise<Message[]>;
+  getUsersForSharedBoardNotification(tags: string[]): Promise<number[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -594,6 +595,49 @@ export class DatabaseStorage implements IStorage {
       return filteredMessages;
     } catch (error) {
       log("Error fetching shared messages:", error);
+      throw error;
+    }
+  }
+
+  async getUsersForSharedBoardNotification(tags: string[]): Promise<number[]> {
+    try {
+      if (tags.length === 0) {
+        return [];
+      }
+
+      log(`Finding users to notify for tags: [${tags.join(', ')}]`);
+      
+      // Find all shared boards that match any of the tags
+      const matchingBoards = await db
+        .select({ id: sharedBoards.id, name: sharedBoards.name, createdBy: sharedBoards.createdBy })
+        .from(sharedBoards)
+        .where(inArray(sharedBoards.name, tags));
+
+      if (matchingBoards.length === 0) {
+        log("No shared boards found for the given tags");
+        return [];
+      }
+
+      const userIds = new Set<number>();
+      
+      for (const board of matchingBoards) {
+        // Add the board creator
+        userIds.add(board.createdBy);
+        
+        // Add all board members
+        const memberships = await db
+          .select({ userId: boardMemberships.userId })
+          .from(boardMemberships)
+          .where(eq(boardMemberships.boardId, board.id));
+        
+        memberships.forEach(membership => userIds.add(membership.userId));
+      }
+
+      const resultArray = Array.from(userIds);
+      log(`Found ${resultArray.length} users to notify: [${resultArray.join(', ')}]`);
+      return resultArray;
+    } catch (error) {
+      log(`Error getting users for shared board notification: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
