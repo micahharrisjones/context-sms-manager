@@ -1,0 +1,116 @@
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { Users, Phone } from "lucide-react";
+
+interface BoardMember {
+  id: number;
+  userId: number;
+  boardId: number;
+  role: string;
+  createdAt: string;
+  user: {
+    id: number;
+    phoneNumber: string;
+    createdAt: string;
+    lastLogin: string | null;
+  };
+}
+
+interface BoardMembersModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  boardName: string;
+}
+
+export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersModalProps) {
+  const { data: members, isLoading } = useQuery<BoardMember[]>({
+    queryKey: ['/api/shared-boards', boardName, 'members'],
+    enabled: isOpen && !!boardName,
+  });
+
+  // Format phone number for display
+  const formatPhoneNumber = (phone: string) => {
+    // Remove any non-digits
+    const digits = phone.replace(/\D/g, '');
+    
+    // Format as (XXX) XXX-XXXX if 10 digits, otherwise show as-is
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    } else if (digits.length === 11 && digits.startsWith('1')) {
+      return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+    }
+    return phone;
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Board Members - {boardName}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-4">
+          {isLoading ? (
+            <div className="text-center py-6">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="text-sm text-muted-foreground mt-2">Loading members...</p>
+            </div>
+          ) : !members || members.length === 0 ? (
+            <div className="text-center py-6">
+              <Users className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No members found</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {members.map((member) => (
+                <div
+                  key={member.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Phone className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium">
+                        {formatPhoneNumber(member.user.phoneNumber)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Joined {new Date(member.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium capitalize text-primary">
+                      {member.role}
+                    </div>
+                    {member.user.lastLogin && (
+                      <div className="text-xs text-muted-foreground">
+                        Last active: {new Date(member.user.lastLogin).toLocaleDateString()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex justify-end pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

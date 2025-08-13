@@ -2,13 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X, Users, Plus, UserPlus } from "lucide-react";
+import { Hash, X, Users, Plus, UserPlus, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { useState } from "react";
 import { DeleteTagModal } from "./DeleteTagModal";
 import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
 import { InviteUserModal } from "../shared-boards/InviteUserModal";
+import { BoardMembersModal } from "../shared-boards/BoardMembersModal";
 import { SharedBoard } from "@shared/schema";
 
 interface SidebarProps {
@@ -21,6 +22,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [createBoardModalOpen, setCreateBoardModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState<string>("");
   
   const { data: tags } = useQuery<string[]>({ 
@@ -137,7 +139,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start pr-8",
+                      "w-full justify-start pr-16",
                       location === `/shared/${board.name}` && "bg-muted"
                     )}
                     onClick={onClose}
@@ -145,11 +147,11 @@ export function Sidebar({ onClose }: SidebarProps) {
                     <Hash className="w-4 h-4 mr-2" />
                     {board.name}
                     {board.role === "owner" && (
-                      <span className="ml-auto text-xs text-muted-foreground">owner</span>
+                      <span className="ml-auto mr-8 text-xs text-muted-foreground">owner</span>
                     )}
                   </Button>
                 </Link>
-                {board.role === "owner" && (
+                <div className="absolute right-1 top-1 bottom-1 flex opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -157,14 +159,30 @@ export function Sidebar({ onClose }: SidebarProps) {
                       e.preventDefault();
                       e.stopPropagation();
                       setSelectedBoard(board.name);
-                      setInviteModalOpen(true);
+                      setMembersModalOpen(true);
                     }}
-                    className="absolute right-1 top-1 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-auto w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
-                    aria-label={`Invite users to ${board.name}`}
+                    className="h-auto w-6 p-0 hover:bg-green-50 hover:text-green-600 mr-1"
+                    aria-label={`View members of ${board.name}`}
                   >
-                    <UserPlus className="h-3 w-3" />
+                    <Eye className="h-3 w-3" />
                   </Button>
-                )}
+                  {board.role === "owner" && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedBoard(board.name);
+                        setInviteModalOpen(true);
+                      }}
+                      className="h-auto w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
+                      aria-label={`Invite users to ${board.name}`}
+                    >
+                      <UserPlus className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -190,6 +208,12 @@ export function Sidebar({ onClose }: SidebarProps) {
       <InviteUserModal
         isOpen={inviteModalOpen}
         onClose={() => setInviteModalOpen(false)}
+        boardName={selectedBoard}
+      />
+      
+      <BoardMembersModal
+        isOpen={membersModalOpen}
+        onClose={() => setMembersModalOpen(false)}
         boardName={selectedBoard}
       />
     </div>

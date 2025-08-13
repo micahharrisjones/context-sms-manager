@@ -569,6 +569,40 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get members of a shared board
+  app.get("/api/shared-boards/:boardName/members", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardName = decodeURIComponent(req.params.boardName);
+      
+      log(`Fetching members for board "${boardName}" requested by user ${userId}`);
+      
+      // Get the board first
+      const board = await storage.getSharedBoardByName(boardName);
+      if (!board) {
+        return res.status(404).json({ error: "Board not found" });
+      }
+      
+      // Check if user has access to this board (is owner or member)
+      const isOwner = board.createdBy === userId;
+      const userMemberships = await storage.getUserBoardMemberships(userId);
+      const isMember = userMemberships.some(m => m.board.name === boardName);
+      
+      if (!isOwner && !isMember) {
+        return res.status(403).json({ error: "Access denied to this board" });
+      }
+      
+      // Get board members
+      const members = await storage.getBoardMembers(board.id);
+      log(`Found ${members.length} members for board "${boardName}"`);
+      
+      res.json(members);
+    } catch (error) {
+      log(`Error fetching board members: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to fetch board members" });
+    }
+  });
+
   // Invite user to shared board (by phone number)
   app.post("/api/shared-boards/:boardName/invite", requireAuth, async (req, res) => {
     try {
