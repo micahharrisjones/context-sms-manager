@@ -121,24 +121,34 @@ export function MessageList({ tag }: MessageListProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        {[...Array(3)].map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
           <Skeleton key={i} className="h-32 w-full" />
         ))}
       </div>
     );
   }
 
-  return (
-    <div>
-      {messages?.map((message) => (
-        <MessageCard key={message.id} message={message} />
-      ))}
-      {messages?.length === 0 && (
-        <p className="text-muted-foreground text-center mt-8">
-          No messages found
+  if (messages?.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-muted-foreground">
+          {tag ? `No messages found with #${tag}` : "No messages yet"}
         </p>
-      )}
+        <p className="text-sm text-muted-foreground mt-2">
+          Send a text message to your Twilio number to get started
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-max">
+      {messages?.map((message) => (
+        <div key={message.id} className="break-inside-avoid">
+          <MessageCard message={message} />
+        </div>
+      ))}
     </div>
   );
 }

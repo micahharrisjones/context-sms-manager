@@ -96,7 +96,7 @@ export function MessageCard({ message }: MessageCardProps) {
 
   return (
     <>
-      <Card className="mb-4 mx-auto max-w-2xl relative group">
+      <Card className="w-full h-fit relative group">
         <Button
           variant="ghost"
           size="sm"
@@ -115,7 +115,7 @@ export function MessageCard({ message }: MessageCardProps) {
       <CardContent className="space-y-4">
         <p className="text-foreground break-words">{formattedContent}</p>
         {instagramPostId && (
-          <div className="w-full max-w-lg mx-auto">
+          <div className="w-full">
             <iframe
               src={`https://www.instagram.com/p/${instagramPostId}/embed/captioned/`}
               className="w-full h-[600px] rounded-md border-0"
@@ -127,7 +127,7 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         {pinterestId && (
-          <div className="w-full max-w-lg mx-auto">
+          <div className="w-full">
             <iframe
               src={`https://assets.pinterest.com/ext/embed.html?id=${pinterestId}`}
               className="w-full h-[500px] rounded-md border-0"
@@ -138,7 +138,7 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         {twitterPostId && (
-          <div className="w-full max-w-lg mx-auto">
+          <div className="w-full">
             <iframe
               src={`https://twitframe.com/show?url=https://x.com/i/status/${twitterPostId}`}
               className="w-full h-[400px] rounded-md border border-gray-200"
@@ -149,7 +149,7 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         {redditPostInfo && (
-          <div className="w-full max-w-lg mx-auto">
+          <div className="w-full">
             <iframe
               src={`https://www.redditmedia.com/r/${redditPostInfo.subreddit}/comments/${redditPostInfo.postId}?ref_source=embed&amp;ref=share&amp;embed=true&amp;theme=light`}
               className="w-full h-[500px] rounded-md border border-gray-200"
@@ -160,7 +160,7 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         {facebookPostId && (
-          <div className="w-full max-w-lg mx-auto">
+          <div className="w-full">
             <iframe
               src={`https://www.facebook.com/plugins/post.php?href=https://www.facebook.com/permalink.php?story_fbid=${facebookPostId}&width=500&show_text=true&height=500`}
               className="w-full h-[500px] rounded-md border border-gray-200"
@@ -171,7 +171,7 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         {youtubeVideoId && (
-          <div className="w-full max-w-lg mx-auto">
+          <div className="w-full">
             <iframe
               src={`https://www.youtube.com/embed/${youtubeVideoId}`}
               className="w-full h-[315px] rounded-md border-0"
@@ -183,7 +183,7 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         {tiktokVideoId && (
-          <div className="w-full max-w-lg mx-auto">
+          <div className="w-full">
             <iframe
               src={`https://www.tiktok.com/embed/v2/${tiktokVideoId}`}
               className="w-full h-[500px] rounded-md border-0"
