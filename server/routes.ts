@@ -33,18 +33,87 @@ const twilioWebhookSchema = z.object({
   MediaContentType0: z.string().optional().nullable(),
 });
 
+// Support both ClickSend and Twilio webhook formats
+const clicksendWebhookSchema = z.object({
+  message: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
+  from: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
+  sms: z.string().optional(),
+  originalsenderid: z.string(),
+  to: z.string(),
+  body: z.string(),
+  media_url: z.string().optional().nullable(),
+  media_type: z.string().optional().nullable(),
+  originalmessage: z.string().optional(),
+  custom_string: z.string().optional(),
+}).refine((data) => data.from !== "" || data.originalsenderid, {
+  message: "Either 'from' or 'originalsenderid' must be provided",
+  path: ["from"],
+});
+
 const processSMSWebhook = async (body: unknown) => {
   log("Raw webhook payload:", JSON.stringify(body, null, 2));
 
-  const validatedData = twilioWebhookSchema.parse(body);
+  // Try Twilio format first
+  const twilioResult = twilioWebhookSchema.safeParse(body);
+  if (twilioResult.success) {
+    log("Processing as Twilio webhook");
+    const validatedData = twilioResult.data;
 
-  // Verify this is from our Twilio account
-  if (validatedData.AccountSid !== process.env.TWILIO_ACCOUNT_SID) {
-    throw new Error("Invalid account SID");
+    // Verify this is from our Twilio account
+    if (validatedData.AccountSid !== process.env.TWILIO_ACCOUNT_SID) {
+      throw new Error("Invalid account SID");
+    }
+
+    const content = validatedData.Body;
+    const senderId = validatedData.From;
+
+    // Extract hashtags from the message content
+    const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
+
+    // If no tags were found, use "untagged" as default
+    if (tags.length === 0) {
+      tags.push("untagged");
+    }
+
+    // Remove any duplicate tags
+    const uniqueTags = Array.from(new Set(tags));
+
+    // Handle media if present
+    const numMedia = parseInt(validatedData.NumMedia || "0");
+    const mediaUrl = numMedia > 0 ? validatedData.MediaUrl0 : null;
+    const mediaType = numMedia > 0 ? validatedData.MediaContentType0 : null;
+
+    const processedData = {
+      content,
+      senderId,
+      tags: uniqueTags,
+      mediaUrl,
+      mediaType,
+    };
+
+    log("Processed Twilio webhook data:", JSON.stringify(processedData, null, 2));
+    return processedData;
   }
 
-  const content = validatedData.Body;
-  const senderId = validatedData.From;
+  // Try ClickSend format as fallback
+  log("Trying ClickSend webhook format");
+  const clicksendResult = clicksendWebhookSchema.safeParse(body);
+  if (!clicksendResult.success) {
+    log("Failed to parse as both Twilio and ClickSend format");
+    throw new Error("Invalid webhook format: " + JSON.stringify(clicksendResult.error.issues));
+  }
+  const validatedData = clicksendResult.data;
+
+  // Skip processing if this is a "Message saved with tags" notification
+  if (validatedData.originalmessage?.includes("Message saved with tags")) {
+    log("Skipping tag confirmation message");
+    return null;
+  }
+
+  // Use originalsenderid if from is not provided
+  const senderId = validatedData.from || validatedData.originalsenderid;
+  // Use message if available, otherwise use body
+  const content = validatedData.message || validatedData.body;
 
   // Extract hashtags from the message content
   const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
@@ -57,20 +126,15 @@ const processSMSWebhook = async (body: unknown) => {
   // Remove any duplicate tags
   const uniqueTags = Array.from(new Set(tags));
 
-  // Handle media if present
-  const numMedia = parseInt(validatedData.NumMedia || "0");
-  const mediaUrl = numMedia > 0 ? validatedData.MediaUrl0 : null;
-  const mediaType = numMedia > 0 ? validatedData.MediaContentType0 : null;
-
   const processedData = {
     content,
     senderId,
     tags: uniqueTags,
-    mediaUrl,
-    mediaType,
+    mediaUrl: validatedData.media_url || null,
+    mediaType: validatedData.media_type || null,
   };
 
-  log("Processed webhook data:", JSON.stringify(processedData, null, 2));
+  log("Processed ClickSend webhook data:", JSON.stringify(processedData, null, 2));
   return processedData;
 };
 
