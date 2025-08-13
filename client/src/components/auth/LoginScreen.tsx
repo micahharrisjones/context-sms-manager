@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import { Logo } from '@/components/layout/Logo';
 
 interface LoginScreenProps {
   onLogin: (user: any) => void;
@@ -108,8 +109,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 bg-[#ed2024] rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">C</span>
+          <div className="mx-auto mb-6">
+            <Logo className="w-auto h-16" />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900">
             Welcome to Context
