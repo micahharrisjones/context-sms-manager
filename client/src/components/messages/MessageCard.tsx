@@ -41,11 +41,18 @@ function getFacebookPostId(url: string): string | null {
   return match ? (match[1] || match[2]) : null;
 }
 
+function getYouTubeVideoId(url: string): string | null {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+  return match ? match[1] : null;
+}
+
+function getTikTokVideoId(url: string): string | null {
+  const match = url.match(/tiktok\.com\/.*\/video\/(\d+)/);
+  return match ? match[1] : null;
+}
+
 export function MessageCard({ message }: MessageCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  // Log for debugging
-  console.log("MessageCard rendering for:", message.content);
 
   const formattedContent = message.content.split(" ").map((word, i) => {
     if (word.startsWith("#")) {
@@ -84,13 +91,8 @@ export function MessageCard({ message }: MessageCardProps) {
   const twitterPostId = message.content ? getTwitterPostId(message.content) : null;
   const redditPostInfo = message.content ? getRedditPostInfo(message.content) : null;
   const facebookPostId = message.content ? getFacebookPostId(message.content) : null;
-
-  // Debug logging
-  if (instagramPostId) console.log("Instagram post detected:", instagramPostId);
-  if (pinterestId) console.log("Pinterest pin detected:", pinterestId);
-  if (twitterPostId) console.log("Twitter post detected:", twitterPostId);
-  if (redditPostInfo) console.log("Reddit post detected:", redditPostInfo);
-  if (facebookPostId) console.log("Facebook post detected:", facebookPostId);
+  const youtubeVideoId = message.content ? getYouTubeVideoId(message.content) : null;
+  const tiktokVideoId = message.content ? getTikTokVideoId(message.content) : null;
 
   return (
     <>
@@ -114,111 +116,85 @@ export function MessageCard({ message }: MessageCardProps) {
         <p className="text-foreground break-words">{formattedContent}</p>
         {instagramPostId && (
           <div className="w-full max-w-lg mx-auto">
-            <blockquote
-              className="instagram-media"
-              data-instgrm-permalink={`https://www.instagram.com/p/${instagramPostId}/`}
-              data-instgrm-version="14"
-              style={{
-                background: '#FFF',
-                border: '0',
-                borderRadius: '3px',
-                boxShadow: '0 0 1px 0 rgba(0,0,0,0.5),0 1px 10px 0 rgba(0,0,0,0.15)',
-                margin: '1px',
-                maxWidth: '540px',
-                minWidth: '326px',
-                padding: '0',
-                width: '100%'
-              }}
-            >
-              <div style={{ padding: '16px' }}>
-                <a
-                  href={`https://www.instagram.com/p/${instagramPostId}/`}
-                  style={{
-                    background: '#FFFFFF',
-                    lineHeight: '0',
-                    padding: '0 0',
-                    textAlign: 'center',
-                    textDecoration: 'none',
-                    width: '100%'
-                  }}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  View Instagram Post
-                </a>
-              </div>
-            </blockquote>
-            <script
-              async
-              src="//www.instagram.com/embed.js"
+            <iframe
+              src={`https://www.instagram.com/p/${instagramPostId}/embed/captioned/`}
+              className="w-full h-[600px] rounded-md border-0"
+              loading="lazy"
+              allowFullScreen
+              scrolling="no"
+              frameBorder="0"
             />
           </div>
         )}
         {pinterestId && (
           <div className="w-full max-w-lg mx-auto">
-            <a
-              data-pin-do="embedPin"
-              data-pin-width="medium"
-              data-pin-round="true"
-              href={`https://www.pinterest.com/pin/${pinterestId}/`}
-              className="block w-full min-h-[400px] bg-gray-50 rounded-md p-4 text-center text-gray-600"
-            >
-              Loading Pinterest Pin...
-            </a>
-            <script
-              async
-              defer
-              src="//assets.pinterest.com/js/pinit.js"
-              type="text/javascript"
+            <iframe
+              src={`https://assets.pinterest.com/ext/embed.html?id=${pinterestId}`}
+              className="w-full h-[500px] rounded-md border-0"
+              loading="lazy"
+              frameBorder="0"
+              scrolling="no"
             />
           </div>
         )}
         {twitterPostId && (
           <div className="w-full max-w-lg mx-auto">
-            <blockquote className="twitter-tweet" data-theme="light">
-              <a href={`https://x.com/twitter/status/${twitterPostId}`}>Loading post...</a>
-            </blockquote>
-            <script
-              async
-              src="https://platform.twitter.com/widgets.js"
-              charSet="utf-8"
+            <iframe
+              src={`https://twitframe.com/show?url=https://x.com/i/status/${twitterPostId}`}
+              className="w-full h-[400px] rounded-md border border-gray-200"
+              loading="lazy"
+              frameBorder="0"
+              scrolling="no"
             />
           </div>
         )}
         {redditPostInfo && (
           <div className="w-full max-w-lg mx-auto">
-            <blockquote
-              className="reddit-embed-bq"
-              data-embed-height="500"
-            >
-              <a href={`https://www.reddit.com/r/${redditPostInfo.subreddit}/comments/${redditPostInfo.postId}/`}>
-                View Reddit Post
-              </a>
-            </blockquote>
-            <script
-              async
-              src="https://embed.reddit.com/widgets.js"
-              charSet="UTF-8"
+            <iframe
+              src={`https://www.redditmedia.com/r/${redditPostInfo.subreddit}/comments/${redditPostInfo.postId}?ref_source=embed&amp;ref=share&amp;embed=true&amp;theme=light`}
+              className="w-full h-[500px] rounded-md border border-gray-200"
+              loading="lazy"
+              frameBorder="0"
+              scrolling="yes"
             />
           </div>
         )}
         {facebookPostId && (
           <div className="w-full max-w-lg mx-auto">
-            <div
-              className="fb-post"
-              data-href={`https://www.facebook.com/permalink.php?story_fbid=${facebookPostId}`}
-              data-width="500"
-              data-show-text="true"
-            />
-            <script
-              async
-              defer
-              crossOrigin="anonymous"
-              src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0"
+            <iframe
+              src={`https://www.facebook.com/plugins/post.php?href=https://www.facebook.com/permalink.php?story_fbid=${facebookPostId}&width=500&show_text=true&height=500`}
+              className="w-full h-[500px] rounded-md border border-gray-200"
+              loading="lazy"
+              frameBorder="0"
+              scrolling="no"
             />
           </div>
         )}
-        {message.mediaUrl && !instagramPostId && !pinterestId && !twitterPostId && !redditPostInfo && !facebookPostId && (
+        {youtubeVideoId && (
+          <div className="w-full max-w-lg mx-auto">
+            <iframe
+              src={`https://www.youtube.com/embed/${youtubeVideoId}`}
+              className="w-full h-[315px] rounded-md border-0"
+              loading="lazy"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        )}
+        {tiktokVideoId && (
+          <div className="w-full max-w-lg mx-auto">
+            <iframe
+              src={`https://www.tiktok.com/embed/v2/${tiktokVideoId}`}
+              className="w-full h-[500px] rounded-md border-0"
+              loading="lazy"
+              frameBorder="0"
+              allow="encrypted-media"
+              allowFullScreen
+            />
+          </div>
+        )}
+        {message.mediaUrl && !instagramPostId && !pinterestId && !twitterPostId && !redditPostInfo && !facebookPostId && !youtubeVideoId && !tiktokVideoId && (
           <div className="w-full max-w-lg mx-auto">
             {message.mediaType?.startsWith("image/") ? (
               <img
