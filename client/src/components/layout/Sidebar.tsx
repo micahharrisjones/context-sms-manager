@@ -2,11 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X } from "lucide-react";
+import { Hash, X, Users, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { useState } from "react";
 import { DeleteTagModal } from "./DeleteTagModal";
+import { SharedBoard } from "@shared/schema";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -19,6 +20,10 @@ export function Sidebar({ onClose }: SidebarProps) {
   
   const { data: tags } = useQuery<string[]>({ 
     queryKey: ["/api/tags"]
+  });
+
+  const { data: sharedBoards } = useQuery<(SharedBoard & { role: string })[]>({ 
+    queryKey: ["/api/shared-boards"]
   });
 
   const handleDeleteTag = (tag: string, e: React.MouseEvent) => {
@@ -100,6 +105,41 @@ export function Sidebar({ onClose }: SidebarProps) {
             </div>
           ))}
         </div>
+        
+        {/* Shared Boards Section */}
+        {sharedBoards && sharedBoards.length > 0 && (
+          <>
+            <div className="px-4 py-2">
+              <div className="border-t border-border mb-4"></div>
+              <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-2">
+                <Users className="w-4 h-4" />
+                Shared Boards
+              </div>
+            </div>
+            <div className="px-4 space-y-2">
+              {sharedBoards.map((board) => (
+                <div key={board.id} className="relative group">
+                  <Link href={`/shared/${board.name}`}>
+                    <Button
+                      variant="ghost"
+                      className={cn(
+                        "w-full justify-start pr-8",
+                        location === `/shared/${board.name}` && "bg-muted"
+                      )}
+                      onClick={onClose}
+                    >
+                      <Hash className="w-4 h-4 mr-2" />
+                      {board.name}
+                      {board.role === "owner" && (
+                        <span className="ml-auto text-xs text-muted-foreground">owner</span>
+                      )}
+                    </Button>
+                  </Link>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </ScrollArea>
       
       <DeleteTagModal

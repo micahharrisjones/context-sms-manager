@@ -472,6 +472,192 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Shared boards endpoints
+  // Get shared boards for the current user (boards they created + boards they're members of)
+  app.get("/api/shared-boards", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      log(`Fetching shared boards for user ${userId}`);
+      
+      // Get boards created by user and boards user is a member of
+      const [createdBoards, membershipBoards] = await Promise.all([
+        storage.getSharedBoards(userId),
+        storage.getUserBoardMemberships(userId)
+      ]);
+      
+      // Combine and deduplicate
+      const allBoardNames = new Set();
+      const allBoards = [];
+      
+      for (const board of createdBoards) {
+        if (!allBoardNames.has(board.name)) {
+          allBoardNames.add(board.name);
+          allBoards.push({ ...board, role: "owner" });
+        }
+      }
+      
+      for (const membership of membershipBoards) {
+        if (!allBoardNames.has(membership.board.name)) {
+          allBoardNames.add(membership.board.name);
+          allBoards.push({ ...membership.board, role: membership.role });
+        }
+      }
+      
+      log(`Found ${allBoards.length} shared boards for user ${userId}`);
+      res.json(allBoards);
+    } catch (error) {
+      log(`Error fetching shared boards: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to fetch shared boards" });
+    }
+  });
+
+  // Get messages for a shared board
+  app.get("/api/shared-boards/:boardName/messages", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardName = decodeURIComponent(req.params.boardName);
+      
+      log(`Fetching shared messages for board ${boardName}, user ${userId}`);
+      const messages = await storage.getSharedMessages(userId, boardName);
+      
+      log(`Successfully retrieved ${messages.length} messages for shared board ${boardName}`);
+      res.json(messages);
+    } catch (error) {
+      log(`Error fetching shared messages: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to fetch shared messages" });
+    }
+  });
+
+  // Create a new shared board
+  app.post("/api/shared-boards", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const { name } = req.body;
+      
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        return res.status(400).json({ error: "Board name is required" });
+      }
+      
+      const boardName = name.trim().toLowerCase();
+      
+      // Check if board already exists
+      const existingBoard = await storage.getSharedBoardByName(boardName);
+      if (existingBoard) {
+        return res.status(400).json({ error: "A shared board with this name already exists" });
+      }
+      
+      // Create the board
+      const board = await storage.createSharedBoard({
+        name: boardName,
+        createdBy: userId
+      });
+      
+      log(`Created shared board ${board.id} (${boardName}) by user ${userId}`);
+      res.status(201).json(board);
+    } catch (error) {
+      log(`Error creating shared board: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to create shared board" });
+    }
+  });
+
+  // Invite user to shared board (by phone number)
+  app.post("/api/shared-boards/:boardName/invite", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardName = decodeURIComponent(req.params.boardName);
+      const { phoneNumber } = req.body;
+      
+      if (!phoneNumber || typeof phoneNumber !== 'string') {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+      
+      // Check if board exists
+      const board = await storage.getSharedBoardByName(boardName);
+      if (!board) {
+        return res.status(404).json({ error: "Shared board not found" });
+      }
+      
+      // Check if current user has permission to invite (must be owner or member)
+      const userMemberships = await storage.getUserBoardMemberships(userId);
+      const userMembership = userMemberships.find(m => m.board.id === board.id);
+      const isCreator = board.createdBy === userId;
+      
+      if (!isCreator && !userMembership) {
+        return res.status(403).json({ error: "You don't have permission to invite users to this board" });
+      }
+      
+      // Find user by phone number
+      const invitedUser = await storage.getUserByPhoneNumber(phoneNumber);
+      if (!invitedUser) {
+        return res.status(404).json({ error: "User with this phone number not found. They need to create an account first." });
+      }
+      
+      // Check if user is already a member
+      const existingMemberships = await storage.getUserBoardMemberships(invitedUser.id);
+      const alreadyMember = existingMemberships.some(m => m.board.id === board.id);
+      
+      if (alreadyMember) {
+        return res.status(400).json({ error: "User is already a member of this board" });
+      }
+      
+      // Add user to board
+      const membership = await storage.addBoardMember({
+        boardId: board.id,
+        userId: invitedUser.id,
+        role: "member",
+        invitedBy: userId
+      });
+      
+      log(`Added user ${invitedUser.id} to board ${board.id} (${boardName})`);
+      res.status(201).json({
+        success: true,
+        message: `Successfully invited ${phoneNumber} to board #${boardName}`,
+        membership
+      });
+    } catch (error) {
+      log(`Error inviting user to board: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to invite user to board" });
+    }
+  });
+
+  // Remove user from shared board
+  app.delete("/api/shared-boards/:boardName/members/:phoneNumber", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardName = decodeURIComponent(req.params.boardName);
+      const phoneNumber = decodeURIComponent(req.params.phoneNumber);
+      
+      // Check if board exists
+      const board = await storage.getSharedBoardByName(boardName);
+      if (!board) {
+        return res.status(404).json({ error: "Shared board not found" });
+      }
+      
+      // Check if current user has permission (must be owner)
+      if (board.createdBy !== userId) {
+        return res.status(403).json({ error: "Only the board owner can remove members" });
+      }
+      
+      // Find user to remove
+      const userToRemove = await storage.getUserByPhoneNumber(phoneNumber);
+      if (!userToRemove) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Remove user from board
+      await storage.removeBoardMember(board.id, userToRemove.id);
+      
+      log(`Removed user ${userToRemove.id} from board ${board.id} (${boardName})`);
+      res.json({
+        success: true,
+        message: `Successfully removed ${phoneNumber} from board #${boardName}`
+      });
+    } catch (error) {
+      log(`Error removing user from board: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to remove user from board" });
+    }
+  });
+
   // Twilio webhook endpoint - handle both /api/webhook/sms and /webhook/sms
   const handleWebhook = async (req: any, res: any) => {
     log("Entering handleWebhook function");

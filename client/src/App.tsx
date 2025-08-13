@@ -14,6 +14,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/tag/:tag" component={Home} />
+        <Route path="/shared/:boardName" component={Home} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

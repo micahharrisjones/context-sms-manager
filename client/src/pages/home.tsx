@@ -4,13 +4,20 @@ import { useParams } from "wouter";
 export default function Home() {
   const params = useParams();
   const tag = params.tag;
+  const boardName = params.boardName;
+
+  const getTitle = () => {
+    if (boardName) return `#${boardName} (Shared)`;
+    if (tag) return `#${tag}`;
+    return "All Texts";
+  };
 
   return (
     <div>
       <h1 className="text-2xl font-semibold mb-6">
-        {tag ? `#${tag}` : "All Texts"}
+        {getTitle()}
       </h1>
-      <MessageList tag={tag} />
+      <MessageList tag={tag} sharedBoard={boardName} />
     </div>
   );
 }

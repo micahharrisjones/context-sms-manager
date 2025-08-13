@@ -4,10 +4,16 @@ import {
   type User, 
   type InsertUser, 
   type AuthSession, 
-  type InsertAuthSession, 
+  type InsertAuthSession,
+  type SharedBoard,
+  type InsertSharedBoard,
+  type BoardMembership,
+  type InsertBoardMembership,
   messages, 
   users, 
-  authSessions 
+  authSessions,
+  sharedBoards,
+  boardMemberships
 } from "@shared/schema";
 import { db } from "./db";
 import { desc, eq, sql, gte, and } from "drizzle-orm";
@@ -35,6 +41,17 @@ export interface IStorage {
   getTags(userId: number): Promise<string[]>;
   getRecentMessagesBySender(userId: number, senderId: string, since: Date): Promise<Message[]>;
   updateMessageTags(messageId: number, tags: string[]): Promise<void>;
+  
+  // Shared board management
+  getSharedBoards(userId: number): Promise<SharedBoard[]>;
+  createSharedBoard(board: InsertSharedBoard): Promise<SharedBoard>;
+  getSharedBoard(boardId: number): Promise<SharedBoard | undefined>;
+  getSharedBoardByName(name: string): Promise<SharedBoard | undefined>;
+  addBoardMember(membership: InsertBoardMembership): Promise<BoardMembership>;
+  getBoardMembers(boardId: number): Promise<(BoardMembership & { user: User })[]>;
+  getUserBoardMemberships(userId: number): Promise<(BoardMembership & { board: SharedBoard })[]>;
+  removeBoardMember(boardId: number, userId: number): Promise<void>;
+  getSharedMessages(userId: number, boardName: string): Promise<Message[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -373,6 +390,210 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully updated message ${messageId} tags`);
     } catch (error) {
       log("Error updating message tags:", error);
+      throw error;
+    }
+  }
+
+  // Shared board management methods
+  async getSharedBoards(userId: number): Promise<SharedBoard[]> {
+    try {
+      log(`Fetching shared boards created by user ${userId}`);
+      const result = await db
+        .select()
+        .from(sharedBoards)
+        .where(eq(sharedBoards.createdBy, userId))
+        .orderBy(sharedBoards.name);
+      log(`Found ${result.length} shared boards created by user`);
+      return result;
+    } catch (error) {
+      log("Error fetching shared boards:", error);
+      throw error;
+    }
+  }
+
+  async createSharedBoard(board: InsertSharedBoard): Promise<SharedBoard> {
+    try {
+      log(`Creating shared board: ${board.name}`);
+      const [result] = await db
+        .insert(sharedBoards)
+        .values(board)
+        .returning();
+      
+      // Add creator as owner
+      await this.addBoardMember({
+        boardId: result.id,
+        userId: board.createdBy,
+        role: "owner",
+        invitedBy: board.createdBy,
+      });
+      
+      log(`Successfully created shared board ${result.id}`);
+      return result;
+    } catch (error) {
+      log("Error creating shared board:", error);
+      throw error;
+    }
+  }
+
+  async getSharedBoard(boardId: number): Promise<SharedBoard | undefined> {
+    try {
+      const [result] = await db
+        .select()
+        .from(sharedBoards)
+        .where(eq(sharedBoards.id, boardId));
+      return result || undefined;
+    } catch (error) {
+      log("Error fetching shared board:", error);
+      throw error;
+    }
+  }
+
+  async getSharedBoardByName(name: string): Promise<SharedBoard | undefined> {
+    try {
+      const [result] = await db
+        .select()
+        .from(sharedBoards)
+        .where(eq(sharedBoards.name, name));
+      return result || undefined;
+    } catch (error) {
+      log("Error fetching shared board by name:", error);
+      throw error;
+    }
+  }
+
+  async addBoardMember(membership: InsertBoardMembership): Promise<BoardMembership> {
+    try {
+      log(`Adding user ${membership.userId} to board ${membership.boardId}`);
+      const [result] = await db
+        .insert(boardMemberships)
+        .values(membership)
+        .returning();
+      log(`Successfully added board member ${result.id}`);
+      return result;
+    } catch (error) {
+      log("Error adding board member:", error);
+      throw error;
+    }
+  }
+
+  async getBoardMembers(boardId: number): Promise<(BoardMembership & { user: User })[]> {
+    try {
+      const result = await db
+        .select({
+          id: boardMemberships.id,
+          boardId: boardMemberships.boardId,
+          userId: boardMemberships.userId,
+          role: boardMemberships.role,
+          invitedBy: boardMemberships.invitedBy,
+          joinedAt: boardMemberships.joinedAt,
+          user: users,
+        })
+        .from(boardMemberships)
+        .innerJoin(users, eq(boardMemberships.userId, users.id))
+        .where(eq(boardMemberships.boardId, boardId));
+      return result;
+    } catch (error) {
+      log("Error fetching board members:", error);
+      throw error;
+    }
+  }
+
+  async getUserBoardMemberships(userId: number): Promise<(BoardMembership & { board: SharedBoard })[]> {
+    try {
+      log(`Fetching board memberships for user ${userId}`);
+      const result = await db
+        .select({
+          id: boardMemberships.id,
+          boardId: boardMemberships.boardId,
+          userId: boardMemberships.userId,
+          role: boardMemberships.role,
+          invitedBy: boardMemberships.invitedBy,
+          joinedAt: boardMemberships.joinedAt,
+          board: sharedBoards,
+        })
+        .from(boardMemberships)
+        .innerJoin(sharedBoards, eq(boardMemberships.boardId, sharedBoards.id))
+        .where(eq(boardMemberships.userId, userId))
+        .orderBy(sharedBoards.name);
+      log(`Found ${result.length} board memberships for user`);
+      return result;
+    } catch (error) {
+      log("Error fetching user board memberships:", error);
+      throw error;
+    }
+  }
+
+  async removeBoardMember(boardId: number, userId: number): Promise<void> {
+    try {
+      log(`Removing user ${userId} from board ${boardId}`);
+      await db
+        .delete(boardMemberships)
+        .where(and(
+          eq(boardMemberships.boardId, boardId),
+          eq(boardMemberships.userId, userId)
+        ));
+      log(`Successfully removed board member`);
+    } catch (error) {
+      log("Error removing board member:", error);
+      throw error;
+    }
+  }
+
+  async getSharedMessages(userId: number, boardName: string): Promise<Message[]> {
+    try {
+      log(`Fetching shared messages for board ${boardName} accessible to user ${userId}`);
+      
+      // First, check if user has access to this shared board
+      const boardMembership = await db
+        .select({
+          board: sharedBoards,
+        })
+        .from(boardMemberships)
+        .innerJoin(sharedBoards, eq(boardMemberships.boardId, sharedBoards.id))
+        .where(and(
+          eq(boardMemberships.userId, userId),
+          eq(sharedBoards.name, boardName)
+        ));
+      
+      if (boardMembership.length === 0) {
+        log(`User ${userId} does not have access to board ${boardName}`);
+        return [];
+      }
+
+      // Get all members of this board
+      const boardMembers = await db
+        .select({
+          userId: boardMemberships.userId,
+        })
+        .from(boardMemberships)
+        .innerJoin(sharedBoards, eq(boardMemberships.boardId, sharedBoards.id))
+        .where(eq(sharedBoards.name, boardName));
+
+      const memberIds = boardMembers.map(m => m.userId);
+      
+      if (memberIds.length === 0) {
+        return [];
+      }
+
+      // Get messages with the shared tag from all board members
+      const result = await db
+        .select()
+        .from(messages)
+        .where(and(
+          sql`${messages.userId} = ANY(${memberIds})`,
+          sql`${boardName} = ANY(${messages.tags})`
+        ))
+        .orderBy(desc(messages.timestamp));
+
+      // Filter out hashtag-only messages for cleaner UI
+      const filteredMessages = result.filter(message => 
+        message.content && message.content.trim() !== `#${boardName}`
+      );
+
+      log(`Found ${filteredMessages.length} shared messages in board ${boardName}`);
+      return filteredMessages;
+    } catch (error) {
+      log("Error fetching shared messages:", error);
       throw error;
     }
   }

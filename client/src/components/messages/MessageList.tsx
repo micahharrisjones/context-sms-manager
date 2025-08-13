@@ -7,9 +7,10 @@ import { useToast } from "@/hooks/use-toast";
 
 interface MessageListProps {
   tag?: string;
+  sharedBoard?: string;
 }
 
-export function MessageList({ tag }: MessageListProps) {
+export function MessageList({ tag, sharedBoard }: MessageListProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
@@ -20,8 +21,14 @@ export function MessageList({ tag }: MessageListProps) {
     queryKey: ["/api/auth/session"],
   });
 
+  const getQueryKey = () => {
+    if (sharedBoard) return [`/api/shared-boards/${sharedBoard}/messages`];
+    if (tag) return [`/api/messages/tag/${tag}`];
+    return ["/api/messages"];
+  };
+
   const { data: messages, isLoading } = useQuery<Message[]>({
-    queryKey: tag ? [`/api/messages/tag/${tag}`] : ["/api/messages"],
+    queryKey: getQueryKey(),
   });
 
   const connectWebSocket = () => {
@@ -66,11 +73,14 @@ export function MessageList({ tag }: MessageListProps) {
         const data = JSON.parse(event.data);
         if (data.type === "NEW_MESSAGE") {
           console.log("Invalidating queries due to new message");
-          // Invalidate both messages and tags queries
+          // Invalidate relevant queries
           queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
           queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
           if (tag) {
             queryClient.invalidateQueries({ queryKey: [`/api/messages/tag/${tag}`] });
+          }
+          if (sharedBoard) {
+            queryClient.invalidateQueries({ queryKey: [`/api/shared-boards/${sharedBoard}/messages`] });
           }
           // Note: No toast notification since this should only be received by the message owner
           // and user-initiated actions (like adding messages) already have their own feedback
