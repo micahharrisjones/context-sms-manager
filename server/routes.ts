@@ -120,15 +120,27 @@ const processSMSWebhook = async (body: unknown) => {
 
     const content = validatedData.Body;
     const senderId = validatedData.From;
+    const recipientNumber = validatedData.To; // The Context phone number that received the message
     
-    // Get or create user based on phone number
+    log(`Message from ${senderId} to Context number ${recipientNumber}`);
+    
+    // IMPORTANT: For SMS messages sent TO the Context phone number,
+    // we need to find which user account this message belongs to.
+    // Since we currently have one Twilio number shared across users,
+    // we'll associate messages with the user who sent them (their authenticated account)
+    
+    // Find the user account based on the sender's phone number
     let user = await storage.getUserByPhoneNumber(senderId);
     if (!user) {
+      // If this sender doesn't have an account yet, create one
+      // This allows people to start using Context without explicit signup
       user = await storage.createUser({
         phoneNumber: senderId,
         displayName: `User ${senderId.slice(-4)}`
       });
-      log(`Created new user for phone ${senderId}`);
+      log(`Created new user account for phone ${senderId}`);
+    } else {
+      log(`Found existing user account for phone ${senderId}: User ${user.id}`);
     }
 
     // Extract hashtags from the message content
@@ -186,6 +198,8 @@ const processSMSWebhook = async (body: unknown) => {
   // Use message if available, otherwise use body
   const content = validatedData.message || validatedData.body;
 
+  log(`ClickSend message from ${senderId}`);
+
   // Get or create user based on phone number
   let user = await storage.getUserByPhoneNumber(senderId);
   if (!user) {
@@ -193,7 +207,9 @@ const processSMSWebhook = async (body: unknown) => {
       phoneNumber: senderId,
       displayName: `User ${senderId.slice(-4)}`
     });
-    log(`Created new user for phone ${senderId}`);
+    log(`Created new user account for phone ${senderId}`);
+  } else {
+    log(`Found existing user account for phone ${senderId}: User ${user.id}`);
   }
 
   // Extract hashtags from the message content
