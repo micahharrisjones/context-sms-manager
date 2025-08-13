@@ -48,16 +48,21 @@ export function Sidebar({ onClose }: SidebarProps) {
         )}
       </div>
       <div className="p-4">
-        <Link href="/">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start"
-            size="lg"
-            onClick={onClose}
-          >
-            All Messages
-          </Button>
-        </Link>
+        <div className="border border-border rounded-lg bg-muted/30">
+          <Link href="/">
+            <Button 
+              variant="ghost" 
+              className={cn(
+                "w-full justify-start m-1",
+                location === "/" && "bg-muted"
+              )}
+              size="lg"
+              onClick={onClose}
+            >
+              All Texts
+            </Button>
+          </Link>
+        </div>
       </div>
       <ScrollArea className="h-[calc(100vh-180px)]">
         <div className="p-4 space-y-2">
