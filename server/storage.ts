@@ -1,6 +1,6 @@
 import { type Message, type InsertMessage, messages } from "@shared/schema";
 import { db } from "./db";
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, sql, gte, and } from "drizzle-orm";
 import { log } from "./vite";
 
 export interface IStorage {
@@ -8,6 +8,7 @@ export interface IStorage {
   getMessagesByTag(tag: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   getTags(): Promise<string[]>;
+  getRecentMessagesBySender(senderId: string, since: Date): Promise<Message[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -47,13 +48,14 @@ export class DatabaseStorage implements IStorage {
       log("Creating new message:", JSON.stringify(insertMessage, null, 2));
 
       // Look for recent messages from the same sender (within 5 seconds)
+      const fiveSecondsAgo = new Date(Date.now() - 5000);
       const recentMessages = await db
         .select()
         .from(messages)
-        .where(sql`
-          sender_id = ${insertMessage.senderId} 
-          AND timestamp > NOW() - INTERVAL '5 seconds'
-        `);
+        .where(and(
+          eq(messages.senderId, insertMessage.senderId),
+          gte(messages.timestamp, fiveSecondsAgo)
+        ));
 
       log(`Found ${recentMessages.length} recent messages from sender`);
 
@@ -108,6 +110,25 @@ export class DatabaseStorage implements IStorage {
       return result.rows.map(row => row.tag);
     } catch (error) {
       log("Error fetching tags:", error);
+      throw error;
+    }
+  }
+
+  async getRecentMessagesBySender(senderId: string, since: Date): Promise<Message[]> {
+    try {
+      log(`Fetching recent messages from ${senderId} since ${since.toISOString()}`);
+      const result = await db
+        .select()
+        .from(messages)
+        .where(and(
+          eq(messages.senderId, senderId),
+          gte(messages.timestamp, since)
+        ))
+        .orderBy(desc(messages.timestamp));
+      log(`Found ${result.length} recent messages from sender`);
+      return result;
+    } catch (error) {
+      log("Error fetching recent messages by sender:", error);
       throw error;
     }
   }

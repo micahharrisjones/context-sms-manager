@@ -37,6 +37,27 @@ const twilioWebhookSchema = z.object({
   SmsStatus: z.string().optional(),
 });
 
+// Helper function to get recent tags from the same sender
+async function getRecentTagsFromSender(senderId: string): Promise<string[]> {
+  try {
+    // Get messages from the last 5 minutes from the same sender
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const recentMessages = await storage.getRecentMessagesBySender(senderId, fiveMinutesAgo);
+    
+    // Find the most recent message with hashtags (excluding "untagged")
+    for (const message of recentMessages) {
+      const nonUntaggedTags = message.tags.filter(tag => tag !== "untagged");
+      if (nonUntaggedTags.length > 0) {
+        return nonUntaggedTags;
+      }
+    }
+    return [];
+  } catch (error) {
+    log("Error getting recent tags:", error instanceof Error ? error.message : String(error));
+    return [];
+  }
+}
+
 // Support both ClickSend and Twilio webhook formats
 const clicksendWebhookSchema = z.object({
   message: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
@@ -77,11 +98,17 @@ const processSMSWebhook = async (body: unknown) => {
     const senderId = validatedData.From;
 
     // Extract hashtags from the message content
-    const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
+    let tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
 
-    // If no tags were found, use "untagged" as default
+    // If no tags were found, try to inherit from recent message from same sender
     if (tags.length === 0) {
-      tags.push("untagged");
+      const recentTags = await getRecentTagsFromSender(senderId);
+      if (recentTags.length > 0) {
+        tags = recentTags;
+        log(`Inherited tags [${tags.join(', ')}] from recent message by ${senderId}`);
+      } else {
+        tags.push("untagged");
+      }
     }
 
     // Remove any duplicate tags
@@ -125,11 +152,17 @@ const processSMSWebhook = async (body: unknown) => {
   const content = validatedData.message || validatedData.body;
 
   // Extract hashtags from the message content
-  const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
+  let tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
 
-  // If no tags were found, use "untagged" as default
+  // If no tags were found, try to inherit from recent message from same sender
   if (tags.length === 0) {
-    tags.push("untagged");
+    const recentTags = await getRecentTagsFromSender(senderId);
+    if (recentTags.length > 0) {
+      tags = recentTags;
+      log(`Inherited tags [${tags.join(', ')}] from recent message by ${senderId}`);
+    } else {
+      tags.push("untagged");
+    }
   }
 
   // Remove any duplicate tags

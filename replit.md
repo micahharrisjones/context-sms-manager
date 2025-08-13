@@ -58,6 +58,11 @@ A robust SMS management platform that enables persistent message storage and sea
 
 ## Next Steps
 1. ✅ **Tested and confirmed Twilio webhook integration working**
-2. Handle SMS message splitting/concatenation for long messages
+2. ✅ **Implemented smart hashtag inheritance for iOS message splitting**
 3. Test social media link previews with Instagram/Pinterest URLs
 4. Deploy to production environment
+
+## Smart Categorization Features
+- **Hashtag extraction**: Automatic detection of #hashtags in SMS messages
+- **iOS message splitting support**: When iOS separates messages, URLs inherit hashtags from recent messages (within 5 minutes) from the same sender
+- **Tag inheritance**: Link preview messages automatically get categorized with hashtags from preceding text messages
