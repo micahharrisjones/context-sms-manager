@@ -112,9 +112,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           <div className="mx-auto mb-6">
             <Logo className="w-auto h-16" />
           </div>
-          <CardTitle className="text-2xl font-bold text-gray-900">
-            Welcome to Context
-          </CardTitle>
           <CardDescription>
             {step === 'phone' 
               ? "Enter your phone number to get started" 
