@@ -42,10 +42,16 @@ export function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <main className="flex-1 overflow-auto">
         {/* Persistent header with logo and logout */}
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 lg:p-6 flex items-center gap-4">
-          {/* Mobile: spacer for menu button */}
-          <div className="lg:hidden w-10" /> 
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 lg:p-6 flex items-center justify-between">
+          {/* Mobile: spacer for menu button, Desktop: logo */}
+          <div className="flex items-center">
+            <div className="lg:hidden w-10" /> 
+            <Link href="/" className="hidden lg:block">
+              <Logo className="w-auto h-8" />
+            </Link>
+          </div>
           
+          {/* Mobile: centered logo */}
           <Link href="/" className="lg:hidden flex-1 flex justify-center">
             <Logo className="w-auto h-8" />
           </Link>
