@@ -8,9 +8,11 @@ import { useToast } from "@/hooks/use-toast";
 interface MessageListProps {
   tag?: string;
   sharedBoard?: string;
+  messages?: Message[];
+  isLoading?: boolean;
 }
 
-export function MessageList({ tag, sharedBoard }: MessageListProps) {
+export function MessageList({ tag, sharedBoard, messages: propMessages, isLoading: propIsLoading }: MessageListProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
@@ -27,9 +29,14 @@ export function MessageList({ tag, sharedBoard }: MessageListProps) {
     return ["/api/messages"];
   };
 
-  const { data: messages, isLoading } = useQuery<Message[]>({
+  const { data: fetchedMessages, isLoading: fetchIsLoading } = useQuery<Message[]>({
     queryKey: getQueryKey(),
+    enabled: !propMessages // Only fetch if no messages provided as props
   });
+
+  // Use prop messages if provided, otherwise use fetched messages
+  const messages = propMessages || fetchedMessages;
+  const isLoading = propIsLoading !== undefined ? propIsLoading : fetchIsLoading;
 
   const connectWebSocket = () => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {

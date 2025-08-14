@@ -376,6 +376,24 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.get("/api/messages/search", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const query = req.query.q as string;
+      
+      if (!query || query.trim().length === 0) {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+      
+      const messages = await storage.searchMessages(userId, query.trim());
+      log(`Search for "${query}" returned ${messages.length} messages for user ${userId}`);
+      res.json(messages);
+    } catch (error) {
+      log(`Error searching messages: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to search messages" });
+    }
+  });
+
   app.get("/api/tags", requireAuth, async (req, res) => {
     try {
       const userId = req.userId!;

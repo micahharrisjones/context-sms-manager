@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Hash, X, Users, Plus, UserPlus, Eye, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
+import { SearchBar } from "./SearchBar";
 import { useState } from "react";
 import { DeleteTagModal } from "./DeleteTagModal";
 import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
@@ -62,7 +63,13 @@ export function Sidebar({ onClose }: SidebarProps) {
           </Button>
         )}
       </div>
-      <div className="p-4">
+      <div className="p-4 space-y-4">
+        {/* Search Bar */}
+        <div className="pb-2 border-b">
+          <SearchBar onClose={onClose} />
+        </div>
+        
+        {/* All Texts Button */}
         <div className={cn(
           "border rounded-lg transition-colors",
           location === "/" 

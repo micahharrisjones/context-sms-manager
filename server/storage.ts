@@ -34,6 +34,7 @@ export interface IStorage {
   getMessages(userId: number): Promise<Message[]>;
   getMessagesByTag(userId: number, tag: string): Promise<Message[]>;
   getAllMessagesByTagForDeletion(userId: number, tag: string): Promise<Message[]>;
+  searchMessages(userId: number, query: string): Promise<Message[]>;
   getMessageById(messageId: number): Promise<Message | undefined>;
   createMessage(message: InsertMessage): Promise<Message>;
   deleteMessage(messageId: number): Promise<void>;
@@ -217,6 +218,35 @@ export class DatabaseStorage implements IStorage {
       return filteredMessages;
     } catch (error) {
       log(`Error fetching messages by tag ${tag}:`, error);
+      throw error;
+    }
+  }
+
+  async searchMessages(userId: number, query: string): Promise<Message[]> {
+    try {
+      log(`Searching messages for user ${userId} with query: "${query}"`);
+      
+      // Search in content using case-insensitive LIKE pattern
+      const result = await db
+        .select()
+        .from(messages)
+        .where(and(
+          eq(messages.userId, userId),
+          sql`LOWER(${messages.content}) LIKE LOWER(${'%' + query + '%'})`
+        ))
+        .orderBy(desc(messages.timestamp));
+      
+      // Filter out hashtag-only messages
+      const filteredMessages = result.filter(message => {
+        const contentWithoutHashtags = message.content.replace(/#\w+/g, '').replace(/\s/g, '');
+        const isHashtagOnly = contentWithoutHashtags.length === 0;
+        return !isHashtagOnly;
+      });
+      
+      log(`Search found ${result.length} messages, ${filteredMessages.length} after filtering hashtag-only messages`);
+      return filteredMessages;
+    } catch (error) {
+      log(`Error searching messages with query "${query}":`, String(error));
       throw error;
     }
   }
