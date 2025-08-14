@@ -257,7 +257,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api", checkDatabaseConnection);
 
   // Authentication routes
-  app.post("/api/auth/request-code", async (req, res) => {
+  app.post("/api/auth/login", async (req, res) => {
     try {
       const { phoneNumber } = req.body;
       
@@ -265,13 +265,37 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Phone number is required" });
       }
       
-      const verificationCode = await AuthService.initializeVerification(phoneNumber);
+      // Clean phone number (remove any formatting)
+      const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
       
-      // In a real app, this would be sent via SMS
-      // For now, return it in the response for testing
+      // Get or create user based on phone number
+      let user = await storage.getUserByPhoneNumber(cleanPhoneNumber);
+      if (!user) {
+        user = await storage.createUser({
+          phoneNumber: cleanPhoneNumber,
+          displayName: `User ${cleanPhoneNumber.slice(-4)}`
+        });
+        log(`Created new user account for phone ${cleanPhoneNumber}`);
+      } else {
+        log(`Found existing user account for phone ${cleanPhoneNumber}: User ${user.id}`);
+      }
+      
+      // Store user in session
+      req.session.userId = user.id;
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      
       res.json({ 
-        message: "Verification code sent",
-        code: verificationCode // Remove this in production
+        message: "Login successful",
+        user: {
+          id: user.id,
+          phoneNumber: user.phoneNumber,
+          displayName: user.displayName
+        }
       });
     } catch (error) {
       log("Error requesting verification code:", error instanceof Error ? error.message : String(error));
