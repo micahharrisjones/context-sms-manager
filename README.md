@@ -73,9 +73,17 @@ TWILIO_PHONE_NUMBER=your_twilio_phone_number
 
 ### Installation
 
+## 🌐 Live Demo
+
+Context is live at: **https://contxt.life**
+
+Try it out by sending SMS messages with hashtags to see the intelligent categorization and social media preview features in action.
+
+## 🚀 Local Development
+
 1. Clone the repository:
 ```bash
-git clone https://github.com/YOUR_USERNAME/context-sms-manager.git
+git clone https://github.com/micahharrisjones/context-sms-manager.git
 cd context-sms-manager
 ```
 
