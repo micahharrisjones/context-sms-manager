@@ -112,10 +112,9 @@ export function MessageList({ tag, sharedBoard }: MessageListProps) {
   };
 
   useEffect(() => {
-    // Only connect WebSocket if user is authenticated
-    if (session?.authenticated) {
-      connectWebSocket();
-    }
+    // Connect WebSocket regardless of authentication status
+    // but only send identification if authenticated
+    connectWebSocket();
 
     return () => {
       if (reconnectTimeoutRef.current) {
