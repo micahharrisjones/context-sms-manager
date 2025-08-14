@@ -41,33 +41,15 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
-        {/* Persistent header with logout */}
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 lg:p-6 flex items-center justify-between">
-          {/* Mobile: spacer for menu button */}
-          <div className="lg:hidden w-10" /> 
-          
-          {/* Mobile: centered logo */}
-          <Link href="/" className="lg:hidden flex-1 flex justify-center">
+        {/* Simple mobile header with centered logo */}
+        <div className="lg:hidden sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 flex items-center justify-center">
+          <Link href="/">
             <Logo className="w-auto h-8" />
           </Link>
-          
-          {/* Desktop: spacer to push logout to right */}
-          <div className="hidden lg:block flex-1"></div>
-          
-          {/* Logout button - positioned at right edge */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={logout}
-            className="text-gray-600 hover:text-red-600 hover:bg-red-50"
-          >
-            <LogOut className="h-4 w-4 lg:mr-2" />
-            <span className="hidden lg:inline">Logout</span>
-          </Button>
         </div>
         
         {/* Content area */}
-        <div className="p-6 pt-4 lg:pt-6">
+        <div className="p-6">
           {children}
         </div>
       </main>

@@ -2,10 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X, Users, Plus, UserPlus, Eye, Trash2 } from "lucide-react";
+import { Hash, X, Users, Plus, UserPlus, Eye, Trash2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
+import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { DeleteTagModal } from "./DeleteTagModal";
 import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
@@ -20,6 +21,7 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const [location] = useLocation();
+  const { logout } = useAuth();
   const [deleteTagModalOpen, setDeleteTagModalOpen] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [createBoardModalOpen, setCreateBoardModalOpen] = useState(false);
@@ -45,7 +47,8 @@ export function Sidebar({ onClose }: SidebarProps) {
   };
 
   return (
-    <div className="w-full lg:w-64 h-full bg-background border-r">
+    <div className="w-full lg:w-64 h-full bg-background border-r flex flex-col">
+      {/* Logo Section */}
       <div className="p-6 border-b flex justify-between items-center">
         <Link href="/">
           <div className="flex items-center gap-2">
@@ -63,37 +66,36 @@ export function Sidebar({ onClose }: SidebarProps) {
           </Button>
         )}
       </div>
-      <div className="p-4 space-y-4">
-        {/* Search Bar */}
-        <div className="pb-2 border-b">
-          <SearchBar onClose={onClose} />
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="p-4">
+          {/* All Texts Button */}
+          <div className={cn(
+            "border rounded-lg transition-colors",
+            location === "/" 
+              ? "border-primary/20 bg-primary/5" 
+              : "border-border bg-muted/30"
+          )}>
+            <Link href="/">
+              <Button 
+                variant="ghost" 
+                className={cn(
+                  "w-full justify-start m-1 hover:bg-transparent",
+                  location === "/" 
+                    ? "bg-transparent text-primary font-medium" 
+                    : "hover:bg-muted/50"
+                )}
+                size="lg"
+                onClick={onClose}
+              >
+                All Texts
+              </Button>
+            </Link>
+          </div>
         </div>
-        
-        {/* All Texts Button */}
-        <div className={cn(
-          "border rounded-lg transition-colors",
-          location === "/" 
-            ? "border-primary/20 bg-primary/5" 
-            : "border-border bg-muted/30"
-        )}>
-          <Link href="/">
-            <Button 
-              variant="ghost" 
-              className={cn(
-                "w-full justify-start m-1 hover:bg-transparent",
-                location === "/" 
-                  ? "bg-transparent text-primary font-medium" 
-                  : "hover:bg-muted/50"
-              )}
-              size="lg"
-              onClick={onClose}
-            >
-              All Texts
-            </Button>
-          </Link>
-        </div>
-      </div>
-      <ScrollArea className="h-[calc(100vh-180px)]">
+      {/* Scrollable Tags and Shared Boards */}
+      <ScrollArea className="flex-1 min-h-0">
         <div className="p-4 space-y-2">
           {tags?.map((tag) => (
             <div key={tag} className="relative group">
@@ -220,6 +222,26 @@ export function Sidebar({ onClose }: SidebarProps) {
           </div>
         )}
       </ScrollArea>
+      </div>
+      
+      {/* Bottom Section - Search and Logout */}
+      <div className="border-t bg-background p-4 space-y-3">
+        {/* Search Bar */}
+        <SearchBar onClose={onClose} />
+        
+        {/* Separator Line */}
+        <div className="border-t border-border"></div>
+        
+        {/* Logout Button */}
+        <Button
+          variant="ghost"
+          onClick={logout}
+          className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
+      </div>
       
       <DeleteTagModal
         isOpen={deleteTagModalOpen}
