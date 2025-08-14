@@ -97,7 +97,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       {/* Scrollable Tags and Shared Boards */}
       <ScrollArea className="flex-1 min-h-0">
         {/* Private Boards Section */}
-        <div className="px-4 py-2">
+        <div className="px-4 pt-2 pb-0">
           <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
             <div className="flex items-center gap-2">
               <User className="w-4 h-4" />
@@ -107,14 +107,14 @@ export function Sidebar({ onClose }: SidebarProps) {
               variant="ghost"
               size="sm"
               className="h-6 w-6 p-0 hover:bg-muted"
-              onClick={() => {/* TODO: Create private board modal */}}
+              onClick={() => setCreateBoardModalOpen(true)}
             >
               <Plus className="h-3 w-3" />
             </Button>
           </div>
         </div>
         
-        <div className="p-4 space-y-2">
+        <div className="px-4 pb-4 space-y-2">
           {tags?.map((tag) => (
             <div key={tag} className="relative group">
               <Link href={`/tag/${tag}`}>
