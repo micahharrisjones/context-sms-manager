@@ -8,6 +8,7 @@ import { log } from "./vite";
 import { pool } from "./db";
 import { AuthService, generateTwilioResponse, requireAuth } from "./auth";
 import { twilioService } from "./twilio-service";
+import { tmdbService } from "./tmdb-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -772,6 +773,30 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       log(`Error removing user from board: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({ error: "Failed to remove user from board" });
+    }
+  });
+
+  // TMDB API endpoint for fetching movie data
+  app.get("/api/tmdb/movie/:imdbId", async (req, res) => {
+    try {
+      const { imdbId } = req.params;
+      
+      if (!imdbId || !imdbId.startsWith('tt')) {
+        return res.status(400).json({ error: "Invalid IMDB ID format" });
+      }
+      
+      log(`Fetching TMDB data for IMDB ID: ${imdbId}`);
+      const imdbUrl = `https://www.imdb.com/title/${imdbId}`;
+      const movieData = await tmdbService.getMoviePoster(imdbUrl);
+      
+      if (!movieData.posterUrl && !movieData.title) {
+        return res.status(404).json({ error: "Movie not found in TMDB database" });
+      }
+      
+      res.json(movieData);
+    } catch (error) {
+      log(`Error fetching TMDB data: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to fetch movie data from TMDB" });
     }
   });
 

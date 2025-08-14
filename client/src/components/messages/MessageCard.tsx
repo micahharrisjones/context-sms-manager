@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Link } from "wouter";
 import { X, Edit } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DeleteMessageModal } from "./DeleteMessageModal";
 import { EditMessageModal } from "./EditMessageModal";
 
@@ -61,9 +61,18 @@ function getIMDbInfo(url: string): { type: string; id: string } | null {
   return null;
 }
 
+interface MovieData {
+  posterUrl: string | null;
+  title: string | null;
+  year: string | null;
+  rating: number | null;
+}
+
 export function MessageCard({ message }: MessageCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [movieData, setMovieData] = useState<MovieData | null>(null);
+  const [isLoadingMovie, setIsLoadingMovie] = useState(false);
 
   const formattedContent = message.content.split(" ").map((word, i) => {
     if (word.startsWith("#")) {
@@ -105,6 +114,28 @@ export function MessageCard({ message }: MessageCardProps) {
   const youtubeVideoId = message.content ? getYouTubeVideoId(message.content) : null;
   const tiktokVideoId = message.content ? getTikTokVideoId(message.content) : null;
   const imdbInfo = message.content ? getIMDbInfo(message.content) : null;
+
+  // Fetch movie data from TMDB when IMDB link is detected
+  useEffect(() => {
+    async function fetchMovieData() {
+      if (!imdbInfo) return;
+      
+      setIsLoadingMovie(true);
+      try {
+        const response = await fetch(`/api/tmdb/movie/${imdbInfo.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setMovieData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching movie data:', error);
+      } finally {
+        setIsLoadingMovie(false);
+      }
+    }
+
+    fetchMovieData();
+  }, [imdbInfo]);
 
   return (
     <>
@@ -232,12 +263,37 @@ export function MessageCard({ message }: MessageCardProps) {
           <div className="w-full">
             <div className="rounded-md border bg-gradient-to-br from-yellow-50 to-amber-50 p-6">
               <div className="flex items-start gap-4">
+                {/* Movie Poster or IMDB Icon */}
                 <div className="flex-shrink-0">
-                  <svg className="w-12 h-12 text-yellow-600" viewBox="0 0 24 24" fill="currentColor">
+                  {isLoadingMovie ? (
+                    <div className="w-20 h-28 bg-yellow-100 rounded animate-pulse flex items-center justify-center">
+                      <div className="text-yellow-600 text-xs">Loading...</div>
+                    </div>
+                  ) : movieData?.posterUrl ? (
+                    <img 
+                      src={movieData.posterUrl}
+                      alt={movieData.title || "Movie Poster"}
+                      className="w-20 h-28 rounded object-cover shadow-md"
+                      onError={(e) => {
+                        // Fallback to IMDB icon if poster fails to load
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'block';
+                      }}
+                    />
+                  ) : null}
+                  <svg 
+                    className="w-12 h-12 text-yellow-600"
+                    style={{ display: movieData?.posterUrl ? 'none' : 'block' }}
+                    viewBox="0 0 24 24" 
+                    fill="currentColor"
+                  >
                     <path d="M22.3 5.9l-1.4-3.8c-.4-1-.4-1.1-1.4-1.1H4.6c-1 0-1 .1-1.4 1.1L1.8 5.9c-.3.8-.3 1.5.3 2.1.6.6 1.3.6 2.1.3l.8-.3v10c0 2.2 1.8 4 4 4h6c2.2 0 4-1.8 4-4V8l.8.3c.8.3 1.5.3 2.1-.3.6-.6.6-1.3.3-2.1zM20 6c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5zM4 6c-.3 0-.5-.2-.5-.5S3.7 5 4 5s.5.2.5.5S4.3 6 4 6zm14 12c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V8.5l1-.4c.3-.1.5-.4.5-.7 0-.4-.2-.7-.5-.9L6 6.2l1-2.7h10l1 2.7-1 .3c-.3.2-.5.5-.5.9 0 .3.2.6.5.7l1 .4V18z"/>
                     <path d="M8 10h2v6H8zm4-1h2v7h-2z"/>
                   </svg>
                 </div>
+                
+                {/* Movie Information */}
                 <div className="flex-1 min-w-0">
                   <a 
                     href={`https://www.imdb.com/title/${imdbInfo.id}`}
@@ -245,10 +301,24 @@ export function MessageCard({ message }: MessageCardProps) {
                     rel="noopener noreferrer"
                     className="text-yellow-800 hover:text-yellow-900 transition-colors"
                   >
-                    <div className="font-semibold text-lg mb-1">View on IMDb</div>
-                    <div className="text-sm text-yellow-700 mb-2">
-                      Movie & TV Database • {imdbInfo.id}
+                    <div className="font-semibold text-lg mb-1">
+                      {movieData?.title ? (
+                        <>
+                          🎬 {movieData.title}
+                          {movieData.year && (
+                            <span className="text-yellow-700"> ({movieData.year})</span>
+                          )}
+                        </>
+                      ) : "View on IMDb"}
                     </div>
+                    
+                    <div className="text-sm text-yellow-700 mb-2 flex items-center gap-2">
+                      <span>Movie & TV Database • {imdbInfo.id}</span>
+                      {movieData?.rating && (
+                        <span className="text-yellow-800">⭐ {movieData.rating.toFixed(1)}</span>
+                      )}
+                    </div>
+                    
                     <div className="text-xs text-yellow-600 bg-yellow-100 rounded px-2 py-1 inline-block">
                       Click to view ratings, cast, reviews & more
                     </div>

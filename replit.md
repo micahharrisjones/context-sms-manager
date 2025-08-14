@@ -55,6 +55,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Implemented message editing functionality - users can edit message content and move messages between boards by adding/removing hashtags**
 - ✅ **Added shared board deletion feature - board owners can permanently delete shared boards with proper confirmation dialogs**
 - ✅ **Implemented SMS notification system - board members receive text messages when new content is added to shared boards**
+- ✅ **Integrated TMDB API for enhanced IMDB link previews with movie posters, titles, ratings, and release years**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
