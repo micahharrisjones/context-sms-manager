@@ -41,6 +41,7 @@ export interface IStorage {
   getTags(userId: number): Promise<string[]>;
   getRecentMessagesBySender(userId: number, senderId: string, since: Date): Promise<Message[]>;
   updateMessageTags(messageId: number, tags: string[]): Promise<void>;
+  updateMessage(messageId: number, content: string, tags: string[]): Promise<Message>;
   
   // Shared board management
   getSharedBoards(userId: number): Promise<SharedBoard[]>;
@@ -391,6 +392,26 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully updated message ${messageId} tags`);
     } catch (error) {
       log("Error updating message tags:", error);
+      throw error;
+    }
+  }
+
+  async updateMessage(messageId: number, content: string, tags: string[]): Promise<Message> {
+    try {
+      log(`Updating message ${messageId} with content and tags: [${tags.join(', ')}]`);
+      const [updatedMessage] = await db
+        .update(messages)
+        .set({
+          content: content,
+          tags: tags
+        })
+        .where(eq(messages.id, messageId))
+        .returning();
+      
+      log(`Successfully updated message ${messageId}`);
+      return updatedMessage;
+    } catch (error) {
+      log("Error updating message:", error);
       throw error;
     }
   }

@@ -445,6 +445,60 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // PATCH endpoint for updating messages
+  app.patch("/api/messages/:id", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const messageId = parseInt(req.params.id);
+      
+      if (isNaN(messageId)) {
+        return res.status(400).json({ error: "Invalid message ID" });
+      }
+
+      const { content, tags } = req.body;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({ error: "Content is required and must be a string" });
+      }
+
+      if (!Array.isArray(tags)) {
+        return res.status(400).json({ error: "Tags must be an array" });
+      }
+
+      // Check if message exists and belongs to the user
+      const existingMessage = await storage.getMessageById(messageId);
+      if (!existingMessage) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+
+      if (existingMessage.userId !== userId) {
+        return res.status(403).json({ error: "You don't have permission to edit this message" });
+      }
+
+      // Update the message
+      const updatedMessage = await storage.updateMessage(messageId, content, tags);
+      
+      log(`Updated message ${messageId} with new content and tags: [${tags.join(', ')}]`);
+      
+      // Broadcast WebSocket update for the updated message
+      wsManager.broadcastNewMessageToUser(userId);
+      
+      // Also notify shared board members if message has relevant tags
+      if (updatedMessage.tags && updatedMessage.tags.length > 0) {
+        const sharedBoardUsers = await storage.getUsersForSharedBoardNotification(updatedMessage.tags);
+        if (sharedBoardUsers.length > 0) {
+          log(`Notifying shared board users of updated message: [${sharedBoardUsers.join(', ')}]`);
+          wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
+        }
+      }
+      
+      res.json(updatedMessage);
+    } catch (error) {
+      log(`Error updating message: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to update message" });
+    }
+  });
+
   // DELETE endpoint for removing all messages with a specific tag
   app.delete("/api/tags/:tag", requireAuth, async (req, res) => {
     try {
