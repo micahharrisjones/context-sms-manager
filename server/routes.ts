@@ -7,6 +7,7 @@ import { WebSocketManager } from "./websocket";
 import { log } from "./vite";
 import { pool } from "./db";
 import { AuthService, generateTwilioResponse, requireAuth } from "./auth";
+import { twilioService } from "./twilio-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -401,6 +402,25 @@ export async function registerRoutes(app: Express) {
         if (sharedBoardUsers.length > 0) {
           log(`Notifying shared board users of UI message: [${sharedBoardUsers.join(', ')}]`);
           wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
+        }
+
+        // Send SMS notifications to shared board members (excluding the sender)
+        const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
+        for (const tag of nonUntaggedTags) {
+          try {
+            const phoneNumbers = await storage.getBoardMembersPhoneNumbers(tag, userId);
+            if (phoneNumbers.length > 0) {
+              log(`Sending SMS notifications to shared board #${tag} members: [${phoneNumbers.join(', ')}]`);
+              // Don't await - let SMS sending happen in background
+              twilioService.sendSharedBoardNotification(
+                phoneNumbers, 
+                tag, 
+                created.content
+              );
+            }
+          } catch (error) {
+            log(`Error sending SMS notifications for board ${tag}:`, error instanceof Error ? error.message : String(error));
+          }
         }
       }
 
@@ -842,6 +862,25 @@ export async function registerRoutes(app: Express) {
         if (sharedBoardUsers.length > 0) {
           log(`Notifying shared board users: [${sharedBoardUsers.join(', ')}]`);
           wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
+        }
+
+        // Send SMS notifications to shared board members (excluding the sender)
+        const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
+        for (const tag of nonUntaggedTags) {
+          try {
+            const phoneNumbers = await storage.getBoardMembersPhoneNumbers(tag, created.userId);
+            if (phoneNumbers.length > 0) {
+              log(`Sending SMS notifications to shared board #${tag} members: [${phoneNumbers.join(', ')}]`);
+              // Don't await - let SMS sending happen in background
+              twilioService.sendSharedBoardNotification(
+                phoneNumbers, 
+                tag, 
+                created.content
+              );
+            }
+          } catch (error) {
+            log(`Error sending SMS notifications for board ${tag}:`, error instanceof Error ? error.message : String(error));
+          }
         }
       }
       

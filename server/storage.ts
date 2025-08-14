@@ -55,6 +55,7 @@ export interface IStorage {
   deleteSharedBoard(boardId: number): Promise<void>;
   getSharedMessages(userId: number, boardName: string): Promise<Message[]>;
   getUsersForSharedBoardNotification(tags: string[]): Promise<number[]>;
+  getBoardMembersPhoneNumbers(boardName: string, excludeUserId?: number): Promise<string[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -681,6 +682,62 @@ export class DatabaseStorage implements IStorage {
       return resultArray;
     } catch (error) {
       log(`Error getting users for shared board notification: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async getBoardMembersPhoneNumbers(boardName: string, excludeUserId?: number): Promise<string[]> {
+    try {
+      log(`Getting phone numbers for board members of ${boardName}, excluding user ${excludeUserId || 'none'}`);
+      
+      // Find the shared board
+      const board = await db
+        .select({ id: sharedBoards.id, createdBy: sharedBoards.createdBy })
+        .from(sharedBoards)
+        .where(eq(sharedBoards.name, boardName));
+
+      if (board.length === 0) {
+        log(`No shared board found with name ${boardName}`);
+        return [];
+      }
+
+      const boardInfo = board[0];
+      const phoneNumbers: string[] = [];
+
+      // Get creator's phone number (if not excluded)
+      if (!excludeUserId || boardInfo.createdBy !== excludeUserId) {
+        const [creator] = await db
+          .select({ phoneNumber: users.phoneNumber })
+          .from(users)
+          .where(eq(users.id, boardInfo.createdBy));
+        
+        if (creator) {
+          phoneNumbers.push(creator.phoneNumber);
+        }
+      }
+
+      // Get all board members' phone numbers (excluding the specified user)
+      const membersQuery = db
+        .select({ 
+          phoneNumber: users.phoneNumber,
+          userId: boardMemberships.userId 
+        })
+        .from(boardMemberships)
+        .innerJoin(users, eq(boardMemberships.userId, users.id))
+        .where(eq(boardMemberships.boardId, boardInfo.id));
+
+      const members = await membersQuery;
+      
+      for (const member of members) {
+        if (!excludeUserId || member.userId !== excludeUserId) {
+          phoneNumbers.push(member.phoneNumber);
+        }
+      }
+
+      log(`Found ${phoneNumbers.length} phone numbers for board ${boardName} notifications`);
+      return phoneNumbers;
+    } catch (error) {
+      log(`Error getting board members phone numbers: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }

@@ -54,6 +54,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Updated Twilio webhook to production endpoint for live SMS processing**
 - ✅ **Implemented message editing functionality - users can edit message content and move messages between boards by adding/removing hashtags**
 - ✅ **Added shared board deletion feature - board owners can permanently delete shared boards with proper confirmation dialogs**
+- ✅ **Implemented SMS notification system - board members receive text messages when new content is added to shared boards**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
