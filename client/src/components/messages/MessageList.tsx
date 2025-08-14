@@ -4,6 +4,7 @@ import { Message } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
+import Masonry from "react-masonry-css";
 
 interface MessageListProps {
   tag?: string;
@@ -135,13 +136,23 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
     };
   }, [session?.authenticated, session?.userId]);
 
+  const breakpointColumnsObj = {
+    default: 3,
+    1100: 2,
+    700: 1
+  };
+
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <Masonry
+        breakpointCols={breakpointColumnsObj}
+        className="masonry-grid"
+        columnClassName="masonry-grid_column"
+      >
         {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full" />
+          <Skeleton key={i} className="h-32 w-full mb-4" />
         ))}
-      </div>
+      </Masonry>
     );
   }
 
@@ -159,12 +170,16 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-max">
+    <Masonry
+      breakpointCols={breakpointColumnsObj}
+      className="masonry-grid"
+      columnClassName="masonry-grid_column"
+    >
       {messages?.map((message) => (
-        <div key={message.id} className="break-inside-avoid">
+        <div key={message.id} className="mb-4">
           <MessageCard message={message} />
         </div>
       ))}
-    </div>
+    </Masonry>
   );
 }
