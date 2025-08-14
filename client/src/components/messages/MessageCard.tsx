@@ -124,16 +124,12 @@ export function MessageCard({ message }: MessageCardProps) {
       }
       
       setIsLoadingMovie(true);
-      setMovieData(null); // Reset previous data
       
       try {
         const response = await fetch(`/api/tmdb/movie/${imdbInfo.id}`);
         if (response.ok) {
           const data = await response.json();
-          console.log('TMDB data received for', imdbInfo.id, ':', data);
           setMovieData(data);
-        } else {
-          console.error('Failed to fetch movie data:', response.status, response.statusText);
         }
       } catch (error) {
         console.error('Error fetching movie data:', error);
@@ -143,7 +139,7 @@ export function MessageCard({ message }: MessageCardProps) {
     }
 
     fetchMovieData();
-  }, [imdbInfo?.id]); // Be more specific about the dependency
+  }, [imdbInfo?.id]);
 
   return (
     <>
@@ -267,83 +263,13 @@ export function MessageCard({ message }: MessageCardProps) {
             />
           </div>
         )}
-        {imdbInfo && (
+        {imdbInfo && movieData?.posterUrl && (
           <div className="w-full">
-            <div className="rounded-md border bg-gradient-to-br from-yellow-50 to-amber-50 p-6">
-              <div className="flex items-start gap-4">
-                {/* Movie Poster or IMDB Icon */}
-                <div className="flex-shrink-0">
-                  {isLoadingMovie ? (
-                    <div className="w-20 h-28 bg-yellow-100 rounded animate-pulse flex items-center justify-center">
-                      <div className="text-yellow-600 text-xs">Loading...</div>
-                    </div>
-                  ) : movieData?.posterUrl ? (
-                    <div className="w-20 h-28 relative">
-                      <img 
-                        src={movieData.posterUrl}
-                        alt={movieData.title || "Movie Poster"}
-                        className="w-full h-full rounded object-cover shadow-md"
-                        onLoad={() => console.log('Poster loaded successfully')}
-                        onError={(e) => {
-                          console.error('Failed to load poster:', movieData.posterUrl);
-                          // Hide the image and show fallback
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent && parent.nextElementSibling) {
-                            (parent.nextElementSibling as HTMLElement).style.display = 'block';
-                          }
-                        }}
-                      />
-                    </div>
-                  ) : null}
-                  <svg 
-                    className="w-12 h-12 text-yellow-600"
-                    style={{ display: movieData?.posterUrl ? 'none' : 'block' }}
-                    viewBox="0 0 24 24" 
-                    fill="currentColor"
-                  >
-                    <path d="M22.3 5.9l-1.4-3.8c-.4-1-.4-1.1-1.4-1.1H4.6c-1 0-1 .1-1.4 1.1L1.8 5.9c-.3.8-.3 1.5.3 2.1.6.6 1.3.6 2.1.3l.8-.3v10c0 2.2 1.8 4 4 4h6c2.2 0 4-1.8 4-4V8l.8.3c.8.3 1.5.3 2.1-.3.6-.6.6-1.3.3-2.1zM20 6c-.3 0-.5-.2-.5-.5s.2-.5.5-.5.5.2.5.5-.2.5-.5.5zM4 6c-.3 0-.5-.2-.5-.5S3.7 5 4 5s.5.2.5.5S4.3 6 4 6zm14 12c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2V8.5l1-.4c.3-.1.5-.4.5-.7 0-.4-.2-.7-.5-.9L6 6.2l1-2.7h10l1 2.7-1 .3c-.3.2-.5.5-.5.9 0 .3.2.6.5.7l1 .4V18z"/>
-                    <path d="M8 10h2v6H8zm4-1h2v7h-2z"/>
-                  </svg>
-                </div>
-                
-                {/* Movie Information */}
-                <div className="flex-1 min-w-0">
-                  <a 
-                    href={`https://www.imdb.com/title/${imdbInfo.id}`}
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-yellow-800 hover:text-yellow-900 transition-colors"
-                  >
-                    <div className="font-semibold text-lg mb-1">
-                      {movieData?.title ? (
-                        <>
-                          🎬 {movieData.title}
-                          {movieData.year && (
-                            <span className="text-yellow-700"> ({movieData.year})</span>
-                          )}
-                          {/* Debug info */}
-                          <div className="text-xs text-gray-500 mt-1">
-                            Debug: {movieData.posterUrl ? 'Poster available' : 'No poster'} | Loading: {isLoadingMovie ? 'Yes' : 'No'}
-                          </div>
-                        </>
-                      ) : "View on IMDb"}
-                    </div>
-                    
-                    <div className="text-sm text-yellow-700 mb-2 flex items-center gap-2">
-                      <span>Movie & TV Database • {imdbInfo.id}</span>
-                      {movieData?.rating && (
-                        <span className="text-yellow-800">⭐ {movieData.rating.toFixed(1)}</span>
-                      )}
-                    </div>
-                    
-                    <div className="text-xs text-yellow-600 bg-yellow-100 rounded px-2 py-1 inline-block">
-                      Click to view ratings, cast, reviews & more
-                    </div>
-                  </a>
-                </div>
-              </div>
-            </div>
+            <img 
+              src={movieData.posterUrl}
+              alt={movieData.title || "Movie Poster"}
+              className="w-full max-w-sm rounded-lg shadow-md"
+            />
           </div>
         )}
         {message.mediaUrl && !instagramPostId && !pinterestId && !twitterPostId && !redditPostInfo && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && (
