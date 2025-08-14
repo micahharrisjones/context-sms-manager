@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { DeleteTagModal } from "./DeleteTagModal";
 import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
+import { CreatePrivateBoardModal } from "../shared-boards/CreatePrivateBoardModal";
 import { InviteUserModal } from "../shared-boards/InviteUserModal";
 import { BoardMembersModal } from "../shared-boards/BoardMembersModal";
 import { DeleteSharedBoardModal } from "../shared-boards/DeleteSharedBoardModal";
@@ -25,6 +26,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [deleteTagModalOpen, setDeleteTagModalOpen] = useState(false);
   const [selectedTag, setSelectedTag] = useState<string>("");
   const [createBoardModalOpen, setCreateBoardModalOpen] = useState(false);
+  const [createPrivateBoardModalOpen, setCreatePrivateBoardModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [deleteBoardModalOpen, setDeleteBoardModalOpen] = useState(false);
@@ -107,7 +109,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               variant="ghost"
               size="sm"
               className="h-6 w-6 p-0 hover:bg-muted"
-              onClick={() => setCreateBoardModalOpen(true)}
+              onClick={() => setCreatePrivateBoardModalOpen(true)}
             >
               <Plus className="h-3 w-3" />
             </Button>
@@ -155,7 +157,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               variant="ghost"
               size="sm"
               className="h-6 w-6 p-0 hover:bg-muted"
-              onClick={() => setCreateBoardModalOpen(true)}
+              onClick={() => setCreatePrivateBoardModalOpen(true)}
             >
               <Plus className="h-3 w-3" />
             </Button>
@@ -272,6 +274,11 @@ export function Sidebar({ onClose }: SidebarProps) {
       <CreateSharedBoardModal
         isOpen={createBoardModalOpen}
         onClose={() => setCreateBoardModalOpen(false)}
+      />
+      
+      <CreatePrivateBoardModal
+        isOpen={createPrivateBoardModalOpen}
+        onClose={() => setCreatePrivateBoardModalOpen(false)}
       />
       
       <InviteUserModal
