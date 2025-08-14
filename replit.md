@@ -5,7 +5,7 @@ A robust SMS management platform that enables persistent message storage and sea
 
 ## Current Status
 - **Phase**: Deployed to production with Reserved VM
-- **Last Updated**: August 14, 2025 (3:35 AM)
+- **Last Updated**: August 14, 2025 (4:50 AM)
 - **Status**: Live deployment at contxt.life, domain verification in progress
 - **Repository**: https://github.com/micahharrisjones/context-sms-manager
 - **Production URL**: https://contxt.life
@@ -56,6 +56,8 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Added shared board deletion feature - board owners can permanently delete shared boards with proper confirmation dialogs**
 - ✅ **Implemented SMS notification system - board members receive text messages when new content is added to shared boards**
 - ✅ **Integrated TMDB API for enhanced IMDB link previews with movie posters, titles, ratings, and release years**
+- ✅ **Simplified authentication system - removed verification codes for easier testing, now supports direct phone number login**
+- ✅ **Migrated from Autoscale to Reserved VM deployment for better cost efficiency and 24/7 reliability**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
