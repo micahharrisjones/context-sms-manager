@@ -118,14 +118,22 @@ export function MessageCard({ message }: MessageCardProps) {
   // Fetch movie data from TMDB when IMDB link is detected
   useEffect(() => {
     async function fetchMovieData() {
-      if (!imdbInfo) return;
+      if (!imdbInfo) {
+        setMovieData(null);
+        return;
+      }
       
       setIsLoadingMovie(true);
+      setMovieData(null); // Reset previous data
+      
       try {
         const response = await fetch(`/api/tmdb/movie/${imdbInfo.id}`);
         if (response.ok) {
           const data = await response.json();
+          console.log('TMDB data received for', imdbInfo.id, ':', data);
           setMovieData(data);
+        } else {
+          console.error('Failed to fetch movie data:', response.status, response.statusText);
         }
       } catch (error) {
         console.error('Error fetching movie data:', error);
@@ -135,7 +143,7 @@ export function MessageCard({ message }: MessageCardProps) {
     }
 
     fetchMovieData();
-  }, [imdbInfo]);
+  }, [imdbInfo?.id]); // Be more specific about the dependency
 
   return (
     <>
@@ -270,17 +278,23 @@ export function MessageCard({ message }: MessageCardProps) {
                       <div className="text-yellow-600 text-xs">Loading...</div>
                     </div>
                   ) : movieData?.posterUrl ? (
-                    <img 
-                      src={movieData.posterUrl}
-                      alt={movieData.title || "Movie Poster"}
-                      className="w-20 h-28 rounded object-cover shadow-md"
-                      onError={(e) => {
-                        // Fallback to IMDB icon if poster fails to load
-                        e.currentTarget.style.display = 'none';
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.style.display = 'block';
-                      }}
-                    />
+                    <div className="w-20 h-28 relative">
+                      <img 
+                        src={movieData.posterUrl}
+                        alt={movieData.title || "Movie Poster"}
+                        className="w-full h-full rounded object-cover shadow-md"
+                        onLoad={() => console.log('Poster loaded successfully')}
+                        onError={(e) => {
+                          console.error('Failed to load poster:', movieData.posterUrl);
+                          // Hide the image and show fallback
+                          e.currentTarget.style.display = 'none';
+                          const parent = e.currentTarget.parentElement;
+                          if (parent && parent.nextElementSibling) {
+                            (parent.nextElementSibling as HTMLElement).style.display = 'block';
+                          }
+                        }}
+                      />
+                    </div>
                   ) : null}
                   <svg 
                     className="w-12 h-12 text-yellow-600"
@@ -308,6 +322,10 @@ export function MessageCard({ message }: MessageCardProps) {
                           {movieData.year && (
                             <span className="text-yellow-700"> ({movieData.year})</span>
                           )}
+                          {/* Debug info */}
+                          <div className="text-xs text-gray-500 mt-1">
+                            Debug: {movieData.posterUrl ? 'Poster available' : 'No poster'} | Loading: {isLoadingMovie ? 'Yes' : 'No'}
+                          </div>
                         </>
                       ) : "View on IMDb"}
                     </div>
