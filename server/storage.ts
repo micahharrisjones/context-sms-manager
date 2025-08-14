@@ -52,6 +52,7 @@ export interface IStorage {
   getBoardMembers(boardId: number): Promise<(BoardMembership & { user: User })[]>;
   getUserBoardMemberships(userId: number): Promise<(BoardMembership & { board: SharedBoard })[]>;
   removeBoardMember(boardId: number, userId: number): Promise<void>;
+  deleteSharedBoard(boardId: number): Promise<void>;
   getSharedMessages(userId: number, boardName: string): Promise<Message[]>;
   getUsersForSharedBoardNotification(tags: string[]): Promise<number[]>;
 }
@@ -557,6 +558,27 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully removed board member`);
     } catch (error) {
       log("Error removing board member:", error);
+      throw error;
+    }
+  }
+
+  async deleteSharedBoard(boardId: number): Promise<void> {
+    try {
+      log(`Deleting shared board ${boardId}`);
+      
+      // First delete all board memberships
+      await db
+        .delete(boardMemberships)
+        .where(eq(boardMemberships.boardId, boardId));
+      
+      // Then delete the board itself
+      await db
+        .delete(sharedBoards)
+        .where(eq(sharedBoards.id, boardId));
+        
+      log(`Successfully deleted shared board ${boardId} and all its memberships`);
+    } catch (error) {
+      log("Error deleting shared board:", error);
       throw error;
     }
   }

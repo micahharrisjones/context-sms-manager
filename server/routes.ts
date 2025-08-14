@@ -755,6 +755,41 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Delete shared board (only owner can delete)
+  app.delete("/api/shared-boards/:boardId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = parseInt(req.params.boardId);
+      
+      if (isNaN(boardId)) {
+        return res.status(400).json({ error: "Invalid board ID" });
+      }
+      
+      // Check if board exists
+      const board = await storage.getSharedBoard(boardId);
+      if (!board) {
+        return res.status(404).json({ error: "Shared board not found" });
+      }
+      
+      // Check if current user is the owner
+      if (board.createdBy !== userId) {
+        return res.status(403).json({ error: "Only the board owner can delete this board" });
+      }
+      
+      // Delete the board (this will cascade delete memberships)
+      await storage.deleteSharedBoard(boardId);
+      
+      log(`Deleted shared board ${boardId} (${board.name}) by user ${userId}`);
+      res.json({
+        success: true,
+        message: `Successfully deleted shared board #${board.name}`
+      });
+    } catch (error) {
+      log(`Error deleting shared board: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to delete shared board" });
+    }
+  });
+
   // Twilio webhook endpoint - handle both /api/webhook/sms and /webhook/sms
   const handleWebhook = async (req: any, res: any) => {
     log("Entering handleWebhook function");

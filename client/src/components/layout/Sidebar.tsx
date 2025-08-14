@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X, Users, Plus, UserPlus, Eye } from "lucide-react";
+import { Hash, X, Users, Plus, UserPlus, Eye, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { useState } from "react";
@@ -10,6 +10,7 @@ import { DeleteTagModal } from "./DeleteTagModal";
 import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
 import { InviteUserModal } from "../shared-boards/InviteUserModal";
 import { BoardMembersModal } from "../shared-boards/BoardMembersModal";
+import { DeleteSharedBoardModal } from "../shared-boards/DeleteSharedBoardModal";
 import { SharedBoard } from "@shared/schema";
 
 interface SidebarProps {
@@ -23,7 +24,9 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [createBoardModalOpen, setCreateBoardModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
+  const [deleteBoardModalOpen, setDeleteBoardModalOpen] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState<string>("");
+  const [selectedBoardId, setSelectedBoardId] = useState<number>(0);
   
   const { data: tags } = useQuery<string[]>({ 
     queryKey: ["/api/tags"]
@@ -167,20 +170,37 @@ export function Sidebar({ onClose }: SidebarProps) {
                     <Eye className="h-3 w-3" />
                   </Button>
                   {board.role === "owner" && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedBoard(board.name);
-                        setInviteModalOpen(true);
-                      }}
-                      className="h-auto w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
-                      aria-label={`Invite users to ${board.name}`}
-                    >
-                      <UserPlus className="h-3 w-3" />
-                    </Button>
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedBoard(board.name);
+                          setInviteModalOpen(true);
+                        }}
+                        className="h-auto w-6 p-0 hover:bg-blue-50 hover:text-blue-600 mr-1"
+                        aria-label={`Invite users to ${board.name}`}
+                      >
+                        <UserPlus className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedBoard(board.name);
+                          setSelectedBoardId(board.id);
+                          setDeleteBoardModalOpen(true);
+                        }}
+                        className="h-auto w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                        aria-label={`Delete board ${board.name}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -215,6 +235,13 @@ export function Sidebar({ onClose }: SidebarProps) {
         isOpen={membersModalOpen}
         onClose={() => setMembersModalOpen(false)}
         boardName={selectedBoard}
+      />
+      
+      <DeleteSharedBoardModal
+        isOpen={deleteBoardModalOpen}
+        onClose={() => setDeleteBoardModalOpen(false)}
+        boardName={selectedBoard}
+        boardId={selectedBoardId}
       />
     </div>
   );

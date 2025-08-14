@@ -52,6 +52,8 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Configured custom domain contxt.life for professional production deployment**
 - ✅ **Deployed Context to Reserved VM with 24/7 availability at https://contxt.life**
 - ✅ **Updated Twilio webhook to production endpoint for live SMS processing**
+- ✅ **Implemented message editing functionality - users can edit message content and move messages between boards by adding/removing hashtags**
+- ✅ **Added shared board deletion feature - board owners can permanently delete shared boards with proper confirmation dialogs**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
