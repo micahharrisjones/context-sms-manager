@@ -78,7 +78,10 @@ export function useAuth() {
         isLoading: false,
         isAuthenticated: false,
       });
-      console.log('Auth state cleared');
+      console.log('Auth state cleared - redirecting to login');
+      
+      // Force a page refresh to ensure clean state
+      window.location.reload();
     }
   };
 
