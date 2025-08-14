@@ -61,6 +61,7 @@ A robust SMS management platform that enables persistent message storage and sea
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
+- **Layout**: Logo in sidebar (far left), search bar and logout button positioned directly under shared boards section within scrollable area
 - **Functionality**: No message input form - messages only via SMS webhooks
 - **Storage**: Persistent PostgreSQL database for message retention
 - **Integration**: Twilio for reliable SMS webhook handling

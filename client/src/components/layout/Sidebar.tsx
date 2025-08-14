@@ -221,26 +221,28 @@ export function Sidebar({ onClose }: SidebarProps) {
             No shared boards yet. Click + to create one.
           </div>
         )}
+
+        {/* Search and Logout Section - Inside ScrollArea */}
+        <div className="px-4 py-4 space-y-3">
+          <div className="border-t border-border mb-4"></div>
+          
+          {/* Search Bar */}
+          <SearchBar onClose={onClose} />
+          
+          {/* Separator Line */}
+          <div className="border-t border-border"></div>
+          
+          {/* Logout Button */}
+          <Button
+            variant="ghost"
+            onClick={logout}
+            className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Logout
+          </Button>
+        </div>
       </ScrollArea>
-      </div>
-      
-      {/* Bottom Section - Search and Logout */}
-      <div className="border-t bg-background p-4 space-y-3">
-        {/* Search Bar */}
-        <SearchBar onClose={onClose} />
-        
-        {/* Separator Line */}
-        <div className="border-t border-border"></div>
-        
-        {/* Logout Button */}
-        <Button
-          variant="ghost"
-          onClick={logout}
-          className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
-        >
-          <LogOut className="h-4 w-4 mr-2" />
-          Logout
-        </Button>
       </div>
       
       <DeleteTagModal
