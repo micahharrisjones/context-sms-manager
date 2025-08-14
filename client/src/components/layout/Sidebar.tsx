@@ -45,10 +45,10 @@ export function Sidebar({ onClose }: SidebarProps) {
 
   return (
     <div className="w-full lg:w-64 h-full bg-background border-r">
-      <div className="p-6 border-b flex justify-between items-center lg:hidden">
+      <div className="p-6 border-b flex justify-between items-center">
         <Link href="/">
           <div className="flex items-center gap-2">
-            <Logo className="w-auto h-8" />
+            <Logo className="w-auto h-8 lg:h-10" />
           </div>
         </Link>
         {onClose && (
