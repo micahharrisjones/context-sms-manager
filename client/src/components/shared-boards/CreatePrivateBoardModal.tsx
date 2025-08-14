@@ -19,16 +19,21 @@ export function CreatePrivateBoardModal({ isOpen, onClose }: CreatePrivateBoardM
 
   const createBoardMutation = useMutation({
     mutationFn: async (name: string) => {
-      return apiRequest("/api/shared-boards", {
+      // For private boards, we'll create a dummy message with just the hashtag
+      // to establish the category, then delete it - this creates the hashtag without content
+      const hashtagName = name.startsWith('#') ? name : `#${name}`;
+      
+      return apiRequest("/api/messages", {
         method: "POST",
         body: JSON.stringify({ 
-          name,
-          description: "Private board for personal organization"
+          content: `${hashtagName}`,
+          hashtags: [hashtagName.substring(1)] // Remove # for storage
         })
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/shared-boards"] });
+    onSuccess: async () => {
+      // Invalidate tags to refresh the sidebar
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/tags"] });
       toast({
         title: "Private board created",
         description: `Your private board "${boardName}" has been created successfully.`
@@ -66,7 +71,11 @@ export function CreatePrivateBoardModal({ isOpen, onClose }: CreatePrivateBoardM
               type="text"
               placeholder="Enter board name (e.g., recipes, workouts)"
               value={boardName}
-              onChange={(e) => setBoardName(e.target.value)}
+              onChange={(e) => {
+                // Remove # if user types it, we'll add it automatically
+                const cleanName = e.target.value.replace(/^#/, '');
+                setBoardName(cleanName);
+              }}
               required
             />
           </div>
