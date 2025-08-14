@@ -77,7 +77,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               <Input
                 id="phone"
                 type="tel"
-                placeholder="+1 (555) 123-4567"
+                placeholder="234 555 6789"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 required
