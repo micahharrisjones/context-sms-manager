@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X, Users, Plus, UserPlus, Eye, Trash2, LogOut } from "lucide-react";
+import { Hash, X, Users, User, Plus, UserPlus, Eye, Trash2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
@@ -96,6 +96,24 @@ export function Sidebar({ onClose }: SidebarProps) {
         </div>
       {/* Scrollable Tags and Shared Boards */}
       <ScrollArea className="flex-1 min-h-0">
+        {/* Private Boards Section */}
+        <div className="px-4 py-2">
+          <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
+            <div className="flex items-center gap-2">
+              <User className="w-4 h-4" />
+              Private Boards
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 hover:bg-muted"
+              onClick={() => {/* TODO: Create private board modal */}}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+        
         <div className="p-4 space-y-2">
           {tags?.map((tag) => (
             <div key={tag} className="relative group">

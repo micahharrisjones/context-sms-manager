@@ -58,6 +58,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Integrated TMDB API for enhanced IMDB link previews with movie posters, titles, ratings, and release years**
 - ✅ **Simplified authentication system - removed verification codes for easier testing, now supports direct phone number login**
 - ✅ **Migrated from Autoscale to Reserved VM deployment for better cost efficiency and 24/7 reliability**
+- ✅ **Added "Private Boards" section header above personal hashtags for consistent labeling with Shared Boards**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
