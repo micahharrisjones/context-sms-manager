@@ -16,11 +16,39 @@ class TwilioService {
     }
   }
 
+  // Helper function to format phone number to E164 format
+  private formatPhoneNumber(phoneNumber: string): string {
+    // Remove all non-digit characters
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    
+    // If it starts with 1 and has 11 digits, it's already in good format
+    if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
+      return `+${digitsOnly}`;
+    }
+    
+    // If it has 10 digits, add US country code
+    if (digitsOnly.length === 10) {
+      return `+1${digitsOnly}`;
+    }
+    
+    // If it already starts with +, return as is
+    if (phoneNumber.startsWith('+')) {
+      return phoneNumber;
+    }
+    
+    // Default: return as is and let Twilio handle validation
+    return phoneNumber;
+  }
+
   async sendSMS(to: string, message: string): Promise<boolean> {
     if (!this.accountSid || !this.authToken || !this.fromNumber) {
       log("Cannot send SMS: Missing Twilio configuration");
       return false;
     }
+
+    // Format the phone number to E164 format
+    const formattedTo = this.formatPhoneNumber(to);
+    log(`Formatted phone number from ${to} to ${formattedTo}`);
 
     try {
       // Use Twilio REST API to send SMS
@@ -34,22 +62,22 @@ class TwilioService {
         },
         body: new URLSearchParams({
           From: this.fromNumber,
-          To: to,
+          To: formattedTo,
           Body: message,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.text();
-        log(`Failed to send SMS to ${to}: ${response.status} - ${errorData}`);
+        log(`Failed to send SMS to ${formattedTo}: ${response.status} - ${errorData}`);
         return false;
       }
 
       const result = await response.json();
-      log(`SMS sent successfully to ${to}: ${result.sid}`);
+      log(`SMS sent successfully to ${formattedTo}: ${result.sid}`);
       return true;
     } catch (error) {
-      log(`Error sending SMS to ${to}:`, error instanceof Error ? error.message : String(error));
+      log(`Error sending SMS to ${formattedTo}:`, error instanceof Error ? error.message : String(error));
       return false;
     }
   }

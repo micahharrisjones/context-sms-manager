@@ -72,6 +72,8 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Applied warm color consistency to cards, sidebar, and mobile menu with #e3cac0 borders throughout**
 - ✅ **Updated all hover states throughout the application to use warm #e3cac0 color instead of light gray**
 - ✅ **Implemented automatic welcome SMS for new users with onboarding instructions**
+- ✅ **Fixed SMS signup system - relaxed Account SID validation to allow legitimate messages while maintaining security**
+- ✅ **Enhanced phone number formatting for Twilio E164 compliance in welcome SMS delivery**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
