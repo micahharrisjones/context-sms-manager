@@ -917,13 +917,20 @@ export async function registerRoutes(app: Express) {
       const created = await storage.createMessage(message);
       log("Message creation complete");
 
-      // Send welcome message to new users (skip test numbers)
+      // Send welcome message to new users (skip problematic numbers)
       if (isNewUser && smsData.senderId) {
         try {
-          // Skip SMS for test numbers containing 555
+          // Skip SMS for test numbers containing 555 or other problematic patterns
           const digitsOnly = smsData.senderId.replace(/\D/g, '');
-          if (digitsOnly.includes('555')) {
-            log(`Skipping welcome SMS for test number: ${smsData.senderId}`);
+          const usNumber = digitsOnly.startsWith('1') && digitsOnly.length === 11 ? digitsOnly.slice(1) : digitsOnly;
+          
+          // Check for various problematic patterns
+          const isProblematic = usNumber.includes('555') || 
+                                /^(800|888|877|866|855|844|833|822|880|881|882|883|884|885|886|887|889)/.test(usNumber) ||
+                                /^(900|976|411|511|611|711|811|911)/.test(usNumber);
+          
+          if (isProblematic) {
+            log(`Skipping welcome SMS for potentially unreachable number: ${smsData.senderId}`);
           } else {
             log(`Sending welcome SMS to new user ${smsData.senderId}`);
             // Don't await - let SMS sending happen in background

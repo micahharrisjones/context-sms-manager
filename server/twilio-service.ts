@@ -16,15 +16,44 @@ class TwilioService {
     }
   }
 
+  // Helper function to detect if a phone number might be a landline or problematic number
+  private isPotentiallyUnreachableNumber(phoneNumber: string): boolean {
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    
+    // Remove country code if present for analysis
+    const usNumber = digitsOnly.startsWith('1') && digitsOnly.length === 11 ? digitsOnly.slice(1) : digitsOnly;
+    
+    if (usNumber.length !== 10) return true; // Invalid length
+    
+    const areaCode = usNumber.substring(0, 3);
+    const exchange = usNumber.substring(3, 6);
+    
+    // Test numbers (555 in any position)
+    if (usNumber.includes('555')) {
+      return true;
+    }
+    
+    // Common patterns that might indicate landlines or problematic numbers
+    // These patterns are often associated with landlines or non-SMS capable numbers
+    const problematicPatterns = [
+      // Certain area code + exchange combinations that are often landlines
+      /^(800|888|877|866|855|844|833|822|880|881|882|883|884|885|886|887|889)/, // Toll-free
+      /^(900|976)/, // Premium rate services
+      /^(411|511|611|711|811|911)/, // Service numbers
+    ];
+    
+    return problematicPatterns.some(pattern => pattern.test(usNumber));
+  }
+
   // Helper function to format phone number to E164 format
   private formatPhoneNumber(phoneNumber: string): string {
     // Remove all non-digit characters
     const digitsOnly = phoneNumber.replace(/\D/g, '');
     
-    // Reject invalid phone numbers (like test numbers with 555 in area code or exchange)
-    if (digitsOnly.match(/555/)) {
-      log(`Rejecting invalid test phone number: ${phoneNumber} (contains 555)`);
-      throw new Error(`Invalid phone number format: ${phoneNumber}. Test numbers (555) are not supported by Twilio.`);
+    // Check if this number might be unreachable for SMS
+    if (this.isPotentiallyUnreachableNumber(phoneNumber)) {
+      log(`Rejecting potentially unreachable phone number: ${phoneNumber}`);
+      throw new Error(`Invalid phone number: ${phoneNumber}. This number may be a landline or unable to receive SMS.`);
     }
     
     // If it starts with 1 and has 11 digits, it's already in good format
