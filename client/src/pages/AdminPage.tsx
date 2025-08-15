@@ -153,7 +153,7 @@ export function AdminPage() {
       <div className="p-6">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-200 rounded w-48 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="h-32 bg-gray-200 rounded"></div>
             ))}
@@ -165,16 +165,16 @@ export function AdminPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <h1 className="text-2xl md:text-3xl font-bold">Admin Dashboard</h1>
         <Badge variant="outline" className="text-xs">
           Admin Access
         </Badge>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -226,7 +226,7 @@ export function AdminPage() {
         </CardHeader>
         <CardContent>
           {/* Bulk Actions */}
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mb-4">
             <Button
               variant="outline"
               size="sm"
@@ -249,13 +249,13 @@ export function AdminPage() {
                   variant="destructive"
                   size="sm"
                   disabled={selectedUsers.length === 0}
-                  className="ml-auto"
+                  className="sm:ml-auto"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Selected ({selectedUsers.length})
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="bg-[#fff3ea] border-[#e3cac0]">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete {selectedUsers.length} Users</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -276,18 +276,18 @@ export function AdminPage() {
           </div>
 
           {/* Users Table */}
-          <div className="border rounded-lg">
+          <div className="border rounded-lg overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">Select</TableHead>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Phone Number</TableHead>
-                  <TableHead>Display Name</TableHead>
-                  <TableHead>Messages</TableHead>
-                  <TableHead>Created</TableHead>
-                  <TableHead>Last Activity</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead className="min-w-[60px]">ID</TableHead>
+                  <TableHead className="min-w-[120px]">Phone</TableHead>
+                  <TableHead className="min-w-[100px]">Name</TableHead>
+                  <TableHead className="min-w-[80px]">Msgs</TableHead>
+                  <TableHead className="min-w-[100px] hidden sm:table-cell">Created</TableHead>
+                  <TableHead className="min-w-[100px] hidden md:table-cell">Last Active</TableHead>
+                  <TableHead className="min-w-[80px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -302,19 +302,26 @@ export function AdminPage() {
                           className="h-4 w-4 rounded border-gray-300"
                         />
                       </TableCell>
-                      <TableCell className="font-mono text-sm">{user.id}</TableCell>
-                      <TableCell className="font-mono text-sm">{user.phoneNumber}</TableCell>
-                      <TableCell>{user.displayName}</TableCell>
+                      <TableCell className="font-mono text-xs">{user.id}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <div className="sm:hidden">
+                          {user.phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}
+                        </div>
+                        <div className="hidden sm:block">{user.phoneNumber}</div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        <div className="truncate max-w-[100px]">{user.displayName}</div>
+                      </TableCell>
                       <TableCell>
-                        <Badge variant={user.messageCount > 0 ? "default" : "secondary"}>
+                        <Badge variant={user.messageCount > 0 ? "default" : "secondary"} className="text-xs">
                           {user.messageCount}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(user.createdAt)}
+                      <TableCell className="text-xs text-muted-foreground hidden sm:table-cell">
+                        <div className="truncate">{formatDate(user.createdAt)}</div>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {user.lastActivity ? formatDate(user.lastActivity) : 'Never'}
+                      <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
+                        <div className="truncate">{user.lastActivity ? formatDate(user.lastActivity) : 'Never'}</div>
                       </TableCell>
                       <TableCell>
                         <AlertDialog>
@@ -323,11 +330,12 @@ export function AdminPage() {
                               variant="destructive"
                               size="sm"
                               disabled={deleteUserMutation.isPending}
+                              className="h-8 w-8 p-0"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent>
+                          <AlertDialogContent className="bg-[#fff3ea] border-[#e3cac0]">
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete User {user.displayName}</AlertDialogTitle>
                               <AlertDialogDescription>
