@@ -91,6 +91,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Optimized admin dashboard for mobile devices - changed stats cards to 2-column layout and improved user table responsiveness**
 - ✅ **Enhanced admin dashboard mobile UX with responsive table columns, improved button sizes, and mobile-friendly bulk actions layout**
 - ✅ **Fixed mobile scroll/framing issues post-login with comprehensive viewport handling, scroll restoration, and iOS Safari compatibility**
+- ✅ **Updated social sharing image with custom-designed PNG featuring perfect warm cream background and Context sunburst logo**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
