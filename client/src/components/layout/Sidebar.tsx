@@ -83,9 +83,9 @@ export function Sidebar({ onClose }: SidebarProps) {
               <Button 
                 variant="ghost" 
                 className={cn(
-                  "w-full justify-start m-1 hover:bg-transparent",
+                  "w-full justify-start m-1",
                   location === "/" 
-                    ? "bg-transparent text-primary font-medium" 
+                    ? "bg-transparent text-primary font-medium hover:bg-transparent" 
                     : "hover:bg-[#e3cac0]/30"
                 )}
                 size="lg"
@@ -256,7 +256,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           <Button
             variant="ghost"
             onClick={logout}
-            className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
+            className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-[#e3cac0]/20"
           >
             <LogOut className="h-4 w-4 mr-2" />
             Logout

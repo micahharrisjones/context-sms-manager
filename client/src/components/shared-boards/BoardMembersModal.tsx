@@ -90,7 +90,7 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
                     </div>
                     <div>
                       <div className="font-medium">
-                        {formatPhoneNumber(member.user.phoneNumber)}
+                        {member.user ? formatPhoneNumber(member.user.phoneNumber) : 'Unknown User'}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         Joined {new Date(member.joinedAt).toLocaleDateString()}
@@ -101,7 +101,7 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
                     <div className="text-sm font-medium capitalize text-primary">
                       {member.role}
                     </div>
-                    {member.user.lastLoginAt && (
+                    {member.user?.lastLoginAt && (
                       <div className="text-xs text-muted-foreground">
                         Last active: {new Date(member.user.lastLoginAt).toLocaleDateString()}
                       </div>
