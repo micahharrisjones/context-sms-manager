@@ -17,8 +17,11 @@ export function SearchBar({ onClose }: SearchBarProps) {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      console.log(`Navigating to search with query: ${searchQuery.trim()}`);
       navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
       onClose?.();
+    } else {
+      console.log("Search query is empty, not navigating");
     }
   };
 
