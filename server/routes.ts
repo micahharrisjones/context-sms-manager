@@ -917,12 +917,18 @@ export async function registerRoutes(app: Express) {
       const created = await storage.createMessage(message);
       log("Message creation complete");
 
-      // Send welcome message to new users
+      // Send welcome message to new users (skip test numbers)
       if (isNewUser && smsData.senderId) {
         try {
-          log(`Sending welcome SMS to new user ${smsData.senderId}`);
-          // Don't await - let SMS sending happen in background
-          twilioService.sendWelcomeMessage(smsData.senderId);
+          // Skip SMS for test numbers containing 555
+          const digitsOnly = smsData.senderId.replace(/\D/g, '');
+          if (digitsOnly.includes('555')) {
+            log(`Skipping welcome SMS for test number: ${smsData.senderId}`);
+          } else {
+            log(`Sending welcome SMS to new user ${smsData.senderId}`);
+            // Don't await - let SMS sending happen in background
+            twilioService.sendWelcomeMessage(smsData.senderId);
+          }
         } catch (error) {
           log(`Error sending welcome SMS to ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
         }

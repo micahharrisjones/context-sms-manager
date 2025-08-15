@@ -21,9 +21,9 @@ class TwilioService {
     // Remove all non-digit characters
     const digitsOnly = phoneNumber.replace(/\D/g, '');
     
-    // Reject invalid phone numbers (like test numbers starting with 555)
-    if (digitsOnly.includes('555')) {
-      log(`Rejecting invalid test phone number: ${phoneNumber}`);
+    // Reject invalid phone numbers (like test numbers with 555 in area code or exchange)
+    if (digitsOnly.match(/555/)) {
+      log(`Rejecting invalid test phone number: ${phoneNumber} (contains 555)`);
       throw new Error(`Invalid phone number format: ${phoneNumber}. Test numbers (555) are not supported by Twilio.`);
     }
     
