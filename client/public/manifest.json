@@ -1,0 +1,30 @@
+{
+  "name": "Context - Personal SMS Management",
+  "short_name": "Context",
+  "description": "A robust SMS management platform for organizing and sharing your messages with intelligent hashtag categorization and real-time collaboration.",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#ed2024",
+  "background_color": "#fff3ea",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "social", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
