@@ -28,7 +28,7 @@ function AuthenticatedApp() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fff1e2]">
+      <div className="min-h-screen flex items-center justify-center bg-[#fff3ea]">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 animate-spin">
             <img 
