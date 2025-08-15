@@ -135,6 +135,7 @@ const processSMSWebhook = async (body: unknown) => {
     
     // Find the user account based on the sender's phone number
     let user = await storage.getUserByPhoneNumber(senderId);
+    let isNewUser = false;
     if (!user) {
       // If this sender doesn't have an account yet, create one
       // This allows people to start using Context without explicit signup
@@ -142,6 +143,7 @@ const processSMSWebhook = async (body: unknown) => {
         phoneNumber: senderId,
         displayName: `User ${senderId.slice(-4)}`
       });
+      isNewUser = true;
       log(`Created new user account for phone ${senderId}`);
     } else {
       log(`Found existing user account for phone ${senderId}: User ${user.id}`);
@@ -176,6 +178,7 @@ const processSMSWebhook = async (body: unknown) => {
       tags: uniqueTags,
       mediaUrl,
       mediaType,
+      isNewUser
     };
 
     log("Processed Twilio webhook data:", JSON.stringify(processedData, null, 2));
@@ -898,6 +901,9 @@ export async function registerRoutes(app: Express) {
         return res.json({ status: "skipped" });
       }
 
+      // Check if this is a new user for welcome message
+      const isNewUser = smsData.isNewUser;
+      
       log("Parsing smsData with insertMessageSchema");
       const message = insertMessageSchema.parse(smsData);
       log("insertMessageSchema parsing complete");
@@ -905,6 +911,17 @@ export async function registerRoutes(app: Express) {
       log("Creating message in storage");
       const created = await storage.createMessage(message);
       log("Message creation complete");
+
+      // Send welcome message to new users
+      if (isNewUser && smsData.senderId) {
+        try {
+          log(`Sending welcome SMS to new user ${smsData.senderId}`);
+          // Don't await - let SMS sending happen in background
+          twilioService.sendWelcomeMessage(smsData.senderId);
+        } catch (error) {
+          log(`Error sending welcome SMS to ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
+        }
+      }
 
       log("Successfully created message:", JSON.stringify(created, null, 2));
 

@@ -64,6 +64,9 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Improved WebSocket connection stability and removed connectivity toast notifications for cleaner UX**
 - ✅ **Fixed search functionality - now properly parses URL parameters and displays search results**
 - ✅ **Removed login confirmation toast for streamlined authentication experience**
+- ✅ **Added comprehensive SMS signup documentation and welcome messaging system**
+- ✅ **Enhanced login screen with SMS signup instructions and Context phone number display**
+- ✅ **Implemented automatic welcome SMS for new users with onboarding instructions**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive

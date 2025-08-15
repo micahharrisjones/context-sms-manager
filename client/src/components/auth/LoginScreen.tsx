@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Logo } from '@/components/layout/Logo';
+import { MessageSquare } from 'lucide-react';
 
 interface LoginScreenProps {
   onLogin: (user: any) => void;
@@ -63,7 +64,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <Logo className="w-auto h-16" />
           </div>
           <CardDescription>
-            Enter your phone number to get started
+            Enter your phone number to access your messages
           </CardDescription>
         </CardHeader>
         
@@ -91,6 +92,26 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             </Button>
           </form>
         </CardContent>
+        
+        {/* SMS Signup Information */}
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 m-4">
+          <h3 className="font-semibold text-blue-900 mb-2 flex items-center">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            New to Context? Sign up via SMS!
+          </h3>
+          <p className="text-sm text-blue-700 mb-2">
+            No account yet? Simply text a message with hashtags to our number and we'll create your account automatically.
+          </p>
+          <div className="bg-white p-3 rounded border border-blue-200 text-center">
+            <p className="text-xs text-gray-600 mb-1">Text messages to:</p>
+            <p className="font-mono text-lg font-bold text-blue-900 select-all">+1 (612) 208-7851</p>
+            <p className="text-xs text-gray-500 mt-1">Tap to select number</p>
+          </div>
+          <div className="mt-3 text-xs text-blue-600">
+            <p className="mb-1"><strong>Example:</strong> "Check out this movie #movies https://imdb.com/..."</p>
+            <p>Then log in here with your phone number to see your organized messages!</p>
+          </div>
+        </div>
       </Card>
     </div>
   );

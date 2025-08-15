@@ -54,6 +54,28 @@ class TwilioService {
     }
   }
 
+  async sendWelcomeMessage(phoneNumber: string): Promise<void> {
+    const welcomeMessage = `Welcome to Context! 🎉
+
+Your message has been saved and organized. Here's how Context works:
+
+📱 Text messages with #hashtags to organize them into boards
+🔗 Share links - we'll create rich previews automatically  
+👥 Invite others to shared boards for collaboration
+🌐 Access everything at your web dashboard
+
+Visit your dashboard anytime to see all your organized messages, create shared boards, and invite collaborators.
+
+Happy organizing!`;
+
+    try {
+      await this.sendSMS(phoneNumber, welcomeMessage);
+      log(`Welcome message sent to new user: ${phoneNumber}`);
+    } catch (error) {
+      log(`Failed to send welcome message to ${phoneNumber}:`, error instanceof Error ? error.message : String(error));
+    }
+  }
+
   async sendSharedBoardNotification(
     recipientPhoneNumbers: string[], 
     boardName: string, 
