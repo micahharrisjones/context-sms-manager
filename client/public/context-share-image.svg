@@ -58,4 +58,9 @@
       <line x1="-25" y1="-172" x2="-35" y2="-221" />
     </g>
   </g>
+  
+  <!-- Tagline text below logo -->
+  <text x="600" y="480" font-family="system-ui, -apple-system, sans-serif" font-size="48" font-weight="600" text-anchor="middle" fill="#333333">
+    Text it, tag it, find it later.
+  </text>
 </svg>
