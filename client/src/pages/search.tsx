@@ -5,10 +5,14 @@ import { Search } from "lucide-react";
 
 export default function SearchPage() {
   const [location] = useLocation();
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const query = urlParams.get('q') || '';
+  
+  // Parse the query parameter from the URL
+  // wouter's location includes the full path including query params
+  const searchParams = new URLSearchParams(window.location.search);
+  const query = searchParams.get('q') || '';
   
   console.log(`SearchPage - Location: ${location}`);
+  console.log(`SearchPage - Window search: ${window.location.search}`);
   console.log(`SearchPage - Query: ${query}`);
 
   const { data: searchResults, isLoading, error } = useQuery({
