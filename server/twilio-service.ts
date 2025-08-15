@@ -21,6 +21,12 @@ class TwilioService {
     // Remove all non-digit characters
     const digitsOnly = phoneNumber.replace(/\D/g, '');
     
+    // Reject invalid phone numbers (like test numbers starting with 555)
+    if (digitsOnly.includes('555')) {
+      log(`Rejecting invalid test phone number: ${phoneNumber}`);
+      throw new Error(`Invalid phone number format: ${phoneNumber}. Test numbers (555) are not supported by Twilio.`);
+    }
+    
     // If it starts with 1 and has 11 digits, it's already in good format
     if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
       return `+${digitsOnly}`;
@@ -31,13 +37,16 @@ class TwilioService {
       return `+1${digitsOnly}`;
     }
     
-    // If it already starts with +, return as is
+    // If it already starts with +, validate it has proper length
     if (phoneNumber.startsWith('+')) {
-      return phoneNumber;
+      const cleanNumber = phoneNumber.replace(/\D/g, '');
+      if (cleanNumber.length >= 10 && cleanNumber.length <= 15) {
+        return phoneNumber;
+      }
     }
     
-    // Default: return as is and let Twilio handle validation
-    return phoneNumber;
+    // Reject invalid formats
+    throw new Error(`Invalid phone number format: ${phoneNumber}. Must be 10-15 digits in E164 format.`);
   }
 
   async sendSMS(to: string, message: string): Promise<boolean> {
@@ -77,6 +86,12 @@ class TwilioService {
       log(`SMS sent successfully to ${formattedTo}: ${result.sid}`);
       return true;
     } catch (error) {
+      // If it's a phone number validation error, just log and return false without spam
+      if (error instanceof Error && error.message.includes('Invalid phone number format')) {
+        log(`Skipping SMS to invalid phone number: ${to} - ${error.message}`);
+        return false;
+      }
+      
       log(`Error sending SMS to ${formattedTo}:`, error instanceof Error ? error.message : String(error));
       return false;
     }
