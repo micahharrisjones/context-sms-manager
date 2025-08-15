@@ -77,7 +77,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             "border border-[#e3cac0] rounded-lg transition-colors",
             location === "/" 
               ? "border-primary/20 bg-primary/5" 
-              : "border-[#e3cac0] bg-muted/30"
+              : "border-[#e3cac0] bg-[#e3cac0]/10"
           )}>
             <Link href="/">
               <Button 
@@ -86,7 +86,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   "w-full justify-start m-1 hover:bg-transparent",
                   location === "/" 
                     ? "bg-transparent text-primary font-medium" 
-                    : "hover:bg-muted/50"
+                    : "hover:bg-[#e3cac0]/30"
                 )}
                 size="lg"
                 onClick={onClose}
@@ -108,7 +108,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-muted"
+              className="h-6 w-6 p-0 hover:bg-[#e3cac0]/30"
               onClick={() => setCreatePrivateBoardModalOpen(true)}
             >
               <Plus className="h-3 w-3" />
@@ -124,7 +124,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   variant="ghost"
                   className={cn(
                     "w-full justify-start pr-8",
-                    location === `/tag/${tag}` && "bg-muted"
+                    location === `/tag/${tag}` && "bg-[#e3cac0]/30"
                   )}
                   onClick={onClose}
                 >
@@ -156,7 +156,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-muted"
+              className="h-6 w-6 p-0 hover:bg-[#e3cac0]/30"
               onClick={() => setCreatePrivateBoardModalOpen(true)}
             >
               <Plus className="h-3 w-3" />
@@ -172,7 +172,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                     variant="ghost"
                     className={cn(
                       "w-full justify-start pr-16",
-                      location === `/shared/${board.name}` && "bg-muted"
+                      location === `/shared/${board.name}` && "bg-[#e3cac0]/30"
                     )}
                     onClick={onClose}
                   >
