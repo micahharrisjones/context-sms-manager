@@ -65,7 +65,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Fixed search functionality - now properly parses URL parameters and displays search results**
 - ✅ **Removed login confirmation toast for streamlined authentication experience**
 - ✅ **Added comprehensive SMS signup documentation and welcome messaging system**
-- ✅ **Enhanced login screen with SMS signup instructions and official Context phone number (+1 458-218-8508) display**
+- ✅ **Enhanced login screen with SMS signup instructions and clickable Context phone number (+1 458-218-8508)**
 - ✅ **Implemented automatic welcome SMS for new users with onboarding instructions**
 
 ## User Preferences

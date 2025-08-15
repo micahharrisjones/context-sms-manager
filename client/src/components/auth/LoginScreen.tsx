@@ -64,7 +64,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <Logo className="w-auto h-16" />
           </div>
           <CardDescription>
-            Enter your phone number to access your messages
+            Enter your phone number to access your saved texts.
           </CardDescription>
         </CardHeader>
         
@@ -100,16 +100,21 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             New to Context? Sign up via SMS!
           </h3>
           <p className="text-sm text-blue-700 mb-2">
-            No account yet? Simply text a message with hashtags to our number and we'll create your account automatically.
+            No account yet? We do all the work for you. Start texting ideas to the Context number below and use a hashtag to categorize them. We'll create your own private Context account immediately. Start putting your life in context without any roadblocks.
           </p>
           <div className="bg-white p-3 rounded border border-blue-200 text-center">
-            <p className="text-xs text-gray-600 mb-1">Text messages to:</p>
-            <p className="font-mono text-lg font-bold text-blue-900 select-all">+1 (458) 218-8508</p>
-            <p className="text-xs text-gray-500 mt-1">Tap to select number</p>
+            <p className="text-xs text-gray-600 mb-1">Text your messages to:</p>
+            <a 
+              href="sms:+14582188508" 
+              className="font-mono text-lg font-bold text-blue-900 hover:text-blue-700 hover:underline cursor-pointer block"
+            >
+              +1 458-218-8508
+            </a>
+            <p className="text-xs text-gray-500 mt-1">Tap the number to start texting</p>
           </div>
           <div className="mt-3 text-xs text-blue-600">
             <p className="mb-1"><strong>Example:</strong> "Check out this movie #movies https://imdb.com/..."</p>
-            <p>Then log in here with your phone number to see your organized messages!</p>
+            <p>Then log in here with your phone number to see your saved texts organized into separate boards.</p>
           </div>
         </div>
       </Card>
