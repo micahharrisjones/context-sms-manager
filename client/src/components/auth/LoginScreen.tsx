@@ -100,7 +100,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             New to Context? Sign up via SMS!
           </h3>
           <p className="text-sm text-blue-700 mb-2">
-            No signup needed. Just send a text with a hashtag and we'll set up your personal Context account immediately.
+            Just send a text with a hashtag and we'll set up your personal Context account immediately.
           </p>
           <div className="bg-white p-3 rounded border border-blue-200 text-center">
             <p className="text-xs text-gray-600 mb-1">Text your messages to:</p>
