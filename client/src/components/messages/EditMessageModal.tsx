@@ -117,7 +117,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
             />
           </div>
           
-          <div className="bg-[#efe1dc] p-3 rounded-md">
+          <div className="bg-[#fff1e2] p-3 rounded-md">
             <Label className="text-sm font-medium text-gray-700">
               Current Boards:
             </Label>
