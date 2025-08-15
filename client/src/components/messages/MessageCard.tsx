@@ -210,7 +210,7 @@ export function MessageCard({ message }: MessageCardProps) {
           <div className="w-full">
             <iframe
               src={`https://twitframe.com/show?url=https://x.com/i/status/${twitterPostId}`}
-              className="w-full h-[400px] rounded-md border border-gray-200"
+              className="w-full h-[400px] rounded-md border border-[#e3cac0]"
               loading="lazy"
               frameBorder="0"
               scrolling="no"
@@ -221,7 +221,7 @@ export function MessageCard({ message }: MessageCardProps) {
           <div className="w-full">
             <iframe
               src={`https://www.redditmedia.com/r/${redditPostInfo.subreddit}/comments/${redditPostInfo.postId}?ref_source=embed&amp;ref=share&amp;embed=true&amp;theme=light`}
-              className="w-full h-[500px] rounded-md border border-gray-200"
+              className="w-full h-[500px] rounded-md border border-[#e3cac0]"
               loading="lazy"
               frameBorder="0"
               scrolling="yes"
@@ -232,7 +232,7 @@ export function MessageCard({ message }: MessageCardProps) {
           <div className="w-full">
             <iframe
               src={`https://www.facebook.com/plugins/post.php?href=https://www.facebook.com/permalink.php?story_fbid=${facebookPostId}&width=500&show_text=true&height=500`}
-              className="w-full h-[500px] rounded-md border border-gray-200"
+              className="w-full h-[500px] rounded-md border border-[#e3cac0]"
               loading="lazy"
               frameBorder="0"
               scrolling="no"

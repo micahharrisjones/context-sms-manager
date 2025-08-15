@@ -132,7 +132,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
                   </span>
                 ))
               ) : (
-                <span className="inline-block bg-gray-200 text-gray-600 px-2 py-1 rounded-md text-sm">
+                <span className="inline-block bg-[#e3cac0] text-gray-600 px-2 py-1 rounded-md text-sm">
                   #uncategorized
                 </span>
               )}

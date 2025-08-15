@@ -67,6 +67,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Added comprehensive SMS signup documentation and welcome messaging system**
 - ✅ **Enhanced login screen with SMS signup instructions and clickable Context phone number (+1 458-218-8508)**
 - ✅ **Updated app design with Context sunburst logo and warm #fff3ea background throughout**
+- ✅ **Changed all lines and hover states from light gray to warm #e3cac0 color for cohesive design**
 - ✅ **Implemented automatic welcome SMS for new users with onboarding instructions**
 
 ## User Preferences

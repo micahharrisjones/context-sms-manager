@@ -81,7 +81,7 @@ export function DeleteSharedBoardModal({
         </DialogHeader>
         
         <div className="py-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="bg-red-50 border border-[#e3cac0] rounded-lg p-4">
             <p className="text-sm text-gray-700 mb-3">
               Are you sure you want to delete the shared board <strong>#{boardName}</strong>?
             </p>

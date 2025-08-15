@@ -42,7 +42,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <main className="flex-1 overflow-auto">
         {/* Simple mobile header with centered logo */}
-        <div className="lg:hidden sticky top-0 z-20 bg-[#fff3ea]/95 backdrop-blur supports-[backdrop-filter]:bg-[#fff3ea]/60 border-b p-4 flex items-center justify-center">
+        <div className="lg:hidden sticky top-0 z-20 bg-[#fff3ea]/95 backdrop-blur supports-[backdrop-filter]:bg-[#fff3ea]/60 border-b border-[#e3cac0] p-4 flex items-center justify-center">
           <Link href="/">
             <Logo className="w-auto h-8" />
           </Link>
