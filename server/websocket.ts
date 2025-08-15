@@ -23,12 +23,14 @@ export class WebSocketManager {
       this.clients.set(ws, clientConnection);
       log("WebSocket client connected");
 
-      // Send a ping every 30 seconds to keep connection alive
+      // Send a ping every 45 seconds to keep connection alive (increased interval)
       const pingInterval = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.ping();
+        } else {
+          clearInterval(pingInterval);
         }
-      }, 30000);
+      }, 45000);
 
       // Handle incoming messages to set user ID
       ws.on("message", (message) => {
@@ -43,10 +45,10 @@ export class WebSocketManager {
         }
       });
 
-      ws.on("close", () => {
+      ws.on("close", (code, reason) => {
         this.clients.delete(ws);
         clearInterval(pingInterval);
-        log("WebSocket client disconnected");
+        log(`WebSocket client disconnected - Code: ${code}, Reason: ${reason}`);
       });
 
       ws.on("error", (error) => {

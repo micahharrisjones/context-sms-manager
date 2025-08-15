@@ -61,6 +61,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Added "Private Boards" section header above personal hashtags for consistent labeling with Shared Boards**
 - ✅ **Implemented masonry layout for dynamic message display with Pinterest-style arrangement**
 - ✅ **Enhanced real-time message updates with improved WebSocket invalidation and fallback polling**
+- ✅ **Improved WebSocket connection stability and removed connectivity toast notifications for cleaner UX**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive

@@ -33,8 +33,8 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
   const { data: fetchedMessages, isLoading: fetchIsLoading } = useQuery<Message[]>({
     queryKey: getQueryKey(),
     enabled: !propMessages, // Only fetch if no messages provided as props
-    refetchInterval: 30000, // Refetch every 30 seconds as fallback
-    refetchIntervalInBackground: true, // Continue refetching when tab is not active
+    refetchInterval: 60000, // Reduced polling frequency to 60 seconds 
+    refetchIntervalInBackground: false, // Disable background polling to reduce load
   });
 
   // Use prop messages if provided, otherwise use fetched messages
@@ -71,10 +71,7 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
         console.log(`Sent user identification: ${session.userId}`);
       }
       
-      toast({
-        description: "Connected to message service",
-        duration: 2000,
-      });
+      // Removed toast notification to reduce UI noise
     };
 
     ws.onmessage = (event) => {
@@ -118,11 +115,7 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
           
           console.log("All queries invalidated with immediate refetch");
           
-          // Show a subtle notification that new content is available
-          toast({
-            description: "New message received",
-            duration: 3000,
-          });
+          // Removed toast notification to reduce UI noise - messages appear automatically
         }
       } catch (error) {
         console.error("Error processing message:", error);
@@ -131,22 +124,21 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
 
     ws.onerror = (error) => {
       console.error("WebSocket error:", error);
-      toast({
-        variant: "destructive",
-        description: "Connection error. Trying to reconnect...",
-      });
+      // Removed toast notification to reduce UI noise
     };
 
-    ws.onclose = () => {
-      console.log("WebSocket connection closed");
-      // Attempt to reconnect after 5 seconds
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
+    ws.onclose = (event) => {
+      console.log("WebSocket connection closed", event.code, event.reason);
+      // Only attempt to reconnect if it wasn't a normal closure
+      if (event.code !== 1000 && event.code !== 1001) {
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+        reconnectTimeoutRef.current = setTimeout(() => {
+          console.log("Attempting to reconnect...");
+          connectWebSocket();
+        }, 10000); // Increased to 10 seconds to reduce connection churn
       }
-      reconnectTimeoutRef.current = setTimeout(() => {
-        console.log("Attempting to reconnect...");
-        connectWebSocket();
-      }, 5000);
     };
   };
 
