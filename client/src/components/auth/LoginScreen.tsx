@@ -118,7 +118,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <p className="text-xs text-gray-600 mb-1">Text your messages to:</p>
             <a 
               href="sms:+14582188508" 
-              className="font-mono text-lg font-bold text-blue-900 hover:text-blue-700 hover:underline cursor-pointer block"
+              className="font-mono text-lg font-bold text-[#ed2024] hover:text-[#d61e21] hover:underline cursor-pointer block"
             >
               +1 458-218-8508
             </a>
