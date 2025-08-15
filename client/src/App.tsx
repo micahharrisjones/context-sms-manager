@@ -30,7 +30,7 @@ function AuthenticatedApp() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff3ea]">
+      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff3ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 animate-spin">
             <img 

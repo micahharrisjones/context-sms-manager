@@ -55,6 +55,17 @@ export function useAuth() {
   };
 
   const login = (user: User) => {
+    // Reset scroll position and viewport for mobile after login
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+      
+      // Force a reflow to ensure proper viewport calculation on mobile
+      document.body.style.minHeight = '100vh';
+      document.body.style.minHeight = '100dvh';
+    }, 50);
+    
     setAuthState({
       user,
       isLoading: false,

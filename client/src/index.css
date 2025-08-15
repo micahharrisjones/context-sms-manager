@@ -9,6 +9,10 @@
     -webkit-text-size-adjust: 100%;
     /* Ensure full height on mobile */
     height: 100%;
+    /* Prevent horizontal scrolling */
+    overflow-x: hidden;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
   }
   
   body {
@@ -18,6 +22,10 @@
     min-height: 100%;
     /* Fix for mobile Safari viewport units */
     min-height: 100dvh;
+    /* Prevent horizontal scrolling on mobile */
+    overflow-x: hidden;
+    /* Smooth transition for viewport changes */
+    transition: none;
   }
   
   /* Safe area support for devices with notches */

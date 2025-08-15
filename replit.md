@@ -90,6 +90,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Enhanced mobile login experience to prevent logo cutoff and viewport positioning issues on iOS Safari and other mobile browsers**
 - ✅ **Optimized admin dashboard for mobile devices - changed stats cards to 2-column layout and improved user table responsiveness**
 - ✅ **Enhanced admin dashboard mobile UX with responsive table columns, improved button sizes, and mobile-friendly bulk actions layout**
+- ✅ **Fixed mobile scroll/framing issues post-login with comprehensive viewport handling, scroll restoration, and iOS Safari compatibility**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive

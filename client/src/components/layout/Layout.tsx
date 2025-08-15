@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu, LogOut } from "lucide-react";
@@ -15,8 +15,31 @@ export function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { logout } = useAuth();
 
+  // Ensure proper mobile viewport after layout loads
+  useEffect(() => {
+    // Force scroll to top on layout mount
+    window.scrollTo(0, 0);
+    document.body.scrollTop = 0;
+    document.documentElement.scrollTop = 0;
+    
+    // Reset any iOS Safari viewport issues
+    const resetViewport = () => {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    };
+    
+    resetViewport();
+    window.addEventListener('resize', resetViewport);
+    window.addEventListener('orientationchange', resetViewport);
+    
+    return () => {
+      window.removeEventListener('resize', resetViewport);
+      window.removeEventListener('orientationchange', resetViewport);
+    };
+  }, []);
+
   return (
-    <div className="flex min-h-screen relative bg-[#fff3ea]">
+    <div className="flex min-h-screen min-h-[100dvh] relative bg-[#fff3ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
       {/* Mobile menu button - hidden when sidebar is open */}
       {!sidebarOpen && (
         <Button
