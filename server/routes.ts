@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, NextFunction } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
 import { insertMessageSchema } from "@shared/schema";
@@ -607,13 +607,45 @@ export async function registerRoutes(app: Express) {
   });
 
   // Admin endpoints
-  // Simple admin middleware - you can enhance this with proper admin roles later
-  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  // Admin middleware - restricts access to specific phone numbers
+  const requireAdmin = async (req: any, res: any, next: any) => {
     if (!req.session.userId) {
       return res.status(401).json({ error: "Authentication required" });
     }
-    // For now, all authenticated users can access admin - you can add role checks later
-    next();
+    
+    try {
+      // Get the current user to check their phone number
+      const user = await storage.getUserById(req.session.userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+      
+      // Define admin phone numbers (add your phone number here)
+      const adminPhoneNumbers = [
+        "6155848598", // Your current test number
+        "4582188508", // Official Context number without +1
+        "+14582188508" // Official Context number with +1
+      ];
+      
+      // Check if user's phone number is in admin list
+      const isAdmin = adminPhoneNumbers.some((adminPhone: string) => {
+        // Normalize both numbers for comparison
+        const normalizedUserPhone = user.phoneNumber.replace(/^\+?1?/, '');
+        const normalizedAdminPhone = adminPhone.replace(/^\+?1?/, '');
+        return normalizedUserPhone === normalizedAdminPhone;
+      });
+      
+      if (!isAdmin) {
+        log(`Non-admin user ${user.phoneNumber} attempted to access admin endpoint`);
+        return res.status(403).json({ error: "Admin access required" });
+      }
+      
+      log(`Admin user ${user.phoneNumber} accessing admin endpoint`);
+      next();
+    } catch (error) {
+      log(`Error checking admin access: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Admin access check failed" });
+    }
   };
 
   // Admin stats endpoint

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2, Users, MessageSquare, Hash, Database } from "lucide-react";
+import { Trash2, Users, MessageSquare, Hash, Database, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -31,13 +31,15 @@ export function AdminPage() {
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
 
   // Fetch admin stats
-  const { data: stats } = useQuery<AdminStats>({
-    queryKey: ['/api/admin/stats']
+  const { data: stats, error: statsError } = useQuery<AdminStats>({
+    queryKey: ['/api/admin/stats'],
+    retry: false
   });
 
   // Fetch all users with admin info
-  const { data: users, isLoading: usersLoading } = useQuery<AdminUser[]>({
-    queryKey: ['/api/admin/users']
+  const { data: users, isLoading: usersLoading, error: usersError } = useQuery<AdminUser[]>({
+    queryKey: ['/api/admin/users'],
+    retry: false
   });
 
   // Delete user mutation
@@ -125,6 +127,26 @@ export function AdminPage() {
       minute: '2-digit'
     });
   };
+
+  // Check for admin access errors
+  if (statsError || usersError) {
+    const errorMessage = (statsError as any)?.message || (usersError as any)?.message || "Access denied";
+    if (errorMessage.includes("Admin access required") || errorMessage.includes("403")) {
+      return (
+        <div className="p-6 text-center">
+          <div className="max-w-md mx-auto">
+            <div className="text-red-600 mb-4">
+              <Settings className="h-12 w-12 mx-auto mb-2" />
+            </div>
+            <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+            <p className="text-gray-600">
+              You don't have permission to access the admin dashboard.
+            </p>
+          </div>
+        </div>
+      );
+    }
+  }
 
   if (usersLoading) {
     return (

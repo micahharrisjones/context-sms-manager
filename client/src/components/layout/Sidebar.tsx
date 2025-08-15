@@ -9,6 +9,7 @@ import { SearchBar } from "./SearchBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { DeleteTagModal } from "./DeleteTagModal";
+import { AdminButton } from "./AdminButton";
 import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
 import { CreatePrivateBoardModal } from "../shared-boards/CreatePrivateBoardModal";
 import { InviteUserModal } from "../shared-boards/InviteUserModal";
@@ -252,20 +253,8 @@ export function Sidebar({ onClose }: SidebarProps) {
           {/* Separator Line */}
           <div className="border-t border-[#e3cac0]"></div>
           
-          {/* Admin Button */}
-          <Link href="/admin">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start text-gray-600 hover:text-blue-600 hover:bg-[#e3cac0]/20",
-                location === "/admin" && "bg-[#e3cac0]/30 text-blue-600"
-              )}
-              onClick={onClose}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Admin Panel
-            </Button>
-          </Link>
+          {/* Admin Button - Only show for admin users */}
+          <AdminButton onClose={onClose} location={location} />
           
           {/* Logout Button */}
           <Button

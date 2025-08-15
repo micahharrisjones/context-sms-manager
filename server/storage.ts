@@ -22,6 +22,7 @@ import { log } from "./vite";
 export interface IStorage {
   // User management
   getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined>;
+  getUserById(userId: number): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserLastLogin(userId: number): Promise<void>;
   
@@ -90,6 +91,20 @@ export interface IStorage {
 
 export class DatabaseStorage implements IStorage {
   // User management methods
+  async getUserById(userId: number): Promise<User | undefined> {
+    try {
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+      
+      return user || undefined;
+    } catch (error) {
+      log(`Error getting user by ID ${userId}: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
   async getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined> {
     try {
       // Normalize phone number for lookup - remove +1 prefix if present
@@ -860,7 +875,7 @@ export class DatabaseStorage implements IStorage {
         result.push({
           id: user.id,
           phoneNumber: user.phoneNumber,
-          displayName: user.displayName,
+          displayName: user.displayName || `User ${user.phoneNumber.slice(-4)}`,
           createdAt: user.createdAt.toISOString(),
           messageCount: messageCountResult.count,
           lastActivity: user.lastLoginAt?.toISOString() || null
