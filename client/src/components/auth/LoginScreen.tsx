@@ -63,7 +63,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           <div className="mx-auto mb-6">
             <Logo className="w-auto h-16" />
           </div>
-          <CardTitle>Welcome to Context</CardTitle>
         </CardHeader>
         
         <CardContent>
