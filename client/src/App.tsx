@@ -32,7 +32,7 @@ function AuthenticatedApp() {
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 animate-spin">
             <img 
-              src="/attached_assets/context-avatar_1755280181791.png" 
+              src="/context-logo.png" 
               alt="Context Logo" 
               className="w-full h-full object-contain"
             />
