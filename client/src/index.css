@@ -2,6 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile viewport fixes */
+@layer base {
+  html {
+    /* Prevent iOS Safari from adjusting font size */
+    -webkit-text-size-adjust: 100%;
+    /* Ensure full height on mobile */
+    height: 100%;
+  }
+  
+  body {
+    /* Prevent scroll bouncing on iOS */
+    overscroll-behavior: none;
+    /* Ensure full height */
+    min-height: 100%;
+    /* Fix for mobile Safari viewport units */
+    min-height: 100dvh;
+  }
+  
+  /* Safe area support for devices with notches */
+  .safe-area-inset {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  
+  /* Prevent zoom on focus in iOS Safari */
+  input[type="tel"],
+  input[type="text"],
+  input[type="email"],
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* Masonry Layout Styles */
 .masonry-grid {
   display: flex;

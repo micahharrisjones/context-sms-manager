@@ -85,6 +85,9 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Enhanced modal descriptions to clearly differentiate between private boards (personal hashtag categories) and shared boards (collaborative spaces)**
 - ✅ **Updated favicon and social media sharing metadata using the Context sunburst logo for professional branding**
 - ✅ **Added comprehensive Open Graph, Twitter Card, and PWA manifest for enhanced social sharing and mobile app experience**
+- ✅ **Fixed mobile viewport issues - removed maximum-scale restriction and added viewport-fit=cover for better mobile browser compatibility**
+- ✅ **Implemented comprehensive mobile CSS fixes including 100dvh units, safe area insets for notched devices, and scroll-to-top functionality**
+- ✅ **Enhanced mobile login experience to prevent logo cutoff and viewport positioning issues on iOS Safari and other mobile browsers**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
