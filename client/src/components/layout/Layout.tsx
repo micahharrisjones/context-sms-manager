@@ -16,7 +16,7 @@ export function Layout({ children }: LayoutProps) {
   const { logout } = useAuth();
 
   return (
-    <div className="flex min-h-screen relative">
+    <div className="flex min-h-screen relative bg-[#efe1dc]">
       {/* Mobile menu button - hidden when sidebar is open */}
       {!sidebarOpen && (
         <Button
@@ -42,7 +42,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <main className="flex-1 overflow-auto">
         {/* Simple mobile header with centered logo */}
-        <div className="lg:hidden sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b p-4 flex items-center justify-center">
+        <div className="lg:hidden sticky top-0 z-20 bg-[#efe1dc]/95 backdrop-blur supports-[backdrop-filter]:bg-[#efe1dc]/60 border-b p-4 flex items-center justify-center">
           <Link href="/">
             <Logo className="w-auto h-8" />
           </Link>

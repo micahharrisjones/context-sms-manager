@@ -28,10 +28,14 @@ function AuthenticatedApp() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#efe1dc]">
         <div className="text-center">
-          <div className="w-16 h-16 bg-[#ed2024] rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
-            <span className="text-white font-bold text-xl">C</span>
+          <div className="w-16 h-16 mx-auto mb-4 animate-spin">
+            <img 
+              src="/attached_assets/context-avatar_1755280181791.png" 
+              alt="Context Logo" 
+              className="w-full h-full object-contain"
+            />
           </div>
           <p className="text-gray-600">Loading Context...</p>
         </div>
