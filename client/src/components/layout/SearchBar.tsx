@@ -19,8 +19,7 @@ export function SearchBar({ onClose }: SearchBarProps) {
     if (searchQuery.trim()) {
       const trimmedQuery = searchQuery.trim();
       const searchUrl = `/search?q=${encodeURIComponent(trimmedQuery)}`;
-      console.log(`Navigating to search with query: "${trimmedQuery}"`);
-      console.log(`Search URL: ${searchUrl}`);
+      // Search functionality working correctly
       navigate(searchUrl);
       onClose?.();
     } else {

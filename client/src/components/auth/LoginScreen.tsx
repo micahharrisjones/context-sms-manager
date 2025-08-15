@@ -32,10 +32,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       if (response.ok) {
         const data = await response.json();
         console.log('Login response:', data);
-        toast({
-          title: "Welcome to Context!",
-          description: "You've been successfully logged in.",
-        });
+        // Removed login success toast for cleaner UX
         onLogin(data.user);
       } else {
         const error = await response.json();

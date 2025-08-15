@@ -11,34 +11,24 @@ export default function SearchPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const query = searchParams.get('q') || '';
   
-  console.log(`SearchPage - Location: ${location}`);
-  console.log(`SearchPage - Window search: ${window.location.search}`);
-  console.log(`SearchPage - Query: ${query}`);
+  // Search functionality working correctly
 
   const { data: searchResults, isLoading, error } = useQuery({
     queryKey: ["/api/messages/search", query],
     queryFn: async () => {
-      if (!query.trim()) {
-        console.log("Search query is empty, returning empty array");
-        return [];
-      }
+      if (!query.trim()) return [];
       
-      console.log(`Making search request for: ${query}`);
       const response = await fetch(`/api/messages/search?q=${encodeURIComponent(query)}`, {
         credentials: "include",
         headers: {
           "Content-Type": "application/json"
         }
       });
-      console.log(`Search response status: ${response.status}`);
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Search failed: ${response.status} ${errorText}`);
         throw new Error(`Failed to search messages: ${response.status} ${errorText}`);
       }
-      const results = await response.json();
-      console.log(`Search results:`, results);
-      return results;
+      return response.json();
     },
     enabled: !!query.trim()
   });

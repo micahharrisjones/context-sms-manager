@@ -62,6 +62,8 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Implemented masonry layout for dynamic message display with Pinterest-style arrangement**
 - ✅ **Enhanced real-time message updates with improved WebSocket invalidation and fallback polling**
 - ✅ **Improved WebSocket connection stability and removed connectivity toast notifications for cleaner UX**
+- ✅ **Fixed search functionality - now properly parses URL parameters and displays search results**
+- ✅ **Removed login confirmation toast for streamlined authentication experience**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
