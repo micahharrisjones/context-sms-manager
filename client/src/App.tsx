@@ -9,6 +9,7 @@ import { AdminPage } from "@/pages/AdminPage";
 import { Layout } from "@/components/layout/Layout";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { useAuth } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 function Router() {
   return (
@@ -30,7 +31,7 @@ function AuthenticatedApp() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fff3ea]">
+      <div className="min-h-screen flex items-center justify-center bg-[#fff3ea] dark:bg-gray-900">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-4 animate-spin">
             <img 
@@ -39,7 +40,7 @@ function AuthenticatedApp() {
               className="w-full h-full object-contain"
             />
           </div>
-          <p className="text-gray-600">Loading Context...</p>
+          <p className="text-gray-600 dark:text-gray-300">Loading Context...</p>
         </div>
       </div>
     );
@@ -55,8 +56,10 @@ function AuthenticatedApp() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthenticatedApp />
-      <Toaster />
+      <ThemeProvider>
+        <AuthenticatedApp />
+        <Toaster />
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

@@ -2,6 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: 255 243 234; /* #fff3ea */
+    --foreground: 60 60 60;
+    --card: 255 255 255;
+    --card-foreground: 60 60 60;
+    --popover: 255 255 255;
+    --popover-foreground: 60 60 60;
+    --primary: 237 32 36; /* #ed2024 */
+    --primary-foreground: 255 255 255;
+    --secondary: 227 202 192; /* #e3cac0 */
+    --secondary-foreground: 60 60 60;
+    --muted: 227 202 192;
+    --muted-foreground: 115 115 115;
+    --accent: 227 202 192;
+    --accent-foreground: 60 60 60;
+    --destructive: 239 68 68;
+    --destructive-foreground: 255 255 255;
+    --border: 227 202 192;
+    --input: 227 202 192;
+    --ring: 237 32 36;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 17 17 19; /* #111113 */
+    --foreground: 229 229 229;
+    --card: 31 31 35; /* #1f1f23 */
+    --card-foreground: 229 229 229;
+    --popover: 31 31 35;
+    --popover-foreground: 229 229 229;
+    --primary: 237 32 36; /* Keep Context red in dark mode */
+    --primary-foreground: 255 255 255;
+    --secondary: 55 55 59; /* #37373b */
+    --secondary-foreground: 229 229 229;
+    --muted: 55 55 59;
+    --muted-foreground: 161 161 161;
+    --accent: 55 55 59;
+    --accent-foreground: 229 229 229;
+    --destructive: 220 38 38;
+    --destructive-foreground: 255 255 255;
+    --border: 55 55 59;
+    --input: 55 55 59;
+    --ring: 237 32 36;
+  }
+}
+
 /* Masonry Layout Styles */
 .masonry-grid {
   display: flex;

@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { DeleteTagModal } from "./DeleteTagModal";
 import { AdminButton } from "./AdminButton";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
 import { CreatePrivateBoardModal } from "../shared-boards/CreatePrivateBoardModal";
 import { InviteUserModal } from "../shared-boards/InviteUserModal";
@@ -50,9 +51,9 @@ export function Sidebar({ onClose }: SidebarProps) {
   };
 
   return (
-    <div className="w-full lg:w-64 h-full bg-[#fff3ea] border-r border-[#e3cac0] flex flex-col">
+    <div className="w-full lg:w-64 h-full bg-[#fff3ea] dark:bg-gray-900 border-r border-[#e3cac0] dark:border-gray-700 flex flex-col">
       {/* Logo Section */}
-      <div className="p-6 border-b border-[#e3cac0] flex justify-between items-center">
+      <div className="p-6 border-b border-[#e3cac0] dark:border-gray-700 flex justify-between items-center">
         <Link href="/">
           <div className="flex items-center gap-2">
             <Logo className="w-auto h-8 lg:h-10" />
@@ -75,10 +76,10 @@ export function Sidebar({ onClose }: SidebarProps) {
         <div className="p-4">
           {/* All Texts Button */}
           <div className={cn(
-            "border border-[#e3cac0] rounded-lg transition-colors",
+            "border border-[#e3cac0] dark:border-gray-700 rounded-lg transition-colors",
             location === "/" 
-              ? "border-primary/20 bg-primary/5" 
-              : "border-[#e3cac0] bg-[#e3cac0]/10"
+              ? "border-primary/20 bg-primary/5 dark:border-primary/30 dark:bg-primary/10" 
+              : "border-[#e3cac0] bg-[#e3cac0]/10 dark:border-gray-700 dark:bg-gray-800/30"
           )}>
             <Link href="/">
               <Button 
@@ -86,8 +87,8 @@ export function Sidebar({ onClose }: SidebarProps) {
                 className={cn(
                   "w-full justify-start m-1",
                   location === "/" 
-                    ? "bg-transparent text-primary font-medium hover:bg-transparent" 
-                    : "hover:bg-[#e3cac0]/30"
+                    ? "bg-transparent text-primary font-medium hover:bg-transparent dark:text-primary" 
+                    : "hover:bg-[#e3cac0]/30 dark:hover:bg-gray-800 dark:text-gray-200"
                 )}
                 size="lg"
                 onClick={onClose}
@@ -251,7 +252,13 @@ export function Sidebar({ onClose }: SidebarProps) {
           <SearchBar onClose={onClose} />
           
           {/* Separator Line */}
-          <div className="border-t border-[#e3cac0]"></div>
+          <div className="border-t border-[#e3cac0] dark:border-gray-700"></div>
+          
+          {/* Theme Toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600 dark:text-gray-300">Theme</span>
+            <ThemeToggle />
+          </div>
           
           {/* Admin Button - Only show for admin users */}
           <AdminButton onClose={onClose} location={location} />
@@ -260,7 +267,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           <Button
             variant="ghost"
             onClick={logout}
-            className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-[#e3cac0]/20"
+            className="w-full justify-start text-gray-600 dark:text-gray-300 hover:text-red-600 hover:bg-[#e3cac0]/20 dark:hover:bg-gray-800"
           >
             <LogOut className="h-4 w-4 mr-2" />
             Logout

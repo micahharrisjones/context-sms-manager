@@ -57,7 +57,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fff3ea] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#fff3ea] dark:bg-gray-900 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-6">
@@ -91,7 +91,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         </CardContent>
         
         {/* SMS Signup Information */}
-        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 m-4">
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 m-4">
           <h3 className="font-semibold text-blue-900 mb-2 flex items-center">
             <MessageSquare className="h-4 w-4 mr-2" />
             New to Context? Sign up via SMS!
