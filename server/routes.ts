@@ -209,11 +209,13 @@ const processSMSWebhook = async (body: unknown) => {
 
   // Get or create user based on phone number
   let user = await storage.getUserByPhoneNumber(senderId);
+  let isNewUser = false;
   if (!user) {
     user = await storage.createUser({
       phoneNumber: senderId,
       displayName: `User ${senderId.slice(-4)}`
     });
+    isNewUser = true;
     log(`Created new user account for phone ${senderId}`);
   } else {
     log(`Found existing user account for phone ${senderId}: User ${user.id}`);
@@ -243,6 +245,7 @@ const processSMSWebhook = async (body: unknown) => {
     tags: uniqueTags,
     mediaUrl: validatedData.media_url || null,
     mediaType: validatedData.media_type || null,
+    isNewUser
   };
 
   log("Processed ClickSend webhook data:", JSON.stringify(processedData, null, 2));
@@ -902,7 +905,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Check if this is a new user for welcome message
-      const isNewUser = smsData.isNewUser;
+      const isNewUser = (smsData as any).isNewUser;
       
       log("Parsing smsData with insertMessageSchema");
       const message = insertMessageSchema.parse(smsData);

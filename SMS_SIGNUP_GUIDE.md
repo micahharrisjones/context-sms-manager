@@ -6,7 +6,7 @@ Context offers **completely frictionless signup via SMS** - no forms, no verific
 
 ### For New Users
 
-1. **Just text our number**: +1 (612) 208-7851
+1. **Just text our number**: +1 (458) 218-8508
 2. **Include hashtags** to organize your message (e.g., "#movies", "#recipes", "#work")
 3. **Account created automatically** - we'll create your account in the background
 4. **Get welcome message** with instructions and tips
@@ -88,7 +88,7 @@ Context offers **completely frictionless signup via SMS** - no forms, no verific
 
 ## Getting Started
 
-1. **Text +1 (612) 208-7851** with any message containing hashtags
+1. **Text +1 (458) 218-8508** with any message containing hashtags
 2. **Receive welcome message** with detailed instructions
 3. **Visit web dashboard** and log in with your phone number
 4. **Start organizing** your digital life via SMS!

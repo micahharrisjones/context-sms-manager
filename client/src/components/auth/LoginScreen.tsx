@@ -104,7 +104,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           </p>
           <div className="bg-white p-3 rounded border border-blue-200 text-center">
             <p className="text-xs text-gray-600 mb-1">Text messages to:</p>
-            <p className="font-mono text-lg font-bold text-blue-900 select-all">+1 (612) 208-7851</p>
+            <p className="font-mono text-lg font-bold text-blue-900 select-all">+1 (458) 218-8508</p>
             <p className="text-xs text-gray-500 mt-1">Tap to select number</p>
           </div>
           <div className="mt-3 text-xs text-blue-600">
