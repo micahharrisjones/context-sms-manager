@@ -606,6 +606,100 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin endpoints
+  // Simple admin middleware - you can enhance this with proper admin roles later
+  const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    // For now, all authenticated users can access admin - you can add role checks later
+    next();
+  };
+
+  // Admin stats endpoint
+  app.get("/api/admin/stats", requireAdmin, async (req, res) => {
+    try {
+      const stats = await storage.getAdminStats();
+      res.json(stats);
+    } catch (error) {
+      log(`Error fetching admin stats: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to fetch admin stats" });
+    }
+  });
+
+  // Admin users endpoint
+  app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+      const users = await storage.getAdminUsers();
+      res.json(users);
+    } catch (error) {
+      log(`Error fetching admin users: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+
+  // Admin delete user endpoint
+  app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+
+      const result = await storage.deleteUserCompletely(userId);
+      
+      if (!result.success) {
+        return res.status(404).json({ error: result.error || "User not found" });
+      }
+
+      log(`Admin deleted user ${userId} with ${result.deletedMessages} messages, ${result.deletedBoardMemberships} memberships, ${result.deletedSharedBoards} boards`);
+      
+      res.json({
+        success: true,
+        message: "User deleted successfully",
+        deletedMessages: result.deletedMessages,
+        deletedBoardMemberships: result.deletedBoardMemberships,
+        deletedSharedBoards: result.deletedSharedBoards
+      });
+    } catch (error) {
+      log(`Error deleting user ${req.params.id}: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
+  // Admin bulk delete users endpoint
+  app.delete("/api/admin/users/bulk-delete", requireAdmin, async (req, res) => {
+    try {
+      const { userIds } = req.body;
+      
+      if (!Array.isArray(userIds) || userIds.length === 0) {
+        return res.status(400).json({ error: "userIds array is required" });
+      }
+
+      // Validate all userIds are numbers
+      const validUserIds = userIds.filter(id => Number.isInteger(id) && id > 0);
+      if (validUserIds.length !== userIds.length) {
+        return res.status(400).json({ error: "All userIds must be valid positive integers" });
+      }
+
+      const results = await storage.bulkDeleteUsers(validUserIds);
+      
+      log(`Admin bulk deleted ${results.deletedUsers} users with ${results.totalMessages} messages, ${results.totalBoardMemberships} memberships, ${results.totalSharedBoards} boards`);
+      
+      res.json({
+        success: true,
+        deletedCount: results.deletedUsers,
+        totalMessages: results.totalMessages,
+        totalBoardMemberships: results.totalBoardMemberships,
+        totalSharedBoards: results.totalSharedBoards
+      });
+    } catch (error) {
+      log(`Error bulk deleting users: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to delete users" });
+    }
+  });
+
   // Shared boards endpoints
   // Get shared boards for the current user (boards they created + boards they're members of)
   app.get("/api/shared-boards", requireAuth, async (req, res) => {

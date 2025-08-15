@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import SearchPage from "@/pages/search";
+import { AdminPage } from "@/pages/AdminPage";
 import { Layout } from "@/components/layout/Layout";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +18,7 @@ function Router() {
         <Route path="/tag/:tag" component={Home} />
         <Route path="/shared/:boardName" component={Home} />
         <Route path="/search" component={SearchPage} />
+        <Route path="/admin" component={AdminPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

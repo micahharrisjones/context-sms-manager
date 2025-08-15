@@ -57,6 +57,35 @@ export interface IStorage {
   getSharedMessages(userId: number, boardName: string): Promise<Message[]>;
   getUsersForSharedBoardNotification(tags: string[]): Promise<number[]>;
   getBoardMembersPhoneNumbers(boardName: string, excludeUserId?: number): Promise<string[]>;
+  
+  // Admin methods
+  getAdminStats(): Promise<{
+    totalUsers: number;
+    totalMessages: number;
+    totalSharedBoards: number;
+    recentSignups: number;
+  }>;
+  getAdminUsers(): Promise<{
+    id: number;
+    phoneNumber: string;
+    displayName: string;
+    createdAt: string;
+    messageCount: number;
+    lastActivity: string | null;
+  }[]>;
+  deleteUserCompletely(userId: number): Promise<{
+    success: boolean;
+    error?: string;
+    deletedMessages: number;
+    deletedBoardMemberships: number;
+    deletedSharedBoards: number;
+  }>;
+  bulkDeleteUsers(userIds: number[]): Promise<{
+    deletedUsers: number;
+    totalMessages: number;
+    totalBoardMemberships: number;
+    totalSharedBoards: number;
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -768,6 +797,182 @@ export class DatabaseStorage implements IStorage {
       return phoneNumbers;
     } catch (error) {
       log(`Error getting board members phone numbers: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  // Admin methods
+  async getAdminStats() {
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const [totalUsersResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(users);
+
+      const [totalMessagesResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(messages);
+
+      const [totalSharedBoardsResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(sharedBoards);
+
+      const [recentSignupsResult] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(users)
+        .where(gte(users.createdAt, sevenDaysAgo));
+
+      return {
+        totalUsers: totalUsersResult.count,
+        totalMessages: totalMessagesResult.count,
+        totalSharedBoards: totalSharedBoardsResult.count,
+        recentSignups: recentSignupsResult.count
+      };
+    } catch (error) {
+      log(`Error getting admin stats: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async getAdminUsers() {
+    try {
+      const userList = await db
+        .select({
+          id: users.id,
+          phoneNumber: users.phoneNumber,
+          displayName: users.displayName,
+          createdAt: users.createdAt,
+          lastLoginAt: users.lastLoginAt
+        })
+        .from(users)
+        .orderBy(desc(users.createdAt));
+
+      // Get message counts for each user
+      const result = [];
+      for (const user of userList) {
+        const [messageCountResult] = await db
+          .select({ count: sql<number>`count(*)` })
+          .from(messages)
+          .where(eq(messages.userId, user.id));
+
+        result.push({
+          id: user.id,
+          phoneNumber: user.phoneNumber,
+          displayName: user.displayName,
+          createdAt: user.createdAt.toISOString(),
+          messageCount: messageCountResult.count,
+          lastActivity: user.lastLoginAt?.toISOString() || null
+        });
+      }
+
+      return result;
+    } catch (error) {
+      log(`Error getting admin users: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async deleteUserCompletely(userId: number) {
+    try {
+      // Check if user exists
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (!existingUser) {
+        return {
+          success: false,
+          error: "User not found",
+          deletedMessages: 0,
+          deletedBoardMemberships: 0,
+          deletedSharedBoards: 0
+        };
+      }
+
+      // Get counts before deletion
+      const [messageCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(messages)
+        .where(eq(messages.userId, userId));
+
+      const [membershipCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(boardMemberships)
+        .where(eq(boardMemberships.userId, userId));
+
+      const [ownedBoardsCount] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(sharedBoards)
+        .where(eq(sharedBoards.createdBy, userId));
+
+      // Delete in correct order to respect foreign key constraints
+      
+      // 1. Delete messages created by this user
+      await db
+        .delete(messages)
+        .where(eq(messages.userId, userId));
+
+      // 2. Delete board memberships
+      await db
+        .delete(boardMemberships)
+        .where(eq(boardMemberships.userId, userId));
+
+      // 3. Delete shared boards created by this user (this will cascade to memberships)
+      await db
+        .delete(sharedBoards)
+        .where(eq(sharedBoards.createdBy, userId));
+
+      // 4. Delete auth sessions
+      await db
+        .delete(authSessions)
+        .where(eq(authSessions.phoneNumber, existingUser.phoneNumber));
+
+      // 5. Finally delete the user
+      await db
+        .delete(users)
+        .where(eq(users.id, userId));
+
+      return {
+        success: true,
+        deletedMessages: messageCount.count,
+        deletedBoardMemberships: membershipCount.count,
+        deletedSharedBoards: ownedBoardsCount.count
+      };
+    } catch (error) {
+      log(`Error deleting user completely: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async bulkDeleteUsers(userIds: number[]) {
+    try {
+      let totalMessages = 0;
+      let totalBoardMemberships = 0;
+      let totalSharedBoards = 0;
+      let deletedUsers = 0;
+
+      // Process each user individually to get accurate counts and handle constraints
+      for (const userId of userIds) {
+        const result = await this.deleteUserCompletely(userId);
+        if (result.success) {
+          deletedUsers++;
+          totalMessages += result.deletedMessages;
+          totalBoardMemberships += result.deletedBoardMemberships;
+          totalSharedBoards += result.deletedSharedBoards;
+        }
+      }
+
+      return {
+        deletedUsers,
+        totalMessages,
+        totalBoardMemberships,
+        totalSharedBoards
+      };
+    } catch (error) {
+      log(`Error bulk deleting users: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
