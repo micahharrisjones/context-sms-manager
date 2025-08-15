@@ -67,14 +67,14 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff3ea] px-4 py-8 safe-area-inset" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
       <Card className="w-full max-w-md my-auto">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4">
+          <div className="mx-auto mb-2">
             <Logo className="w-auto h-16" />
           </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-[#ed2024]">
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold text-[#ed2024] leading-tight">
               Text it, tag it, find it later.
             </h1>
-            <p className="text-gray-600 text-sm">
+            <p className="text-gray-600 text-sm leading-tight">
               Save anything from anywhere, with just a text.
             </p>
           </div>

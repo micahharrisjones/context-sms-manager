@@ -92,6 +92,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Enhanced admin dashboard mobile UX with responsive table columns, improved button sizes, and mobile-friendly bulk actions layout**
 - ✅ **Fixed mobile scroll/framing issues post-login with comprehensive viewport handling, scroll restoration, and iOS Safari compatibility**
 - ✅ **Updated social sharing image with custom-designed PNG featuring perfect warm cream background and Context sunburst logo**
+- ✅ **Added prominent taglines to login screen: "Text it, tag it, find it later." and "Save anything from anywhere, with just a text."**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
