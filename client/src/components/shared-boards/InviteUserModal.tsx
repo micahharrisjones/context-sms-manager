@@ -59,7 +59,7 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[#fff3ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle>Invite to #{boardName}</DialogTitle>
         </DialogHeader>

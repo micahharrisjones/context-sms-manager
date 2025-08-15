@@ -59,9 +59,12 @@ export function CreatePrivateBoardModal({ isOpen, onClose }: CreatePrivateBoardM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[#fff3ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle>Create Private Board</DialogTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Private boards are personal hashtag categories visible only to you. Perfect for organizing your own messages.
+          </p>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

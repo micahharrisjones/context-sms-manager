@@ -79,7 +79,7 @@ export function DeleteTagModal({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
-      <AlertDialogContent>
+      <AlertDialogContent className="bg-[#fff3ea] border-[#e3cac0]">
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Tag #{tag}</AlertDialogTitle>
           <AlertDialogDescription className="space-y-2">

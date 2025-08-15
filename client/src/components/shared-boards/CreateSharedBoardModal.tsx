@@ -61,9 +61,12 @@ export function CreateSharedBoardModal({ isOpen, onClose }: CreateSharedBoardMod
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[#fff3ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle>Create Shared Board</DialogTitle>
+          <p className="text-sm text-muted-foreground mt-2">
+            Shared boards allow multiple users to collaborate and receive real-time notifications when hashtag content is added.
+          </p>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">

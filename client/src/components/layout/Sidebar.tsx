@@ -158,7 +158,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               variant="ghost"
               size="sm"
               className="h-6 w-6 p-0 hover:bg-[#e3cac0]/30"
-              onClick={() => setCreatePrivateBoardModalOpen(true)}
+              onClick={() => setCreateBoardModalOpen(true)}
             >
               <Plus className="h-3 w-3" />
             </Button>

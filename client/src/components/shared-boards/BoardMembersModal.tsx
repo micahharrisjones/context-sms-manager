@@ -54,7 +54,7 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[#fff3ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
