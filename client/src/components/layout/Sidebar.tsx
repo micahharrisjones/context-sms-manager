@@ -123,7 +123,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start pr-8",
+                    "w-full justify-start pr-8 hover:bg-[#e3cac0]/30",
                     location === `/tag/${tag}` && "bg-[#e3cac0]/30"
                   )}
                   onClick={onClose}
@@ -171,7 +171,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start pr-16",
+                      "w-full justify-start pr-16 hover:bg-[#e3cac0]/30",
                       location === `/shared/${board.name}` && "bg-[#e3cac0]/30"
                     )}
                     onClick={onClose}
