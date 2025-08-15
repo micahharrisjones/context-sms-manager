@@ -124,10 +124,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             </a>
             <p className="text-xs text-gray-500 mt-1">Tap the number to start texting</p>
           </div>
-          <div className="mt-3 text-xs text-blue-600">
-            <p className="mb-1"><strong>Example:</strong> "Check out this movie #movies https://imdb.com/..."</p>
-            <p>Then log in here with your phone number to see your saved texts organized into separate boards.</p>
-          </div>
+
         </div>
       </Card>
     </div>
