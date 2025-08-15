@@ -49,9 +49,9 @@ export function Sidebar({ onClose }: SidebarProps) {
   };
 
   return (
-    <div className="w-full lg:w-64 h-full bg-background border-r flex flex-col">
+    <div className="w-full lg:w-64 h-full bg-[#fff3ea] border-r border-[#e3cac0] flex flex-col">
       {/* Logo Section */}
-      <div className="p-6 border-b flex justify-between items-center">
+      <div className="p-6 border-b border-[#e3cac0] flex justify-between items-center">
         <Link href="/">
           <div className="flex items-center gap-2">
             <Logo className="w-auto h-8 lg:h-10" />
@@ -74,10 +74,10 @@ export function Sidebar({ onClose }: SidebarProps) {
         <div className="p-4">
           {/* All Texts Button */}
           <div className={cn(
-            "border rounded-lg transition-colors",
+            "border border-[#e3cac0] rounded-lg transition-colors",
             location === "/" 
               ? "border-primary/20 bg-primary/5" 
-              : "border-border bg-muted/30"
+              : "border-[#e3cac0] bg-muted/30"
           )}>
             <Link href="/">
               <Button 
@@ -147,7 +147,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         
         {/* Shared Boards Section */}
         <div className="px-4 py-2">
-          <div className="border-t border-border mb-4"></div>
+          <div className="border-t border-[#e3cac0] mb-4"></div>
           <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4" />
@@ -244,13 +244,13 @@ export function Sidebar({ onClose }: SidebarProps) {
 
         {/* Search and Logout Section - Inside ScrollArea */}
         <div className="px-4 py-4 space-y-3">
-          <div className="border-t border-border mb-4"></div>
+          <div className="border-t border-[#e3cac0] mb-4"></div>
           
           {/* Search Bar */}
           <SearchBar onClose={onClose} />
           
           {/* Separator Line */}
-          <div className="border-t border-border"></div>
+          <div className="border-t border-[#e3cac0]"></div>
           
           {/* Logout Button */}
           <Button
