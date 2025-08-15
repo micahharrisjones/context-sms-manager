@@ -59,6 +59,8 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Simplified authentication system - removed verification codes for easier testing, now supports direct phone number login**
 - ✅ **Migrated from Autoscale to Reserved VM deployment for better cost efficiency and 24/7 reliability**
 - ✅ **Added "Private Boards" section header above personal hashtags for consistent labeling with Shared Boards**
+- ✅ **Implemented masonry layout for dynamic message display with Pinterest-style arrangement**
+- ✅ **Enhanced real-time message updates with improved WebSocket invalidation and fallback polling**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive

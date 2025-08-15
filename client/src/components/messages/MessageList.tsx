@@ -32,7 +32,9 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
 
   const { data: fetchedMessages, isLoading: fetchIsLoading } = useQuery<Message[]>({
     queryKey: getQueryKey(),
-    enabled: !propMessages // Only fetch if no messages provided as props
+    enabled: !propMessages, // Only fetch if no messages provided as props
+    refetchInterval: 30000, // Refetch every 30 seconds as fallback
+    refetchIntervalInBackground: true, // Continue refetching when tab is not active
   });
 
   // Use prop messages if provided, otherwise use fetched messages
@@ -81,17 +83,46 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
         const data = JSON.parse(event.data);
         if (data.type === "NEW_MESSAGE") {
           console.log("Invalidating queries due to new message");
-          // Invalidate relevant queries
-          queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+          
+          // Force immediate refetch of all message-related queries with refetchType active
+          queryClient.invalidateQueries({ 
+            queryKey: ["/api/messages"],
+            refetchType: 'active'
+          });
+          queryClient.invalidateQueries({ 
+            queryKey: ["/api/tags"],
+            refetchType: 'active'
+          });
+          
+          // Invalidate specific tag queries
           if (tag) {
-            queryClient.invalidateQueries({ queryKey: [`/api/messages/tag/${tag}`] });
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/messages/tag/${tag}`],
+              refetchType: 'active'
+            });
           }
+          
+          // Invalidate shared board queries
           if (sharedBoard) {
-            queryClient.invalidateQueries({ queryKey: [`/api/shared-boards/${sharedBoard}/messages`] });
+            queryClient.invalidateQueries({ 
+              queryKey: [`/api/shared-boards/${sharedBoard}/messages`],
+              refetchType: 'active'
+            });
           }
-          // Note: No toast notification since this should only be received by the message owner
-          // and user-initiated actions (like adding messages) already have their own feedback
+          
+          // Also invalidate shared boards list to update counts
+          queryClient.invalidateQueries({ 
+            queryKey: ["/api/shared-boards"],
+            refetchType: 'active'
+          });
+          
+          console.log("All queries invalidated with immediate refetch");
+          
+          // Show a subtle notification that new content is available
+          toast({
+            description: "New message received",
+            duration: 3000,
+          });
         }
       } catch (error) {
         console.error("Error processing message:", error);
