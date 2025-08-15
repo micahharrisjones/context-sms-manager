@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Create Share Image</title>
+</head>
+<body>
+    <canvas id="canvas" width="1200" height="630" style="border: 1px solid #ccc;"></canvas>
+    <br>
+    <button onclick="downloadImage()">Download PNG</button>
+    
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Fill with warm cream background
+        ctx.fillStyle = '#fff3ea';
+        ctx.fillRect(0, 0, 1200, 630);
+        
+        // Draw Context sunburst logo
+        const centerX = 600;
+        const centerY = 315;
+        const radius = 120;
+        
+        // Draw sunburst rays first
+        ctx.strokeStyle = '#ed2024';
+        ctx.lineWidth = 10;
+        ctx.lineCap = 'round';
+        
+        for (let i = 0; i < 48; i++) {
+            const angle = (i / 48) * 2 * Math.PI;
+            const startX = centerX + Math.cos(angle) * (radius + 20);
+            const startY = centerY + Math.sin(angle) * (radius + 20);
+            const endX = centerX + Math.cos(angle) * (radius + 80);
+            const endY = centerY + Math.sin(angle) * (radius + 80);
+            
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+            ctx.lineTo(endX, endY);
+            ctx.stroke();
+        }
+        
+        // Draw main circle
+        ctx.fillStyle = '#ed2024';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+        ctx.fill();
+        
+        function downloadImage() {
+            const link = document.createElement('a');
+            link.download = 'context-share-image.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>
