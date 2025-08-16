@@ -241,6 +241,31 @@ export class DatabaseStorage implements IStorage {
   async getMessagesByTag(userId: number, tag: string): Promise<Message[]> {
     try {
       log(`Fetching messages with tag: ${tag} for user ${userId}`);
+      
+      // Check if there's a shared board with this name
+      const sharedBoard = await this.getSharedBoardByName(tag);
+      if (sharedBoard) {
+        // Check if user is a member of the shared board
+        const boardMembership = await db
+          .select({
+            board: sharedBoards,
+          })
+          .from(boardMemberships)
+          .innerJoin(sharedBoards, eq(boardMemberships.boardId, sharedBoards.id))
+          .where(and(
+            eq(boardMemberships.userId, userId),
+            eq(sharedBoards.name, tag)
+          ));
+        
+        if (boardMembership.length > 0) {
+          // User is a member of a shared board with this name
+          // Return shared board messages instead of private tag messages
+          log(`User ${userId} is a member of shared board ${tag}, returning shared messages`);
+          return this.getSharedMessages(userId, tag);
+        }
+      }
+      
+      // No shared board or user not a member, proceed with private tag messages
       const result = await db
         .select()
         .from(messages)
@@ -258,7 +283,7 @@ export class DatabaseStorage implements IStorage {
         return !isHashtagOnly;
       });
       
-      log(`Successfully retrieved ${result.length} messages for tag ${tag}, ${filteredMessages.length} after filtering hashtag-only messages`);
+      log(`Successfully retrieved ${result.length} private messages for tag ${tag}, ${filteredMessages.length} after filtering hashtag-only messages`);
       return filteredMessages;
     } catch (error) {
       log(`Error fetching messages by tag ${tag}:`, error);
