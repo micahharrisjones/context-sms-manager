@@ -33,7 +33,7 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
   const { data: fetchedMessages, isLoading: fetchIsLoading } = useQuery<Message[]>({
     queryKey: getQueryKey(),
     enabled: !propMessages, // Only fetch if no messages provided as props
-    refetchInterval: 60000, // Reduced polling frequency to 60 seconds 
+    refetchInterval: 30000, // Faster polling for better real-time feel
     refetchIntervalInBackground: false, // Disable background polling to reduce load
   });
 
@@ -81,39 +81,33 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
         if (data.type === "NEW_MESSAGE") {
           console.log("Invalidating queries due to new message");
           
-          // Force immediate refetch of all message-related queries with refetchType active
-          queryClient.invalidateQueries({ 
-            queryKey: ["/api/messages"],
-            refetchType: 'active'
-          });
-          queryClient.invalidateQueries({ 
-            queryKey: ["/api/tags"],
-            refetchType: 'active'
-          });
+          // Batch invalidate all queries at once for better performance
+          const queriesToInvalidate = [
+            ["/api/messages"],
+            ["/api/tags"],
+            ["/api/shared-boards"]
+          ];
           
-          // Invalidate specific tag queries
+          // Add specific queries based on current view
           if (tag) {
-            queryClient.invalidateQueries({ 
-              queryKey: [`/api/messages/tag/${tag}`],
-              refetchType: 'active'
-            });
+            queriesToInvalidate.push([`/api/messages/tag/${tag}`]);
           }
           
-          // Invalidate shared board queries
           if (sharedBoard) {
-            queryClient.invalidateQueries({ 
-              queryKey: [`/api/shared-boards/${sharedBoard}/messages`],
-              refetchType: 'active'
-            });
+            queriesToInvalidate.push([`/api/shared-boards/${sharedBoard}/messages`]);
           }
           
-          // Also invalidate shared boards list to update counts
-          queryClient.invalidateQueries({ 
-            queryKey: ["/api/shared-boards"],
-            refetchType: 'active'
+          // Invalidate all queries simultaneously for faster updates
+          Promise.all(
+            queriesToInvalidate.map(queryKey => 
+              queryClient.invalidateQueries({ 
+                queryKey,
+                refetchType: 'active'
+              })
+            )
+          ).then(() => {
+            console.log("All queries invalidated and refetched");
           });
-          
-          console.log("All queries invalidated with immediate refetch");
           
           // Removed toast notification to reduce UI noise - messages appear automatically
         }

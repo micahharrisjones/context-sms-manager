@@ -445,38 +445,46 @@ export async function registerRoutes(app: Express) {
       const created = await storage.createMessage(message);
       log(`Created UI message for user ${userId}:`, JSON.stringify(created, null, 2));
 
-      // Broadcast to WebSocket clients for this user
-      wsManager.broadcastNewMessageToUser(userId);
-      
-      // Also notify shared board members if message has relevant tags
-      if (created.tags && created.tags.length > 0) {
-        const sharedBoardUsers = await storage.getUsersForSharedBoardNotification(created.tags);
-        if (sharedBoardUsers.length > 0) {
-          log(`Notifying shared board users of UI message: [${sharedBoardUsers.join(', ')}]`);
-          wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
-        }
-
-        // Send SMS notifications to shared board members (excluding the sender)
-        const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
-        for (const tag of nonUntaggedTags) {
-          try {
-            const phoneNumbers = await storage.getBoardMembersPhoneNumbers(tag, userId);
-            if (phoneNumbers.length > 0) {
-              log(`Sending SMS notifications to shared board #${tag} members: [${phoneNumbers.join(', ')}]`);
-              // Don't await - let SMS sending happen in background
-              twilioService.sendSharedBoardNotification(
-                phoneNumbers, 
-                tag, 
-                created.content
-              );
-            }
-          } catch (error) {
-            log(`Error sending SMS notifications for board ${tag}:`, error instanceof Error ? error.message : String(error));
-          }
-        }
-      }
-
+      // Immediately respond to user while background tasks run
       res.status(201).json(created);
+
+      // Run WebSocket broadcasts and SMS notifications asynchronously for faster response
+      setImmediate(async () => {
+        try {
+          // Broadcast to WebSocket clients for this user
+          wsManager.broadcastNewMessageToUser(userId);
+          
+          // Also notify shared board members if message has relevant tags
+          if (created.tags && created.tags.length > 0) {
+            const sharedBoardUsers = await storage.getUsersForSharedBoardNotification(created.tags);
+            if (sharedBoardUsers.length > 0) {
+              log(`Notifying shared board users of UI message: [${sharedBoardUsers.join(', ')}]`);
+              wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
+            }
+
+            // Send SMS notifications to shared board members (excluding the sender)
+            const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
+            for (const tag of nonUntaggedTags) {
+              try {
+                const phoneNumbers = await storage.getBoardMembersPhoneNumbers(tag, userId);
+                if (phoneNumbers.length > 0) {
+                  log(`Sending SMS notifications to shared board #${tag} members: [${phoneNumbers.join(', ')}]`);
+                  // Don't await - let SMS sending happen in background
+                  twilioService.sendSharedBoardNotification(
+                    phoneNumbers, 
+                    tag, 
+                    created.content
+                  );
+                }
+              } catch (error) {
+                log(`Error sending SMS notifications for board ${tag}:`, error instanceof Error ? error.message : String(error));
+              }
+            }
+          }
+        } catch (error) {
+          log(`Error in background WebSocket/SMS processing: ${error instanceof Error ? error.message : String(error)}`);
+        }
+      });
     } catch (error) {
       log(`Error creating UI message: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({ error: "Failed to create message" });
