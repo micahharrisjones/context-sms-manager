@@ -9,6 +9,7 @@ import { pool } from "./db";
 import { AuthService, generateTwilioResponse, requireAuth } from "./auth";
 import { twilioService } from "./twilio-service";
 import { tmdbService } from "./tmdb-service";
+import { openGraphService } from "./og-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -973,6 +974,40 @@ export async function registerRoutes(app: Express) {
     } catch (error) {
       log(`Error fetching TMDB data: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({ error: "Failed to fetch movie data from TMDB" });
+    }
+  });
+
+  // Open Graph metadata endpoint
+  app.get('/api/og-preview', async (req, res) => {
+    try {
+      const { url } = req.query;
+      
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'URL parameter is required' });
+      }
+
+      // Validate URL format
+      try {
+        new URL(url);
+      } catch {
+        return res.status(400).json({ error: 'Invalid URL format' });
+      }
+
+      // Check if we should fetch Open Graph data for this URL
+      if (!openGraphService.shouldFetchOpenGraph(url)) {
+        return res.json({ skip: true });
+      }
+
+      const ogData = await openGraphService.fetchOpenGraph(url);
+      
+      if (!ogData) {
+        return res.json({ error: 'Failed to fetch Open Graph data' });
+      }
+
+      res.json(ogData);
+    } catch (error) {
+      log('Error fetching Open Graph data:', error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: 'Failed to fetch Open Graph data' });
     }
   });
 

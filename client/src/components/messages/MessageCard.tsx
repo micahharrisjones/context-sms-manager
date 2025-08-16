@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Link } from "wouter";
-import { X, Edit } from "lucide-react";
+import { X, Edit, ExternalLink } from "lucide-react";
 import { useState, useEffect } from "react";
 import { DeleteMessageModal } from "./DeleteMessageModal";
 import { EditMessageModal } from "./EditMessageModal";
@@ -61,6 +61,46 @@ function getIMDbInfo(url: string): { type: string; id: string } | null {
   return null;
 }
 
+// Extract all URLs from message content
+function extractUrls(content: string): string[] {
+  const words = content.split(/\s+/);
+  const urls: string[] = [];
+  
+  for (const word of words) {
+    try {
+      new URL(word);
+      urls.push(word);
+    } catch {
+      // Not a valid URL, skip
+    }
+  }
+  
+  return urls;
+}
+
+// Check if URL should get Open Graph preview (not already handled by social embeds)
+function shouldFetchOpenGraph(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    const skipDomains = [
+      'instagram.com',
+      'pinterest.com', 
+      'twitter.com',
+      'x.com',
+      'reddit.com',
+      'facebook.com',
+      'youtube.com',
+      'youtu.be',
+      'tiktok.com',
+      'imdb.com',
+    ];
+    
+    return !skipDomains.some(domain => urlObj.hostname.includes(domain));
+  } catch {
+    return false;
+  }
+}
+
 interface MovieData {
   posterUrl: string | null;
   title: string | null;
@@ -68,11 +108,22 @@ interface MovieData {
   rating: number | null;
 }
 
+interface OpenGraphData {
+  title?: string;
+  description?: string;
+  image?: string;
+  url?: string;
+  site_name?: string;
+  type?: string;
+}
+
 export function MessageCard({ message }: MessageCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [movieData, setMovieData] = useState<MovieData | null>(null);
   const [isLoadingMovie, setIsLoadingMovie] = useState(false);
+  const [ogData, setOgData] = useState<OpenGraphData | null>(null);
+  const [isLoadingOg, setIsLoadingOg] = useState(false);
 
   const formattedContent = message.content.split(" ").map((word, i) => {
     if (word.startsWith("#")) {
@@ -114,6 +165,10 @@ export function MessageCard({ message }: MessageCardProps) {
   const youtubeVideoId = message.content ? getYouTubeVideoId(message.content) : null;
   const tiktokVideoId = message.content ? getTikTokVideoId(message.content) : null;
   const imdbInfo = message.content ? getIMDbInfo(message.content) : null;
+  
+  // Extract URLs for Open Graph previews
+  const urls = extractUrls(message.content);
+  const previewUrl = urls.find(url => shouldFetchOpenGraph(url)) || null;
 
   // Fetch movie data from TMDB when IMDB link is detected
   useEffect(() => {
@@ -140,6 +195,34 @@ export function MessageCard({ message }: MessageCardProps) {
 
     fetchMovieData();
   }, [imdbInfo?.id]);
+
+  // Fetch Open Graph data for general URLs
+  useEffect(() => {
+    async function fetchOpenGraphData() {
+      if (!previewUrl) {
+        setOgData(null);
+        return;
+      }
+      
+      setIsLoadingOg(true);
+      
+      try {
+        const response = await fetch(`/api/og-preview?url=${encodeURIComponent(previewUrl)}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.skip && !data.error) {
+            setOgData(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching Open Graph data:', error);
+      } finally {
+        setIsLoadingOg(false);
+      }
+    }
+
+    fetchOpenGraphData();
+  }, [previewUrl]);
 
   return (
     <>
@@ -272,7 +355,69 @@ export function MessageCard({ message }: MessageCardProps) {
             />
           </div>
         )}
-        {message.mediaUrl && !instagramPostId && !pinterestId && !twitterPostId && !redditPostInfo && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && (
+        
+        {/* Open Graph Preview for general URLs */}
+        {ogData && ogData.title && (
+          <div className="w-full">
+            <div className="border border-[#e3cac0] rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow">
+              <a 
+                href={previewUrl || ogData.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block"
+              >
+                {ogData.image && (
+                  <div className="aspect-video w-full bg-gray-100 overflow-hidden">
+                    <img
+                      src={ogData.image}
+                      alt={ogData.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="p-4">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">
+                        {ogData.title}
+                      </h3>
+                      {ogData.description && (
+                        <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                          {ogData.description}
+                        </p>
+                      )}
+                      {ogData.site_name && (
+                        <p className="text-gray-500 text-xs mt-2 uppercase tracking-wide">
+                          {ogData.site_name}
+                        </p>
+                      )}
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        )}
+        
+        {/* Loading state for Open Graph */}
+        {isLoadingOg && previewUrl && (
+          <div className="w-full">
+            <div className="border border-[#e3cac0] rounded-lg bg-white p-4">
+              <div className="animate-pulse">
+                <div className="w-full h-48 bg-gray-200 rounded mb-3"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {message.mediaUrl && !instagramPostId && !pinterestId && !twitterPostId && !redditPostInfo && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && (
           <div className="w-full max-w-lg mx-auto">
             {message.mediaType?.startsWith("image/") ? (
               <img
