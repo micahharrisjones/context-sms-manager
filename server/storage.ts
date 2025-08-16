@@ -383,15 +383,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteMessagesByTag(userId: number, tag: string): Promise<void> {
     try {
-      log(`Deleting all messages with tag "${tag}" for user ${userId}`);
-      await db
-        .delete(messages)
-        .where(and(
-          eq(messages.userId, userId),
-          sql`${messages.tags} @> ARRAY[${tag}]::text[]`
-        ));
+      log(`Deleting private messages with tag "${tag}" for user ${userId}, preserving shared board messages`);
       
-      log(`Successfully deleted all messages with tag "${tag}" for user ${userId}`);
+      // First, check if this tag corresponds to any shared board
+      const sharedBoard = await this.getSharedBoardByName(tag);
+      
+      if (sharedBoard) {
+        // If it's a shared board, only delete hashtag-only messages (private board creation artifacts)
+        // These are messages that are exactly "#tagname" with no other content
+        await db
+          .delete(messages)
+          .where(and(
+            eq(messages.userId, userId),
+            sql`${messages.tags} @> ARRAY[${tag}]::text[]`,
+            eq(messages.content, `#${tag}`)
+          ));
+        log(`Deleted only hashtag-only messages for shared board tag "${tag}" for user ${userId}`);
+      } else {
+        // If it's not a shared board, delete all messages with this tag (traditional private board deletion)
+        await db
+          .delete(messages)
+          .where(and(
+            eq(messages.userId, userId),
+            sql`${messages.tags} @> ARRAY[${tag}]::text[]`
+          ));
+        log(`Deleted all messages with private tag "${tag}" for user ${userId}`);
+      }
     } catch (error) {
       log(`Error deleting messages with tag "${tag}":`, error);
       throw error;
@@ -402,16 +419,36 @@ export class DatabaseStorage implements IStorage {
   async getAllMessagesByTagForDeletion(userId: number, tag: string): Promise<Message[]> {
     try {
       log(`Fetching ALL messages (including hashtag-only) with tag: ${tag} for user ${userId}`);
-      const result = await db
-        .select()
-        .from(messages)
-        .where(and(
-          eq(messages.userId, userId),
-          sql`${messages.tags} @> ARRAY[${tag}]::text[]`
-        ))
-        .orderBy(desc(messages.timestamp));
       
-      log(`Successfully retrieved ${result.length} total messages for tag ${tag} (including hashtag-only)`);
+      // Check if this tag corresponds to any shared board
+      const sharedBoard = await this.getSharedBoardByName(tag);
+      
+      let result;
+      if (sharedBoard) {
+        // If it's a shared board, only count hashtag-only messages for deletion
+        result = await db
+          .select()
+          .from(messages)
+          .where(and(
+            eq(messages.userId, userId),
+            sql`${messages.tags} @> ARRAY[${tag}]::text[]`,
+            eq(messages.content, `#${tag}`)
+          ))
+          .orderBy(desc(messages.timestamp));
+        log(`Found ${result.length} hashtag-only messages for shared board tag "${tag}"`);
+      } else {
+        // If it's not a shared board, count all messages with this tag
+        result = await db
+          .select()
+          .from(messages)
+          .where(and(
+            eq(messages.userId, userId),
+            sql`${messages.tags} @> ARRAY[${tag}]::text[]`
+          ))
+          .orderBy(desc(messages.timestamp));
+        log(`Found ${result.length} total messages for private tag "${tag}"`);
+      }
+      
       return result;
     } catch (error) {
       log(`Error fetching all messages by tag ${tag}:`, error);

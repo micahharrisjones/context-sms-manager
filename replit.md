@@ -94,6 +94,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Updated social sharing image with custom-designed PNG featuring perfect warm cream background and Context sunburst logo**
 - ✅ **Added prominent taglines to login screen: "Text it, tag it, find it later." and "Save anything from anywhere, with just a text."**
 - ✅ **Implemented comprehensive Open Graph link preview system - displays rich previews with images, titles, and descriptions for general website URLs not covered by social media embeds**
+- ✅ **CRITICAL BUG FIX: Fixed shared board message deletion issue - private board deletion no longer affects shared board messages with same hashtag**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
