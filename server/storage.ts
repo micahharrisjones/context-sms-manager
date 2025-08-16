@@ -490,8 +490,19 @@ export class DatabaseStorage implements IStorage {
         WHERE user_id = ${userId}
         ORDER BY tag
       `);
-      log(`Successfully retrieved ${result.rows.length} unique tags`);
-      return result.rows.map(row => row.tag);
+      
+      let tags = result.rows.map(row => row.tag);
+      
+      // Filter out tags that correspond to shared boards the user is a member of
+      // These should not appear in private boards since they're handled by shared boards
+      const userSharedBoards = await this.getUserBoardMemberships(userId);
+      const sharedBoardNames = userSharedBoards.map(membership => membership.board.name);
+      
+      // Remove tags that match shared board names
+      tags = tags.filter(tag => !sharedBoardNames.includes(tag));
+      
+      log(`Successfully retrieved ${result.rows.length} total tags, ${tags.length} after filtering shared board tags`);
+      return tags;
     } catch (error) {
       log("Error fetching tags:", error);
       throw error;
