@@ -585,8 +585,22 @@ export async function registerRoutes(app: Express) {
       const messagesToDelete = await storage.getAllMessagesByTagForDeletion(userId, tag);
       log(`Found ${messagesToDelete.length} messages with tag "${tag}" for user ${userId}`);
       
+      // Check if this is a shared board to provide appropriate messaging
+      const sharedBoard = await storage.getSharedBoardByName(tag);
+      
       if (messagesToDelete.length === 0) {
-        return res.status(404).json({ error: "No messages found with this tag" });
+        if (sharedBoard) {
+          // If it's a shared board with no private messages, this is normal - shared board messages are protected
+          return res.json({ 
+            success: true, 
+            message: `Private board #${tag} removed. Shared board messages are preserved.`,
+            deletedCount: 0,
+            isSharedBoardProtected: true
+          });
+        } else {
+          // If it's a regular private board with no messages, that's an error
+          return res.status(404).json({ error: "No messages found with this tag" });
+        }
       }
 
       // Delete all messages with this tag (including hashtag-only messages)
@@ -596,10 +610,15 @@ export async function registerRoutes(app: Express) {
       // Broadcast to WebSocket clients for this user
       wsManager.broadcastNewMessageToUser(userId);
 
+      const responseMessage = sharedBoard 
+        ? `Removed private board #${tag}. ${messagesToDelete.length} private messages deleted, shared board messages preserved.`
+        : `Deleted ${messagesToDelete.length} messages with tag #${tag}`;
+
       res.json({ 
         success: true, 
-        message: `Deleted ${messagesToDelete.length} messages with tag #${tag}`,
-        deletedCount: messagesToDelete.length
+        message: responseMessage,
+        deletedCount: messagesToDelete.length,
+        isSharedBoardProtected: !!sharedBoard
       });
     } catch (error) {
       log(`Error deleting tag "${req.params.tag}": ${error instanceof Error ? error.message : String(error)}`);

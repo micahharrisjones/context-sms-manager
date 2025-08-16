@@ -49,10 +49,10 @@ export function DeleteTagModal({
 
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Tag deleted",
-        description: `All messages with #${tag} have been removed.`,
+        description: data.message || `All messages with #${tag} have been removed.`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/tags'] });
