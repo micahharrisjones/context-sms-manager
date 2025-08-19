@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const deleteAccountMutation = useMutation({
     mutationFn: () => apiRequest("/api/auth/delete-account", {
@@ -36,7 +38,10 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
         title: "Account deleted",
         description: "Your account and all associated data have been permanently deleted.",
       });
-      logout(); // Log out the user after successful deletion
+      // Close the modal first
+      onClose();
+      // Logout will automatically redirect to login via page refresh
+      logout();
     },
     onError: (error: any) => {
       toast({

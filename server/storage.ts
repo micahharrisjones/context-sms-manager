@@ -136,7 +136,7 @@ export class DatabaseStorage implements IStorage {
       log(`Phone lookup for ${phoneNumber}: found user ${user?.id || 'none'}`);
       return user || undefined;
     } catch (error) {
-      log("Error fetching user by phone number:", error);
+      log("Error fetching user by phone number:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -150,7 +150,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return user;
     } catch (error) {
-      log("Error creating user:", error);
+      log("Error creating user:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -162,7 +162,7 @@ export class DatabaseStorage implements IStorage {
         .set({ lastLoginAt: new Date() })
         .where(eq(users.id, userId));
     } catch (error) {
-      log("Error updating user last login:", error);
+      log("Error updating user last login:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
