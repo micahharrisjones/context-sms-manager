@@ -199,11 +199,15 @@ const processSMSWebhook = async (body: unknown) => {
         log("No hashtags or recent tags found, attempting AI categorization");
         try {
           const userBoards = await getUserBoards(user.id);
+          log(`User boards for AI: private=[${userBoards.privateBoards.join(', ')}], shared=[${userBoards.sharedBoards.join(', ')}]`);
+          
           const aiSuggestion = await aiService.categorizeMessage(
             content,
             userBoards.privateBoards,
             userBoards.sharedBoards
           );
+          
+          log(`AI service response: ${JSON.stringify(aiSuggestion)}`);
           
           if (aiSuggestion && aiSuggestion.confidence > 0.6) {
             tags.push(aiSuggestion.category);
@@ -213,10 +217,12 @@ const processSMSWebhook = async (body: unknown) => {
             }
           } else {
             tags.push("untagged");
-            log("AI categorization failed or low confidence, using untagged");
+            const confidenceMsg = aiSuggestion ? ` (confidence: ${aiSuggestion.confidence})` : ' (no response)';
+            log(`AI categorization failed or low confidence${confidenceMsg}, using untagged`);
           }
         } catch (error) {
           log("Error during AI categorization:", error instanceof Error ? error.message : String(error));
+          log("Full error stack:", error instanceof Error ? error.stack : String(error));
           tags.push("untagged");
         }
       }
