@@ -184,7 +184,7 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return session;
     } catch (error) {
-      log("Error creating auth session:", error);
+      log("Error creating auth session:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -203,7 +203,7 @@ export class DatabaseStorage implements IStorage {
         .orderBy(desc(authSessions.createdAt));
       return session || undefined;
     } catch (error) {
-      log("Error fetching valid auth session:", error);
+      log("Error fetching valid auth session:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -215,7 +215,7 @@ export class DatabaseStorage implements IStorage {
         .set({ verified: "true" })
         .where(eq(authSessions.id, sessionId));
     } catch (error) {
-      log("Error marking session as verified:", error);
+      log("Error marking session as verified:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -241,7 +241,7 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully retrieved ${result.length} messages, ${filteredMessages.length} after filtering hashtag-only messages`);
       return filteredMessages;
     } catch (error) {
-      log("Error fetching messages:", error);
+      log("Error fetching messages:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -294,7 +294,7 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully retrieved ${result.length} private messages for tag ${tag}, ${filteredMessages.length} after filtering hashtag-only messages`);
       return filteredMessages;
     } catch (error) {
-      log(`Error fetching messages by tag ${tag}:`, error);
+      log(`Error fetching messages by tag ${tag}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -339,7 +339,7 @@ export class DatabaseStorage implements IStorage {
       log(`Message ${messageId} ${message ? 'found' : 'not found'}`);
       return message || undefined;
     } catch (error) {
-      log(`Error fetching message by ID ${messageId}:`, error);
+      log(`Error fetching message by ID ${messageId}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -395,7 +395,7 @@ export class DatabaseStorage implements IStorage {
       log("Successfully created new message:", JSON.stringify(message, null, 2));
       return message;
     } catch (error) {
-      log("Error creating message:", error);
+      log("Error creating message:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -409,7 +409,7 @@ export class DatabaseStorage implements IStorage {
       
       log(`Successfully deleted message ${messageId}`);
     } catch (error) {
-      log(`Error deleting message ${messageId}:`, error);
+      log(`Error deleting message ${messageId}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -443,7 +443,7 @@ export class DatabaseStorage implements IStorage {
         log(`Deleted all messages with private tag "${tag}" for user ${userId}`);
       }
     } catch (error) {
-      log(`Error deleting messages with tag "${tag}":`, error);
+      log(`Error deleting messages with tag "${tag}":`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -484,7 +484,7 @@ export class DatabaseStorage implements IStorage {
       
       return result;
     } catch (error) {
-      log(`Error fetching all messages by tag ${tag}:`, error);
+      log(`Error fetching all messages by tag ${tag}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -512,7 +512,7 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully retrieved ${result.rows.length} total tags, ${tags.length} after filtering shared board tags`);
       return tags;
     } catch (error) {
-      log("Error fetching tags:", error);
+      log("Error fetching tags:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -532,7 +532,7 @@ export class DatabaseStorage implements IStorage {
       log(`Found ${result.length} recent messages from sender`);
       return result;
     } catch (error) {
-      log("Error fetching recent messages by sender:", error);
+      log("Error fetching recent messages by sender:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -548,7 +548,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(messages.id, messageId));
       log(`Successfully updated message ${messageId} tags`);
     } catch (error) {
-      log("Error updating message tags:", error);
+      log("Error updating message tags:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -568,7 +568,7 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully updated message ${messageId}`);
       return updatedMessage;
     } catch (error) {
-      log("Error updating message:", error);
+      log("Error updating message:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -585,7 +585,7 @@ export class DatabaseStorage implements IStorage {
       log(`Found ${result.length} shared boards created by user`);
       return result;
     } catch (error) {
-      log("Error fetching shared boards:", error);
+      log("Error fetching shared boards:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
