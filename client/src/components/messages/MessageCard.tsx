@@ -87,19 +87,9 @@ function getIMDbInfo(url: string): { type: string; id: string } | null {
 
 // Extract all URLs from message content
 function extractUrls(content: string): string[] {
-  const words = content.split(/\s+/);
-  const urls: string[] = [];
-  
-  for (const word of words) {
-    try {
-      new URL(word);
-      urls.push(word);
-    } catch {
-      // Not a valid URL, skip
-    }
-  }
-  
-  return urls;
+  const urlRegex = /https?:\/\/[^\s]+/g;
+  const matches = content.match(urlRegex);
+  return matches || [];
 }
 
 // Check if URL should get Open Graph preview (not already handled by social embeds)
