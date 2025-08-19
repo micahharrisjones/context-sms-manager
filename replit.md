@@ -102,6 +102,8 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Implemented comprehensive board renaming functionality - users can now rename both shared boards and private boards (hashtags) with proper validation and conflict prevention**
 - ✅ **Integrated DeepSeek AI-powered hybrid categorization system - automatically categorizes messages without hashtags while preserving manual hashtag control**
 - ✅ **Added personalized auto-login URLs in welcome messages - new users can click directly into their account without manual login**
+- ✅ **Fixed iPhone UI spacing issues between "owner" text and action buttons in shared boards section**
+- ✅ **Implemented account deletion feature with confirmation modal - users can permanently delete their accounts via Delete Account button near logout**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
