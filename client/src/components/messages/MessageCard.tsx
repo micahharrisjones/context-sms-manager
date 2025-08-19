@@ -337,7 +337,7 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
-        {/* Message text - Show last */}
+        {/* Message text - Show last, with URLs removed */}
         <p className="text-foreground break-words">
           {message.content.split(" ").map((word, i) => {
             // Support hyphenated hashtags like #toyota-parts-list
@@ -352,10 +352,10 @@ export function MessageCard({ message }: MessageCardProps) {
                 </Link>
               );
             }
-            // Don't make URLs clickable here since we show them separately above
+            // Skip URLs completely since they're shown separately above
             try {
               new URL(word);
-              return <span key={i} className="text-gray-500">{word} </span>;
+              return null; // Don't render URLs in the message text
             } catch {
               return word + " ";
             }
