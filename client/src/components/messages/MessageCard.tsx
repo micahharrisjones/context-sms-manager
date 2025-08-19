@@ -187,16 +187,6 @@ export function MessageCard({ message }: MessageCardProps) {
   const hasSpecificEmbed = !!(instagramPostId || pinterestId || twitterPostId || redditPostInfo || facebookPostId || youtubeVideoId || tiktokVideoId || imdbInfo);
   const previewUrl = urls.find(url => shouldFetchOpenGraph(url, hasSpecificEmbed)) || null;
   
-  // Debug logging
-  console.log('MessageCard Debug:', {
-    messageContent: message.content,
-    extractedUrls: urls,
-    hasSpecificEmbed,
-    previewUrl,
-    instagramPostId,
-    tiktokVideoId,
-    redditPostInfo
-  });
 
   // Fetch movie data from TMDB when IMDB link is detected
   useEffect(() => {
@@ -282,7 +272,95 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-foreground break-words">{formattedContent}</p>
+        {/* Open Graph Preview - Show first */}
+        {ogData && ogData.title && (
+          <div className="w-full">
+            <div className="border border-[#e3cac0] rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow">
+              <a 
+                href={previewUrl || ogData.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block"
+              >
+                {ogData.image && (
+                  <div className="aspect-video w-full bg-gray-100 overflow-hidden">
+                    <img
+                      src={ogData.image}
+                      alt={ogData.title}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="p-4">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">
+                        {ogData.title}
+                      </h3>
+                      {ogData.description && (
+                        <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                          {ogData.description}
+                        </p>
+                      )}
+                      {ogData.site_name && (
+                        <p className="text-gray-500 text-xs mt-2 uppercase tracking-wide">
+                          {ogData.site_name}
+                        </p>
+                      )}
+                    </div>
+                    <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        )}
+        
+        {/* Direct URL link - Show second */}
+        {urls.length > 0 && (
+          <div className="w-full">
+            {urls.map((url, index) => (
+              <a
+                key={index}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline text-sm break-all block mb-1"
+              >
+                {url}
+              </a>
+            ))}
+          </div>
+        )}
+        
+        {/* Message text - Show last */}
+        <p className="text-foreground break-words">
+          {message.content.split(" ").map((word, i) => {
+            // Support hyphenated hashtags like #toyota-parts-list
+            if (word.startsWith("#") && /^#[\w-]+$/.test(word)) {
+              return (
+                <Link
+                  key={i}
+                  href={`/tag/${word.slice(1)}`}
+                  className="text-primary hover:underline"
+                >
+                  {word}{" "}
+                </Link>
+              );
+            }
+            // Don't make URLs clickable here since we show them separately above
+            try {
+              new URL(word);
+              return <span key={i} className="text-gray-500">{word} </span>;
+            } catch {
+              return word + " ";
+            }
+          })}
+        </p>
         {instagramPostId && (
           <div className="w-full">
             <iframe
@@ -407,53 +485,6 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
-        {/* Open Graph Preview for general URLs */}
-        {ogData && ogData.title && (
-          <div className="w-full">
-            <div className="border border-[#e3cac0] rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow">
-              <a 
-                href={previewUrl || ogData.url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block"
-              >
-                {ogData.image && (
-                  <div className="aspect-video w-full bg-gray-100 overflow-hidden">
-                    <img
-                      src={ogData.image}
-                      alt={ogData.title}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
-                <div className="p-4">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">
-                        {ogData.title}
-                      </h3>
-                      {ogData.description && (
-                        <p className="text-gray-600 text-sm mt-1 line-clamp-2">
-                          {ogData.description}
-                        </p>
-                      )}
-                      {ogData.site_name && (
-                        <p className="text-gray-500 text-xs mt-2 uppercase tracking-wide">
-                          {ogData.site_name}
-                        </p>
-                      )}
-                    </div>
-                    <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                  </div>
-                </div>
-              </a>
-            </div>
-          </div>
-        )}
         
         {/* Loading state for Open Graph */}
         {isLoadingOg && previewUrl && (
