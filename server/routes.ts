@@ -10,6 +10,7 @@ import { AuthService, generateTwilioResponse, requireAuth } from "./auth";
 import { twilioService } from "./twilio-service";
 import { tmdbService } from "./tmdb-service";
 import { openGraphService } from "./og-service";
+import aiService from "./ai-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -77,6 +78,26 @@ async function getRecentTagsFromSender(userId: number, senderId: string): Promis
   } catch (error) {
     log("Error getting recent tags:", error instanceof Error ? error.message : String(error));
     return [];
+  }
+}
+
+// Helper function to get user's existing boards for AI categorization
+async function getUserBoards(userId: number): Promise<{ privateBoards: string[]; sharedBoards: string[] }> {
+  try {
+    const [privateTags, userSharedBoards] = await Promise.all([
+      storage.getTags(userId),
+      storage.getUserBoardMemberships(userId)
+    ]);
+    
+    const sharedBoardNames = userSharedBoards.map(membership => membership.board.name);
+    
+    return {
+      privateBoards: privateTags,
+      sharedBoards: sharedBoardNames
+    };
+  } catch (error) {
+    log("Error getting user boards:", error instanceof Error ? error.message : String(error));
+    return { privateBoards: [], sharedBoards: [] };
   }
 }
 
@@ -174,7 +195,30 @@ const processSMSWebhook = async (body: unknown) => {
         tags = recentTags;
         log(`Inherited tags [${tags.join(', ')}] from recent message by ${senderId}`);
       } else {
-        tags.push("untagged");
+        // Try AI categorization if no hashtags and no recent tags
+        log("No hashtags or recent tags found, attempting AI categorization");
+        try {
+          const userBoards = await getUserBoards(user.id);
+          const aiSuggestion = await aiService.categorizeMessage(
+            content,
+            userBoards.privateBoards,
+            userBoards.sharedBoards
+          );
+          
+          if (aiSuggestion && aiSuggestion.confidence > 0.6) {
+            tags.push(aiSuggestion.category);
+            log(`AI categorized message as: ${aiSuggestion.category} (confidence: ${aiSuggestion.confidence})`);
+            if (aiSuggestion.reasoning) {
+              log(`AI reasoning: ${aiSuggestion.reasoning}`);
+            }
+          } else {
+            tags.push("untagged");
+            log("AI categorization failed or low confidence, using untagged");
+          }
+        } catch (error) {
+          log("Error during AI categorization:", error instanceof Error ? error.message : String(error));
+          tags.push("untagged");
+        }
       }
     }
 
@@ -246,7 +290,30 @@ const processSMSWebhook = async (body: unknown) => {
       tags = recentTags;
       log(`Inherited tags [${tags.join(', ')}] from recent message by ${senderId}`);
     } else {
-      tags.push("untagged");
+      // Try AI categorization if no hashtags and no recent tags
+      log("No hashtags or recent tags found, attempting AI categorization");
+      try {
+        const userBoards = await getUserBoards(user.id);
+        const aiSuggestion = await aiService.categorizeMessage(
+          content,
+          userBoards.privateBoards,
+          userBoards.sharedBoards
+        );
+        
+        if (aiSuggestion && aiSuggestion.confidence > 0.6) {
+          tags.push(aiSuggestion.category);
+          log(`AI categorized message as: ${aiSuggestion.category} (confidence: ${aiSuggestion.confidence})`);
+          if (aiSuggestion.reasoning) {
+            log(`AI reasoning: ${aiSuggestion.reasoning}`);
+          }
+        } else {
+          tags.push("untagged");
+          log("AI categorization failed or low confidence, using untagged");
+        }
+      } catch (error) {
+        log("Error during AI categorization:", error instanceof Error ? error.message : String(error));
+        tags.push("untagged");
+      }
     }
   }
 

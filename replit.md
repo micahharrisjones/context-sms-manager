@@ -100,6 +100,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Overhauled board tagging system to use proper slug format (lowercase, hyphenated) eliminating naming conflicts like "Toyota Parts List" → #toyota-parts-list**
 - ✅ **Made edit and delete icons permanently visible on message cards to improve discoverability for users**
 - ✅ **Implemented comprehensive board renaming functionality - users can now rename both shared boards and private boards (hashtags) with proper validation and conflict prevention**
+- ✅ **Integrated DeepSeek AI-powered hybrid categorization system - automatically categorizes messages without hashtags while preserving manual hashtag control**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
