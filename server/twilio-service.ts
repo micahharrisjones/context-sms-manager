@@ -136,7 +136,7 @@ Your message has been saved and organized. Here's how Context works:
 👥 Invite others to shared boards for collaboration
 🌐 Access everything at your web dashboard
 
-Visit your dashboard anytime to see all your organized messages, create shared boards, and invite collaborators.
+Visit https://contxt.life to see all your organized messages, create shared boards, and invite collaborators.
 
 Happy organizing!`;
 
