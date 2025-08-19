@@ -320,6 +320,20 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
+        {/* Fallback: Show raw URL when preview fails and we're not loading */}
+        {previewUrl && !isLoadingOg && (!ogData || !ogData.title) && (
+          <div className="w-full">
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline text-sm break-all block p-3 border border-[#e3cac0] rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+              {previewUrl}
+            </a>
+          </div>
+        )}
+        
         
         {/* Message text - Show last, with URLs removed */}
         <p className="text-foreground break-words">
