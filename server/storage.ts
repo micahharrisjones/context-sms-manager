@@ -1060,15 +1060,28 @@ export class DatabaseStorage implements IStorage {
         .delete(messages)
         .where(eq(messages.userId, userId));
 
-      // 2. Delete board memberships
+      // 2. Delete board memberships for this user
       await db
         .delete(boardMemberships)
         .where(eq(boardMemberships.userId, userId));
 
-      // 3. Delete shared boards created by this user (this will cascade to memberships)
-      await db
-        .delete(sharedBoards)
+      // 3. For shared boards created by this user, delete ALL memberships first, then the boards
+      const ownedBoards = await db
+        .select({ id: sharedBoards.id })
+        .from(sharedBoards)
         .where(eq(sharedBoards.createdBy, userId));
+        
+      for (const board of ownedBoards) {
+        // Delete all memberships to this board (including other users)
+        await db
+          .delete(boardMemberships)
+          .where(eq(boardMemberships.boardId, board.id));
+        
+        // Now safe to delete the board itself
+        await db
+          .delete(sharedBoards)
+          .where(eq(sharedBoards.id, board.id));
+      }
 
       // 4. Delete auth sessions
       await db
