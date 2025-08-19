@@ -19,9 +19,18 @@ export function CreateSharedBoardModal({ isOpen, onClose }: CreateSharedBoardMod
 
   const createBoardMutation = useMutation({
     mutationFn: async (name: string) => {
+      // Convert board name to slug format for hashtag
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+        .trim()
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+
       const response = await apiRequest("/api/shared-boards", {
         method: "POST",
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name: slug }),
       });
       return await response.json();
     },

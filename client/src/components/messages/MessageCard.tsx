@@ -126,7 +126,8 @@ export function MessageCard({ message }: MessageCardProps) {
   const [isLoadingOg, setIsLoadingOg] = useState(false);
 
   const formattedContent = message.content.split(" ").map((word, i) => {
-    if (word.startsWith("#")) {
+    // Support hyphenated hashtags like #toyota-parts-list
+    if (word.startsWith("#") && /^#[\w-]+$/.test(word)) {
       return (
         <Link
           key={i}

@@ -19,24 +19,40 @@ export function CreatePrivateBoardModal({ isOpen, onClose }: CreatePrivateBoardM
 
   const createBoardMutation = useMutation({
     mutationFn: async (name: string) => {
+      // Convert board name to slug format for hashtag
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+        .trim()
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+      
       // For private boards, we'll create a dummy message with just the hashtag
       // to establish the category, then delete it - this creates the hashtag without content
-      const hashtagName = name.startsWith('#') ? name : `#${name}`;
+      const hashtagName = `#${slug}`;
       
       return apiRequest("/api/messages", {
         method: "POST",
         body: JSON.stringify({ 
-          content: `${hashtagName}`,
-          hashtags: [hashtagName.substring(1)] // Remove # for storage
+          content: hashtagName,
+          hashtags: [slug] // Store slug without # for storage
         })
       });
     },
     onSuccess: async () => {
       // Invalidate tags to refresh the sidebar
-      queryClient.invalidateQueries({ queryKey: ["/api/messages/tags"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+      const slug = boardName
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
       toast({
         title: "Private board created",
-        description: `Your private board "${boardName}" has been created successfully.`
+        description: `Your private board #${slug} has been created successfully.`
       });
       setBoardName("");
       onClose();

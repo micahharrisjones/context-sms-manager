@@ -26,9 +26,21 @@ async function checkDatabaseConnection(req: any, res: any, next: any) {
   }
 }
 
+// Helper function to convert board name to hashtag slug format
+function createBoardSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+}
+
 // Helper function to extract hashtags from content
 function extractHashtags(content: string): string[] {
-  const tags = (content.match(/#\w+/g) || []).map((tag: string) => tag.slice(1));
+  // Updated regex to support hyphenated hashtags
+  const tags = (content.match(/#[\w-]+/g) || []).map((tag: string) => tag.slice(1));
   return Array.from(new Set(tags)); // Remove duplicates
 }
 
