@@ -96,6 +96,8 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Implemented comprehensive Open Graph link preview system - displays rich previews with images, titles, and descriptions for general website URLs not covered by social media embeds**
 - ✅ **CRITICAL BUG FIX: Fixed shared board message deletion issue - private board deletion no longer affects shared board messages with same hashtag**
 - ✅ **Enhanced welcome SMS for new users - now includes https://contxt.life URL for easy dashboard access**
+- ✅ **Updated welcome message with improved copy emphasizing hashtag organization and "Save anything from anywhere, with just a text" tagline**
+- ✅ **Overhauled board tagging system to use proper slug format (lowercase, hyphenated) eliminating naming conflicts like "Toyota Parts List" → #toyota-parts-list**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive

@@ -127,18 +127,11 @@ class TwilioService {
   }
 
   async sendWelcomeMessage(phoneNumber: string): Promise<void> {
-    const welcomeMessage = `Welcome to Context! 🎉
+    const welcomeMessage = `Welcome to Context! 🎉 Your account is live!
 
-Your message has been saved and organized. Here's how Context works:
+Everything you text us gets saved and organized by your #hashtags. No hashtag? No problem - you can categorize messages later. Find your personal board at https://contxt.life/
 
-📱 Text messages with #hashtags to organize them into boards
-🔗 Share links - we'll create rich previews automatically  
-👥 Invite others to shared boards for collaboration
-🌐 Access everything at your web dashboard
-
-Visit https://contxt.life to see all your organized messages, create shared boards, and invite collaborators.
-
-Happy organizing!`;
+Save anything from anywhere, with just a text.`;
 
     try {
       await this.sendSMS(phoneNumber, welcomeMessage);
