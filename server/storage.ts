@@ -609,7 +609,7 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully created shared board ${result.id}`);
       return result;
     } catch (error) {
-      log("Error creating shared board:", error);
+      log("Error creating shared board:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -622,7 +622,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(sharedBoards.id, boardId));
       return result || undefined;
     } catch (error) {
-      log("Error fetching shared board:", error);
+      log("Error fetching shared board:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -635,7 +635,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(sharedBoards.name, name));
       return result || undefined;
     } catch (error) {
-      log("Error fetching shared board by name:", error);
+      log("Error fetching shared board by name:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -650,7 +650,7 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully added board member ${result.id}`);
       return result;
     } catch (error) {
-      log("Error adding board member:", error);
+      log("Error adding board member:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -672,7 +672,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(boardMemberships.boardId, boardId));
       return result;
     } catch (error) {
-      log("Error fetching board members:", error);
+      log("Error fetching board members:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -697,7 +697,7 @@ export class DatabaseStorage implements IStorage {
       log(`Found ${result.length} board memberships for user`);
       return result;
     } catch (error) {
-      log("Error fetching user board memberships:", error);
+      log("Error fetching user board memberships:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -713,7 +713,7 @@ export class DatabaseStorage implements IStorage {
         ));
       log(`Successfully removed board member`);
     } catch (error) {
-      log("Error removing board member:", error);
+      log("Error removing board member:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -734,7 +734,7 @@ export class DatabaseStorage implements IStorage {
         
       log(`Successfully deleted shared board ${boardId} and all its memberships`);
     } catch (error) {
-      log("Error deleting shared board:", error);
+      log("Error deleting shared board:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -752,7 +752,7 @@ export class DatabaseStorage implements IStorage {
       log(`Successfully renamed shared board ${boardId} to ${newName}`);
       return updatedBoard;
     } catch (error) {
-      log("Error renaming shared board:", error);
+      log("Error renaming shared board:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -783,7 +783,7 @@ export class DatabaseStorage implements IStorage {
       
       log(`Successfully renamed private board hashtag from ${oldTag} to ${newTag}`);
     } catch (error) {
-      log("Error renaming private board:", error);
+      log("Error renaming private board:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -842,7 +842,7 @@ export class DatabaseStorage implements IStorage {
       log(`Found ${filteredMessages.length} shared messages in board ${boardName}`);
       return filteredMessages;
     } catch (error) {
-      log("Error fetching shared messages:", error);
+      log("Error fetching shared messages:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
