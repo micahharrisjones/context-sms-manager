@@ -13,8 +13,14 @@ interface MessageCardProps {
 }
 
 function getInstagramPostId(url: string): string | null {
-  const match = url.match(/instagram\.com\/p\/([^/?]+)/);
-  return match ? match[1] : null;
+  // Handle posts, reels, and other Instagram content
+  const postMatch = url.match(/instagram\.com\/p\/([^/?]+)/);
+  if (postMatch) return postMatch[1];
+  
+  const reelMatch = url.match(/instagram\.com\/reel\/([^/?]+)/);
+  if (reelMatch) return reelMatch[1];
+  
+  return null;
 }
 
 function getPinterestId(url: string): string | null {
@@ -33,8 +39,15 @@ function getTwitterPostId(url: string): string | null {
 }
 
 function getRedditPostInfo(url: string): { subreddit: string; postId: string } | null {
-  const match = url.match(/reddit\.com\/r\/(\w+)\/comments\/(\w+)/);
-  return match ? { subreddit: match[1], postId: match[2] } : null;
+  // Handle standard Reddit post URLs with comments
+  const commentsMatch = url.match(/reddit\.com\/r\/(\w+)\/comments\/([^/?]+)/);
+  if (commentsMatch) return { subreddit: commentsMatch[1], postId: commentsMatch[2] };
+  
+  // Handle old Reddit URLs
+  const oldMatch = url.match(/old\.reddit\.com\/r\/(\w+)\/comments\/([^/?]+)/);
+  if (oldMatch) return { subreddit: oldMatch[1], postId: oldMatch[2] };
+  
+  return null;
 }
 
 function getFacebookPostId(url: string): string | null {
@@ -48,8 +61,19 @@ function getYouTubeVideoId(url: string): string | null {
 }
 
 function getTikTokVideoId(url: string): string | null {
-  const match = url.match(/tiktok\.com\/.*\/video\/(\d+)/);
-  return match ? match[1] : null;
+  // Handle various TikTok URL formats
+  const videoMatch = url.match(/tiktok\.com\/.*\/video\/(\d+)/);
+  if (videoMatch) return videoMatch[1];
+  
+  // Handle vm.tiktok.com short URLs
+  const vmMatch = url.match(/vm\.tiktok\.com\/([^/?]+)/);
+  if (vmMatch) return vmMatch[1];
+  
+  // Handle tiktok.com/t/ short URLs
+  const shortMatch = url.match(/tiktok\.com\/t\/([^/?]+)/);
+  if (shortMatch) return shortMatch[1];
+  
+  return null;
 }
 
 function getIMDbInfo(url: string): { type: string; id: string } | null {
@@ -79,23 +103,24 @@ function extractUrls(content: string): string[] {
 }
 
 // Check if URL should get Open Graph preview (not already handled by social embeds)
-function shouldFetchOpenGraph(url: string): boolean {
+function shouldFetchOpenGraph(url: string, hasSpecificEmbed: boolean = false): boolean {
   try {
     const urlObj = new URL(url);
-    const skipDomains = [
-      'instagram.com',
-      'pinterest.com', 
-      'twitter.com',
-      'x.com',
-      'reddit.com',
-      'facebook.com',
+    
+    // If we already have a specific embed (Instagram, TikTok, etc.), don't fetch Open Graph
+    if (hasSpecificEmbed) {
+      return false;
+    }
+    
+    // Always allow Open Graph for social media URLs when specific embed extraction fails
+    // This provides fallback previews for unsupported URL formats
+    const alwaysSkipDomains = [
       'youtube.com',
       'youtu.be',
-      'tiktok.com',
-      'imdb.com',
+      'imdb.com', // We have custom TMDB integration
     ];
     
-    return !skipDomains.some(domain => urlObj.hostname.includes(domain));
+    return !alwaysSkipDomains.some(domain => urlObj.hostname.includes(domain));
   } catch {
     return false;
   }
@@ -169,7 +194,8 @@ export function MessageCard({ message }: MessageCardProps) {
   
   // Extract URLs for Open Graph previews
   const urls = extractUrls(message.content);
-  const previewUrl = urls.find(url => shouldFetchOpenGraph(url)) || null;
+  const hasSpecificEmbed = !!(instagramPostId || pinterestId || twitterPostId || redditPostInfo || facebookPostId || youtubeVideoId || tiktokVideoId || imdbInfo);
+  const previewUrl = urls.find(url => shouldFetchOpenGraph(url, hasSpecificEmbed)) || null;
 
   // Fetch movie data from TMDB when IMDB link is detected
   useEffect(() => {
@@ -337,14 +363,37 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         {tiktokVideoId && (
           <div className="w-full">
-            <iframe
-              src={`https://www.tiktok.com/embed/v2/${tiktokVideoId}`}
-              className="w-full h-[500px] rounded-md border-0"
-              loading="lazy"
-              frameBorder="0"
-              allow="encrypted-media"
-              allowFullScreen
-            />
+            {/* For numeric video IDs, use iframe embed */}
+            {/^\d+$/.test(tiktokVideoId) ? (
+              <iframe
+                src={`https://www.tiktok.com/embed/v2/${tiktokVideoId}`}
+                className="w-full h-[500px] rounded-md border-0"
+                loading="lazy"
+                frameBorder="0"
+                allow="encrypted-media"
+                allowFullScreen
+              />
+            ) : (
+              /* For short URLs (vm.tiktok.com, tiktok.com/t/), show a styled link */
+              <div className="w-full rounded-md border bg-gradient-to-br from-black to-gray-800 p-6">
+                <div className="flex items-center justify-center">
+                  <a 
+                    href={urls.find(url => url.includes('tiktok.com')) || '#'}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-white hover:text-gray-200 transition-colors flex items-center gap-3 text-lg font-medium hover:underline"
+                  >
+                    <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                    </svg>
+                    <div className="text-left">
+                      <div className="font-semibold">View on TikTok</div>
+                      <div className="text-sm font-normal text-gray-300 mt-1">Click to open in new tab</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
         )}
         {imdbInfo && movieData?.posterUrl && (

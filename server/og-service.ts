@@ -185,21 +185,15 @@ class OpenGraphService {
     try {
       const urlObj = new URL(url);
       
-      // Skip social media URLs that we already handle with embeds
-      const skipDomains = [
-        'instagram.com',
-        'pinterest.com', 
-        'twitter.com',
-        'x.com',
-        'reddit.com',
-        'facebook.com',
+      // Only skip URLs that we have comprehensive embed support for
+      // Allow Open Graph fallbacks for social media URLs where embed extraction might fail
+      const alwaysSkipDomains = [
         'youtube.com',
         'youtu.be',
-        'tiktok.com',
         'imdb.com', // We handle IMDB with TMDB
       ];
       
-      return !skipDomains.some(domain => urlObj.hostname.includes(domain));
+      return !alwaysSkipDomains.some(domain => urlObj.hostname.includes(domain));
     } catch {
       return false;
     }
