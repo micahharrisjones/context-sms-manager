@@ -731,6 +731,55 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async renameSharedBoard(boardId: number, newName: string): Promise<SharedBoard> {
+    try {
+      log(`Renaming shared board ${boardId} to ${newName}`);
+      
+      const [updatedBoard] = await db
+        .update(sharedBoards)
+        .set({ name: newName })
+        .where(eq(sharedBoards.id, boardId))
+        .returning();
+        
+      log(`Successfully renamed shared board ${boardId} to ${newName}`);
+      return updatedBoard;
+    } catch (error) {
+      log("Error renaming shared board:", error);
+      throw error;
+    }
+  }
+
+  async renamePrivateBoard(userId: number, oldTag: string, newTag: string): Promise<void> {
+    try {
+      log(`Renaming private board hashtag from ${oldTag} to ${newTag} for user ${userId}`);
+      
+      // Get all messages that contain the old tag
+      const messagesToUpdate = await db
+        .select()
+        .from(messages)
+        .where(and(
+          eq(messages.userId, userId),
+          sql`${oldTag} = ANY(tags)`
+        ));
+      
+      log(`Found ${messagesToUpdate.length} messages to update`);
+      
+      // Update each message's tags array
+      for (const message of messagesToUpdate) {
+        const updatedTags = message.tags.map(tag => tag === oldTag ? newTag : tag);
+        await db
+          .update(messages)
+          .set({ tags: updatedTags })
+          .where(eq(messages.id, message.id));
+      }
+      
+      log(`Successfully renamed private board hashtag from ${oldTag} to ${newTag}`);
+    } catch (error) {
+      log("Error renaming private board:", error);
+      throw error;
+    }
+  }
+
   async getSharedMessages(userId: number, boardName: string): Promise<Message[]> {
     try {
       log(`Fetching shared messages for board ${boardName} accessible to user ${userId}`);

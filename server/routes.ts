@@ -1085,6 +1085,107 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Rename shared board endpoint
+  app.put("/api/shared-boards/:boardId/rename", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = parseInt(req.params.boardId);
+      const { newName } = req.body;
+      
+      if (isNaN(boardId)) {
+        return res.status(400).json({ error: "Invalid board ID" });
+      }
+      
+      if (!newName || typeof newName !== 'string' || newName.trim().length === 0) {
+        return res.status(400).json({ error: "New board name is required" });
+      }
+      
+      const sanitizedName = newName.trim().toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+      
+      // Check if board exists
+      const board = await storage.getSharedBoard(boardId);
+      if (!board) {
+        return res.status(404).json({ error: "Shared board not found" });
+      }
+      
+      // Check if current user is the owner
+      if (board.createdBy !== userId) {
+        return res.status(403).json({ error: "Only the board owner can rename this board" });
+      }
+      
+      // Check if a board with the new name already exists
+      const existingBoard = await storage.getSharedBoardByName(sanitizedName);
+      if (existingBoard && existingBoard.id !== boardId) {
+        return res.status(400).json({ error: "A shared board with this name already exists" });
+      }
+      
+      // Rename the board
+      const updatedBoard = await storage.renameSharedBoard(boardId, sanitizedName);
+      
+      log(`Renamed shared board ${boardId} from ${board.name} to ${sanitizedName} by user ${userId}`);
+      res.json({
+        success: true,
+        message: `Successfully renamed shared board to #${sanitizedName}`,
+        board: updatedBoard
+      });
+    } catch (error) {
+      log(`Error renaming shared board: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to rename shared board" });
+    }
+  });
+
+  // Rename private board (hashtag) endpoint
+  app.put("/api/private-boards/:tagName/rename", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const oldTag = decodeURIComponent(req.params.tagName);
+      const { newName } = req.body;
+      
+      if (!newName || typeof newName !== 'string' || newName.trim().length === 0) {
+        return res.status(400).json({ error: "New board name is required" });
+      }
+      
+      const sanitizedNewTag = newName.trim().toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except spaces and hyphens
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+        .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+      
+      // Check if the old tag exists for this user
+      const userTags = await storage.getTags(userId);
+      if (!userTags.includes(oldTag)) {
+        return res.status(404).json({ error: "Private board not found" });
+      }
+      
+      // Check if new tag name conflicts with existing shared boards
+      const existingSharedBoard = await storage.getSharedBoardByName(sanitizedNewTag);
+      if (existingSharedBoard) {
+        return res.status(400).json({ error: "A shared board with this name already exists" });
+      }
+      
+      // Check if new tag already exists as a private tag
+      if (userTags.includes(sanitizedNewTag)) {
+        return res.status(400).json({ error: "A private board with this name already exists" });
+      }
+      
+      // Rename the private board by updating all messages with the old tag
+      await storage.renamePrivateBoard(userId, oldTag, sanitizedNewTag);
+      
+      log(`Renamed private board hashtag from ${oldTag} to ${sanitizedNewTag} for user ${userId}`);
+      res.json({
+        success: true,
+        message: `Successfully renamed private board to #${sanitizedNewTag}`
+      });
+    } catch (error) {
+      log(`Error renaming private board: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to rename private board" });
+    }
+  });
+
   // Twilio webhook endpoint - handle both /api/webhook/sms and /webhook/sms
   const handleWebhook = async (req: any, res: any) => {
     log("Entering handleWebhook function");

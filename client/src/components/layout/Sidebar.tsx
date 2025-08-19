@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X, Users, User, Plus, UserPlus, Eye, Trash2, LogOut, Settings } from "lucide-react";
+import { Hash, X, Users, User, Plus, UserPlus, Eye, Trash2, LogOut, Settings, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
@@ -15,6 +15,7 @@ import { CreatePrivateBoardModal } from "../shared-boards/CreatePrivateBoardModa
 import { InviteUserModal } from "../shared-boards/InviteUserModal";
 import { BoardMembersModal } from "../shared-boards/BoardMembersModal";
 import { DeleteSharedBoardModal } from "../shared-boards/DeleteSharedBoardModal";
+import { RenameBoardModal } from "../shared-boards/RenameBoardModal";
 import { SharedBoard } from "@shared/schema";
 
 interface SidebarProps {
@@ -31,8 +32,10 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [deleteBoardModalOpen, setDeleteBoardModalOpen] = useState(false);
+  const [renameBoardModalOpen, setRenameBoardModalOpen] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState<string>("");
   const [selectedBoardId, setSelectedBoardId] = useState<number>(0);
+  const [renameBoardType, setRenameBoardType] = useState<"shared" | "private">("shared");
   
   const { data: tags } = useQuery<string[]>({ 
     queryKey: ["/api/tags"]
@@ -133,15 +136,32 @@ export function Sidebar({ onClose }: SidebarProps) {
                   {tag}
                 </Button>
               </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => handleDeleteTag(tag, e)}
-                className="absolute right-1 top-1 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-auto w-6 p-0 hover:bg-red-50 hover:text-red-600"
-                aria-label={`Delete tag ${tag}`}
-              >
-                <X className="h-3 w-3" />
-              </Button>
+              <div className="absolute right-1 top-1 bottom-1 flex opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedBoard(tag);
+                    setRenameBoardType("private");
+                    setRenameBoardModalOpen(true);
+                  }}
+                  className="h-auto w-6 p-0 hover:bg-blue-50 hover:text-blue-600 mr-1"
+                  aria-label={`Rename tag ${tag}`}
+                >
+                  <Edit className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => handleDeleteTag(tag, e)}
+                  className="h-auto w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                  aria-label={`Delete tag ${tag}`}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -201,6 +221,22 @@ export function Sidebar({ onClose }: SidebarProps) {
                   </Button>
                   {board.role === "owner" && (
                     <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedBoard(board.name);
+                          setSelectedBoardId(board.id);
+                          setRenameBoardType("shared");
+                          setRenameBoardModalOpen(true);
+                        }}
+                        className="h-auto w-6 p-0 hover:bg-purple-50 hover:text-purple-600 mr-1"
+                        aria-label={`Rename board ${board.name}`}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -302,6 +338,14 @@ export function Sidebar({ onClose }: SidebarProps) {
         onClose={() => setDeleteBoardModalOpen(false)}
         boardName={selectedBoard}
         boardId={selectedBoardId}
+      />
+      
+      <RenameBoardModal
+        isOpen={renameBoardModalOpen}
+        onClose={() => setRenameBoardModalOpen(false)}
+        boardType={renameBoardType}
+        currentName={selectedBoard}
+        boardId={renameBoardType === "shared" ? selectedBoardId : undefined}
       />
     </div>
   );
