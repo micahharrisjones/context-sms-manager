@@ -127,9 +127,15 @@ class TwilioService {
   }
 
   async sendWelcomeMessage(phoneNumber: string): Promise<void> {
+    // Clean phone number for URL (remove any formatting)
+    const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
+    const autoLoginUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
+    
     const welcomeMessage = `Welcome to Context! 🎉 Your account is live!
 
-Everything you text us gets saved and organized by your #hashtags. No hashtag? No problem - you can categorize messages later. Find your personal board at https://contxt.life/
+Everything you text us gets saved and organized by your #hashtags. No hashtag? No problem - our AI will categorize messages automatically.
+
+Access your personal board instantly: ${autoLoginUrl}
 
 Save anything from anywhere, with just a text.`;
 

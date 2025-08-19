@@ -101,6 +101,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Made edit and delete icons permanently visible on message cards to improve discoverability for users**
 - ✅ **Implemented comprehensive board renaming functionality - users can now rename both shared boards and private boards (hashtags) with proper validation and conflict prevention**
 - ✅ **Integrated DeepSeek AI-powered hybrid categorization system - automatically categorizes messages without hashtags while preserving manual hashtag control**
+- ✅ **Added personalized auto-login URLs in welcome messages - new users can click directly into their account without manual login**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive

@@ -199,30 +199,21 @@ const processSMSWebhook = async (body: unknown) => {
         log("No hashtags or recent tags found, attempting AI categorization");
         try {
           const userBoards = await getUserBoards(user.id);
-          log(`User boards for AI: private=[${userBoards.privateBoards.join(', ')}], shared=[${userBoards.sharedBoards.join(', ')}]`);
-          
           const aiSuggestion = await aiService.categorizeMessage(
             content,
             userBoards.privateBoards,
             userBoards.sharedBoards
           );
           
-          log(`AI service response: ${JSON.stringify(aiSuggestion)}`);
-          
           if (aiSuggestion && aiSuggestion.confidence > 0.6) {
             tags.push(aiSuggestion.category);
             log(`AI categorized message as: ${aiSuggestion.category} (confidence: ${aiSuggestion.confidence})`);
-            if (aiSuggestion.reasoning) {
-              log(`AI reasoning: ${aiSuggestion.reasoning}`);
-            }
           } else {
             tags.push("untagged");
-            const confidenceMsg = aiSuggestion ? ` (confidence: ${aiSuggestion.confidence})` : ' (no response)';
-            log(`AI categorization failed or low confidence${confidenceMsg}, using untagged`);
+            log("AI categorization failed or low confidence, using untagged");
           }
         } catch (error) {
           log("Error during AI categorization:", error instanceof Error ? error.message : String(error));
-          log("Full error stack:", error instanceof Error ? error.stack : String(error));
           tags.push("untagged");
         }
       }
@@ -349,6 +340,44 @@ export async function registerRoutes(app: Express) {
 
   // Add database connection check middleware to all API routes
   app.use("/api", checkDatabaseConnection);
+
+  // Auto-login endpoint for new users (from welcome SMS)
+  app.get("/auto-login/:phoneNumber", async (req, res) => {
+    try {
+      const phoneNumber = req.params.phoneNumber;
+      
+      if (!phoneNumber) {
+        return res.redirect("/?error=missing_phone");
+      }
+      
+      // Clean phone number (remove any formatting)
+      const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
+      
+      // Only allow auto-login for existing users (security measure)
+      const user = await storage.getUserByPhoneNumber(cleanPhoneNumber);
+      if (!user) {
+        log(`Auto-login attempted for non-existent user: ${cleanPhoneNumber}`);
+        return res.redirect("/?error=user_not_found");
+      }
+      
+      log(`Auto-login successful for user ${user.id} (${cleanPhoneNumber})`);
+      
+      // Store user in session
+      req.session.userId = user.id;
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+      
+      // Redirect to main dashboard
+      res.redirect("/");
+    } catch (error) {
+      log("Error in auto-login:", error instanceof Error ? error.message : String(error));
+      res.redirect("/?error=login_failed");
+    }
+  });
 
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
