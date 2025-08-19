@@ -475,29 +475,43 @@ export async function registerRoutes(app: Express) {
 
   app.delete("/api/auth/delete-account", async (req, res) => {
     try {
+      log("=== ACCOUNT DELETION REQUEST RECEIVED ===");
+      
       if (!req.session.userId) {
+        log("Account deletion failed: Not authenticated");
         return res.status(401).json({ error: "Not authenticated" });
       }
 
       const userId = req.session.userId;
+      log(`Starting account deletion for user ID: ${userId}`);
       
       // Delete the user and all associated data
+      log("Calling storage.deleteUser...");
       await storage.deleteUser(userId);
+      log("storage.deleteUser completed successfully");
       
       // Destroy the session
+      log("Destroying session...");
       req.session.destroy((err) => {
         if (err) {
-          log("Error destroying session after account deletion:", err);
+          log("Error destroying session after account deletion:", err instanceof Error ? err.message : String(err));
+        } else {
+          log("Session destroyed successfully");
         }
       });
       
+      log("Account deletion completed successfully");
       res.json({ 
         message: "Account deleted successfully",
         success: true 
       });
     } catch (error) {
-      log("Error deleting account:", error instanceof Error ? error.message : String(error));
-      res.status(500).json({ error: "Failed to delete account" });
+      log("=== ACCOUNT DELETION ERROR ===");
+      log("Error type:", typeof error);
+      log("Error message:", error instanceof Error ? error.message : String(error));
+      log("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+      log("Raw error object:", JSON.stringify(error, null, 2));
+      res.status(500).json({ error: `Failed to delete account: ${error instanceof Error ? error.message : String(error)}` });
     }
   });
 
