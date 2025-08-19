@@ -320,22 +320,6 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
-        {/* Direct URL link - Show second */}
-        {urls.length > 0 && (
-          <div className="w-full">
-            {urls.map((url, index) => (
-              <a
-                key={index}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline text-sm break-all block mb-1"
-              >
-                {url}
-              </a>
-            ))}
-          </div>
-        )}
         
         {/* Message text - Show last, with URLs removed */}
         <p className="text-foreground break-words">
