@@ -352,13 +352,11 @@ export function MessageCard({ message }: MessageCardProps) {
                 </Link>
               );
             }
-            // Skip URLs completely since they're shown separately above
-            try {
-              new URL(word);
+            // Skip HTTP/HTTPS URLs completely since they're shown separately above
+            if (word.startsWith('http://') || word.startsWith('https://')) {
               return null; // Don't render URLs in the message text
-            } catch {
-              return word + " ";
             }
+            return word + " ";
           })}
         </p>
         {instagramPostId && (
