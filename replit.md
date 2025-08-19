@@ -98,6 +98,7 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Enhanced welcome SMS for new users - now includes https://contxt.life URL for easy dashboard access**
 - ✅ **Updated welcome message with improved copy emphasizing hashtag organization and "Save anything from anywhere, with just a text" tagline**
 - ✅ **Overhauled board tagging system to use proper slug format (lowercase, hyphenated) eliminating naming conflicts like "Toyota Parts List" → #toyota-parts-list**
+- ✅ **Made edit and delete icons permanently visible on message cards to improve discoverability for users**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
