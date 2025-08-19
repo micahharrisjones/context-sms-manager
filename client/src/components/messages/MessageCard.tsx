@@ -196,6 +196,17 @@ export function MessageCard({ message }: MessageCardProps) {
   const urls = extractUrls(message.content);
   const hasSpecificEmbed = !!(instagramPostId || pinterestId || twitterPostId || redditPostInfo || facebookPostId || youtubeVideoId || tiktokVideoId || imdbInfo);
   const previewUrl = urls.find(url => shouldFetchOpenGraph(url, hasSpecificEmbed)) || null;
+  
+  // Debug logging
+  console.log('MessageCard Debug:', {
+    messageContent: message.content,
+    extractedUrls: urls,
+    hasSpecificEmbed,
+    previewUrl,
+    instagramPostId,
+    tiktokVideoId,
+    redditPostInfo
+  });
 
   // Fetch movie data from TMDB when IMDB link is detected
   useEffect(() => {
