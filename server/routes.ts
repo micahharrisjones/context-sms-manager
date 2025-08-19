@@ -473,6 +473,34 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  app.delete("/api/auth/delete-account", async (req, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const userId = req.session.userId;
+      
+      // Delete the user and all associated data
+      await storage.deleteUser(userId);
+      
+      // Destroy the session
+      req.session.destroy((err) => {
+        if (err) {
+          log("Error destroying session after account deletion:", err);
+        }
+      });
+      
+      res.json({ 
+        message: "Account deleted successfully",
+        success: true 
+      });
+    } catch (error) {
+      log("Error deleting account:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: "Failed to delete account" });
+    }
+  });
+
   // Protected message routes (require authentication)
   app.get("/api/messages", requireAuth, async (req, res) => {
     try {

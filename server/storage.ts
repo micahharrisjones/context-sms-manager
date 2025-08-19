@@ -25,6 +25,7 @@ export interface IStorage {
   getUserById(userId: number): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserLastLogin(userId: number): Promise<void>;
+  deleteUser(userId: number): Promise<void>;
   
   // Auth session management
   createAuthSession(session: InsertAuthSession): Promise<AuthSession>;
@@ -163,6 +164,13 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       log("Error updating user last login:", error);
       throw error;
+    }
+  }
+
+  async deleteUser(userId: number): Promise<void> {
+    const result = await this.deleteUserCompletely(userId);
+    if (!result.success) {
+      throw new Error(result.error || "Failed to delete user");
     }
   }
 

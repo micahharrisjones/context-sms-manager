@@ -16,6 +16,7 @@ import { InviteUserModal } from "../shared-boards/InviteUserModal";
 import { BoardMembersModal } from "../shared-boards/BoardMembersModal";
 import { DeleteSharedBoardModal } from "../shared-boards/DeleteSharedBoardModal";
 import { RenameBoardModal } from "../shared-boards/RenameBoardModal";
+import { DeleteAccountModal } from "./DeleteAccountModal";
 import { SharedBoard } from "@shared/schema";
 
 interface SidebarProps {
@@ -36,6 +37,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [selectedBoard, setSelectedBoard] = useState<string>("");
   const [selectedBoardId, setSelectedBoardId] = useState<number>(0);
   const [renameBoardType, setRenameBoardType] = useState<"shared" | "private">("shared");
+  const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
   
   const { data: tags } = useQuery<string[]>({ 
     queryKey: ["/api/tags"]
@@ -192,7 +194,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start pr-16 hover:bg-[#e3cac0]/30",
+                      "w-full justify-start pr-20 hover:bg-[#e3cac0]/30",
                       location === `/shared/${board.name}` && "bg-[#e3cac0]/30"
                     )}
                     onClick={onClose}
@@ -200,7 +202,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                     <Hash className="w-4 h-4 mr-2" />
                     {board.name}
                     {board.role === "owner" && (
-                      <span className="ml-auto mr-8 text-xs text-muted-foreground">owner</span>
+                      <span className="ml-auto mr-12 text-xs text-muted-foreground">owner</span>
                     )}
                   </Button>
                 </Link>
@@ -292,6 +294,16 @@ export function Sidebar({ onClose }: SidebarProps) {
           {/* Admin Button - Only show for admin users */}
           <AdminButton onClose={onClose} location={location} />
           
+          {/* Account Management Buttons */}
+          <Button
+            variant="ghost"
+            onClick={() => setDeleteAccountModalOpen(true)}
+            className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete Account
+          </Button>
+          
           {/* Logout Button */}
           <Button
             variant="ghost"
@@ -346,6 +358,11 @@ export function Sidebar({ onClose }: SidebarProps) {
         boardType={renameBoardType}
         currentName={selectedBoard}
         boardId={renameBoardType === "shared" ? selectedBoardId : undefined}
+      />
+      
+      <DeleteAccountModal
+        isOpen={deleteAccountModalOpen}
+        onClose={() => setDeleteAccountModalOpen(false)}
       />
     </div>
   );
