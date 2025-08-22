@@ -5,7 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Trash2, Users, MessageSquare, Hash, Database, Settings } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Trash2, Users, MessageSquare, Hash, Database, Settings, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -29,6 +31,8 @@ export function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [bulkSmsMessage, setBulkSmsMessage] = useState("");
+  const [showBulkSmsModal, setShowBulkSmsModal] = useState(false);
 
   // Fetch admin stats
   const { data: stats, error: statsError } = useQuery<AdminStats>({
@@ -92,6 +96,31 @@ export function AdminPage() {
     }
   });
 
+  // Bulk SMS broadcast mutation
+  const bulkSmsMutation = useMutation({
+    mutationFn: async (message: string) => {
+      return apiRequest('/api/admin/broadcast-sms', {
+        method: 'POST',
+        body: JSON.stringify({ message })
+      });
+    },
+    onSuccess: (data: any) => {
+      setShowBulkSmsModal(false);
+      setBulkSmsMessage("");
+      toast({
+        title: "SMS broadcast sent",
+        description: `Message sent to ${data.successful} users (${data.failed} failed)`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "SMS broadcast failed",
+        description: error.message || "Failed to send SMS broadcast",
+        variant: "destructive"
+      });
+    }
+  });
+
   const handleDeleteUser = (userId: number) => {
     deleteUserMutation.mutate(userId);
   };
@@ -99,6 +128,11 @@ export function AdminPage() {
   const handleBulkDelete = () => {
     if (selectedUsers.length === 0) return;
     bulkDeleteMutation.mutate(selectedUsers);
+  };
+
+  const handleBulkSms = () => {
+    if (!bulkSmsMessage.trim()) return;
+    bulkSmsMutation.mutate(bulkSmsMessage.trim());
   };
 
   const toggleUserSelection = (userId: number) => {
@@ -243,6 +277,58 @@ export function AdminPage() {
             >
               Clear Selection
             </Button>
+            
+            {/* Bulk SMS Button */}
+            <Dialog open={showBulkSmsModal} onOpenChange={setShowBulkSmsModal}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  className="bg-[#ed2024] hover:bg-[#d01d21] text-white"
+                >
+                  <Send className="h-4 w-4 mr-2" />
+                  SMS All Users
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[525px] bg-[#fff3ea] border-[#e3cac0]">
+                <DialogHeader>
+                  <DialogTitle>Send SMS Broadcast</DialogTitle>
+                  <DialogDescription>
+                    Send a message to all {users?.length || 0} Context users. Use this for product updates, release notes, and important announcements (not advertising).
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <Textarea
+                    placeholder="Type your message here... (max 1600 characters)"
+                    value={bulkSmsMessage}
+                    onChange={(e) => setBulkSmsMessage(e.target.value)}
+                    rows={6}
+                    maxLength={1600}
+                    className="resize-none border-[#e3cac0] focus:border-[#ed2024] focus:ring-[#ed2024]"
+                  />
+                  <div className="text-sm text-gray-500 text-right">
+                    {bulkSmsMessage.length}/1600 characters
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowBulkSmsModal(false)}
+                    className="border-[#e3cac0] hover:bg-[#e3cac0]/20"
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleBulkSms} 
+                    disabled={!bulkSmsMessage.trim() || bulkSmsMutation.isPending}
+                    className="bg-[#ed2024] hover:bg-[#d01d21] text-white"
+                  >
+                    {bulkSmsMutation.isPending ? "Sending..." : `Send to ${users?.length || 0} users`}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button

@@ -916,6 +916,48 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin bulk SMS broadcast endpoint
+  app.post("/api/admin/broadcast-sms", requireAdmin, async (req, res) => {
+    try {
+      const { message } = req.body;
+      
+      if (!message || typeof message !== 'string' || message.trim().length === 0) {
+        return res.status(400).json({ error: "Message content is required" });
+      }
+
+      if (message.length > 1600) {
+        return res.status(400).json({ error: "Message too long. Maximum 1600 characters." });
+      }
+
+      // Get all users
+      const allUsers = await storage.getAllUsers();
+      const phoneNumbers = allUsers.map(user => user.phoneNumber);
+      
+      if (phoneNumbers.length === 0) {
+        return res.status(400).json({ error: "No users found to send messages to" });
+      }
+
+      log(`Admin initiating bulk SMS broadcast to ${phoneNumbers.length} users`);
+      
+      // Send bulk SMS using Twilio service
+      const results = await twilioService.sendBulkAdminMessage(phoneNumbers, message);
+      
+      log(`Bulk SMS broadcast completed. Successful: ${results.successful}, Failed: ${results.failed}`);
+      
+      res.json({
+        success: true,
+        message: "Bulk SMS broadcast completed",
+        totalRecipients: phoneNumbers.length,
+        successful: results.successful,
+        failed: results.failed,
+        details: results.details
+      });
+    } catch (error) {
+      log(`Error sending bulk SMS broadcast: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to send bulk SMS broadcast" });
+    }
+  });
+
   // Shared boards endpoints
   // Get shared boards for the current user (boards they created + boards they're members of)
   app.get("/api/shared-boards", requireAuth, async (req, res) => {

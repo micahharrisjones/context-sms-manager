@@ -168,6 +168,59 @@ Save anything from anywhere, with just a text.`;
       log("Error sending shared board notifications:", error instanceof Error ? error.message : String(error));
     }
   }
+
+  // Send bulk SMS messages to all users (admin broadcast feature)
+  async sendBulkAdminMessage(phoneNumbers: string[], message: string): Promise<{
+    successful: number;
+    failed: number;
+    details: Array<{ phoneNumber: string; success: boolean; error?: string }>;
+  }> {
+    const results = {
+      successful: 0,
+      failed: 0,
+      details: [] as Array<{ phoneNumber: string; success: boolean; error?: string }>
+    };
+
+    log(`Starting admin bulk SMS broadcast to ${phoneNumbers.length} recipients`);
+
+    for (const phoneNumber of phoneNumbers) {
+      try {
+        const success = await this.sendSMS(phoneNumber, message);
+        
+        if (success) {
+          results.successful++;
+          results.details.push({
+            phoneNumber,
+            success: true
+          });
+        } else {
+          results.failed++;
+          results.details.push({
+            phoneNumber,
+            success: false,
+            error: "SMS sending failed"
+          });
+        }
+        
+        // Add a small delay between messages to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+      } catch (error) {
+        results.failed++;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        results.details.push({
+          phoneNumber,
+          success: false,
+          error: errorMessage
+        });
+        
+        log(`Failed to send admin bulk SMS to ${phoneNumber}: ${errorMessage}`);
+      }
+    }
+
+    log(`Admin bulk SMS broadcast completed. Successful: ${results.successful}, Failed: ${results.failed}`);
+    return results;
+  }
 }
 
 export const twilioService = new TwilioService();
