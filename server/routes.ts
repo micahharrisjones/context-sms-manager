@@ -639,6 +639,87 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Convert private board to shared board and invite user
+  app.post("/api/private-boards/:boardName/convert-and-invite", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardName = decodeURIComponent(req.params.boardName);
+      const { phoneNumber } = req.body;
+
+      if (!phoneNumber || typeof phoneNumber !== 'string') {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+
+      // Check if board name is admin-only
+      if (isAdminOnlyHashtag(boardName)) {
+        const userIsAdmin = await isUserAdmin(userId);
+        if (!userIsAdmin) {
+          return res.status(403).json({ error: "Cannot convert admin-only boards" });
+        }
+      }
+
+      // Verify the user has messages with this tag (i.e., owns this private board)
+      const userMessages = await storage.getMessagesByTag(userId, boardName);
+      if (userMessages.length === 0) {
+        return res.status(404).json({ error: "Private board not found or empty" });
+      }
+
+      // Check if shared board with this name already exists
+      const existingSharedBoard = await storage.getSharedBoardByName(boardName);
+      if (existingSharedBoard) {
+        return res.status(400).json({ error: "A shared board with this name already exists" });
+      }
+
+      // Find the user to invite
+      const normalizedPhoneNumber = phoneNumber.replace(/^\+?1?/, '');
+      const inviteeUser = await storage.getUserByPhoneNumber(phoneNumber) || 
+                         await storage.getUserByPhoneNumber(normalizedPhoneNumber) ||
+                         await storage.getUserByPhoneNumber(`+1${normalizedPhoneNumber}`);
+      
+      if (!inviteeUser) {
+        return res.status(404).json({ error: "User with this phone number not found" });
+      }
+
+      if (inviteeUser.id === userId) {
+        return res.status(400).json({ error: "Cannot invite yourself" });
+      }
+
+      // Create the shared board
+      const sharedBoard = await storage.createSharedBoard({
+        name: boardName,
+        createdBy: userId
+      });
+
+      // Invite the user to the shared board
+      await storage.addBoardMember({
+        boardId: sharedBoard.id,
+        userId: inviteeUser.id,
+        role: "member",
+        invitedBy: userId
+      });
+
+      // Send SMS notification to the invited user
+      await sendSMSNotification(
+        inviteeUser.phoneNumber,
+        `You've been invited to the shared board #${boardName} on Context! Check your dashboard: https://contxt.life`
+      );
+
+      log(`Successfully converted private board ${boardName} to shared board and invited user ${inviteeUser.phoneNumber}`);
+      res.json({
+        message: `Successfully converted #${boardName} to a shared board and invited ${phoneNumber}`,
+        sharedBoard,
+        invitedUser: {
+          phoneNumber: inviteeUser.phoneNumber,
+          displayName: inviteeUser.displayName
+        }
+      });
+
+    } catch (error) {
+      log(`Error converting private board to shared: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to convert private board to shared board" });
+    }
+  });
+
   // POST endpoint for creating messages via UI
   app.post("/api/messages", requireAuth, async (req, res) => {
     try {

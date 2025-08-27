@@ -13,6 +13,7 @@ import { AdminButton } from "./AdminButton";
 import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
 import { CreatePrivateBoardModal } from "../shared-boards/CreatePrivateBoardModal";
 import { InviteUserModal } from "../shared-boards/InviteUserModal";
+import { InviteToPrivateBoardModal } from "../shared-boards/InviteToPrivateBoardModal";
 import { BoardMembersModal } from "../shared-boards/BoardMembersModal";
 import { DeleteSharedBoardModal } from "../shared-boards/DeleteSharedBoardModal";
 import { RenameBoardModal } from "../shared-boards/RenameBoardModal";
@@ -31,6 +32,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [createBoardModalOpen, setCreateBoardModalOpen] = useState(false);
   const [createPrivateBoardModalOpen, setCreatePrivateBoardModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteToPrivateBoardModalOpen, setInviteToPrivateBoardModalOpen] = useState(false);
   const [membersModalOpen, setMembersModalOpen] = useState(false);
   const [deleteBoardModalOpen, setDeleteBoardModalOpen] = useState(false);
   const [renameBoardModalOpen, setRenameBoardModalOpen] = useState(false);
@@ -153,6 +155,20 @@ export function Sidebar({ onClose }: SidebarProps) {
                   aria-label={`Rename tag ${tag}`}
                 >
                   <Edit className="h-3 w-3" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedBoard(tag);
+                    setInviteToPrivateBoardModalOpen(true);
+                  }}
+                  className="h-auto w-6 p-0 hover:bg-green-50 hover:text-green-600 mr-1"
+                  aria-label={`Invite users to ${tag}`}
+                >
+                  <UserPlus className="h-3 w-3" />
                 </Button>
                 <Button
                   variant="ghost"
@@ -358,6 +374,12 @@ export function Sidebar({ onClose }: SidebarProps) {
         boardType={renameBoardType}
         currentName={selectedBoard}
         boardId={renameBoardType === "shared" ? selectedBoardId : undefined}
+      />
+      
+      <InviteToPrivateBoardModal
+        isOpen={inviteToPrivateBoardModalOpen}
+        onClose={() => setInviteToPrivateBoardModalOpen(false)}
+        boardName={selectedBoard}
       />
       
       <DeleteAccountModal
