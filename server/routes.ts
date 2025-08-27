@@ -1127,7 +1127,7 @@ export async function registerRoutes(app: Express) {
       }
 
       // Get all users
-      const allUsers = await storage.getAllUsers();
+      const allUsers = await storage.getAdminUsers();
       const phoneNumbers = allUsers.map(user => user.phoneNumber);
       
       if (phoneNumbers.length === 0) {
