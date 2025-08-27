@@ -1736,6 +1736,18 @@ export async function registerRoutes(app: Express) {
     log("Exiting handleWebhook function");
   };
 
+  // Test endpoint to send welcome message
+  app.post('/api/test-welcome', async (req, res) => {
+    try {
+      const { phoneNumber } = req.body;
+      await twilioService.sendWelcomeMessage(phoneNumber);
+      res.json({ success: true, message: 'Welcome message sent' });
+    } catch (error) {
+      log('Error in test-welcome endpoint:', error);
+      res.status(500).json({ error: 'Failed to send welcome message' });
+    }
+  });
+
   // Register Twilio webhook handler for both paths
   app.post("/api/webhook/sms", handleWebhook);
   app.post("/webhook/sms", handleWebhook); // Add alternate path without /api prefix
