@@ -140,10 +140,15 @@ Access your personal board instantly: ${autoLoginUrl}
 Save anything from anywhere, with just a text.`;
 
     try {
-      await this.sendSMS(phoneNumber, welcomeMessage);
-      log(`Welcome message sent to new user: ${phoneNumber}`);
+      log(`📧 SENDING WELCOME MESSAGE to ${phoneNumber}`);
+      const success = await this.sendSMS(phoneNumber, welcomeMessage);
+      if (success) {
+        log(`✅ WELCOME MESSAGE SENT SUCCESSFULLY to ${phoneNumber}`);
+      } else {
+        log(`❌ WELCOME MESSAGE FAILED - sendSMS returned false for ${phoneNumber}`);
+      }
     } catch (error) {
-      log(`Failed to send welcome message to ${phoneNumber}:`, error instanceof Error ? error.message : String(error));
+      log(`💥 WELCOME MESSAGE ERROR for ${phoneNumber}:`, error instanceof Error ? error.message : String(error));
     }
   }
 

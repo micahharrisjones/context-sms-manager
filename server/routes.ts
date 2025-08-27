@@ -225,7 +225,7 @@ const processSMSWebhook = async (body: unknown) => {
         displayName: `User ${senderId.slice(-4)}`
       });
       isNewUser = true;
-      log(`Created new user account for phone ${senderId}`);
+      log(`🆕 NEW USER CREATED: Account created for phone ${senderId} - User ID: ${user.id}`);
     } else {
       log(`Found existing user account for phone ${senderId}: User ${user.id}`);
     }
@@ -1605,6 +1605,7 @@ export async function registerRoutes(app: Express) {
 
       // Check if this is a new user for welcome message
       const isNewUser = (smsData as any).isNewUser;
+      log(`📨 WELCOME MESSAGE CHECK: isNewUser=${isNewUser}, senderId=${smsData.senderId}`);
       
       log("Parsing smsData with insertMessageSchema");
       const message = insertMessageSchema.parse(smsData);
@@ -1630,8 +1631,10 @@ export async function registerRoutes(app: Express) {
             log(`Skipping welcome SMS for potentially unreachable number: ${smsData.senderId}`);
           } else {
             log(`Sending welcome SMS to new user ${smsData.senderId}`);
-            // Don't await - let SMS sending happen in background
-            twilioService.sendWelcomeMessage(smsData.senderId);
+            // Send welcome message with proper error handling
+            twilioService.sendWelcomeMessage(smsData.senderId).catch(error => {
+              log(`Welcome message delivery failed for ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
+            });
           }
         } catch (error) {
           log(`Error sending welcome SMS to ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
