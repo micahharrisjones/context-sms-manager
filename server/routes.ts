@@ -38,6 +38,44 @@ function createBoardSlug(name: string): string {
     .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
 }
 
+// Admin-only hashtags that only admins can see
+const ADMIN_ONLY_HASHTAGS = [
+  'feedback',
+  'admin-feedback', 
+  'user-input',
+  'survey',
+  'bug-report',
+  'feature-request'
+];
+
+// Check if a hashtag is admin-only
+function isAdminOnlyHashtag(hashtag: string): boolean {
+  return ADMIN_ONLY_HASHTAGS.includes(hashtag.toLowerCase());
+}
+
+// Check if user is admin based on phone number
+async function isUserAdmin(userId: number): Promise<boolean> {
+  try {
+    const user = await storage.getUserById(userId);
+    if (!user) return false;
+    
+    const adminPhoneNumbers = [
+      "6155848598", // Your current test number
+      "4582188508", // Official Context number without +1
+      "+14582188508" // Official Context number with +1
+    ];
+    
+    return adminPhoneNumbers.some((adminPhone: string) => {
+      const normalizedUserPhone = user.phoneNumber.replace(/^\+?1?/, '');
+      const normalizedAdminPhone = adminPhone.replace(/^\+?1?/, '');
+      return normalizedUserPhone === normalizedAdminPhone;
+    });
+  } catch (error) {
+    log(`Error checking if user is admin: ${error instanceof Error ? error.message : String(error)}`);
+    return false;
+  }
+}
+
 // Helper function to extract hashtags from content
 function extractHashtags(content: string): string[] {
   // Updated regex to support hyphenated hashtags
@@ -533,6 +571,16 @@ export async function registerRoutes(app: Express) {
     try {
       const userId = req.userId!;
       const tag = req.params.tag;
+      
+      // Check if this is an admin-only tag and if user has access
+      if (isAdminOnlyHashtag(tag)) {
+        const userIsAdmin = await isUserAdmin(userId);
+        if (!userIsAdmin) {
+          log(`Non-admin user ${userId} attempted to access admin-only tag: ${tag}`);
+          return res.status(403).json({ error: "Access denied to admin-only content" });
+        }
+      }
+      
       const messages = await storage.getMessagesByTag(userId, tag);
       log(`Retrieved ${messages.length} messages for tag ${tag} for user ${userId}`);
       res.json(messages);
@@ -563,12 +611,31 @@ export async function registerRoutes(app: Express) {
   app.get("/api/tags", requireAuth, async (req, res) => {
     try {
       const userId = req.userId!;
-      const tags = await storage.getTags(userId);
-      log(`Retrieved ${tags.length} tags for user ${userId}`);
+      let tags = await storage.getTags(userId);
+      
+      // Filter out admin-only tags if user is not an admin
+      const userIsAdmin = await isUserAdmin(userId);
+      if (!userIsAdmin) {
+        tags = tags.filter(tag => !isAdminOnlyHashtag(tag));
+      }
+      
+      log(`Retrieved ${tags.length} tags for user ${userId} (admin: ${userIsAdmin})`);
       res.json(tags);
     } catch (error) {
       log(`Error retrieving tags: ${error instanceof Error ? error.message : String(error)}`);
       res.status(500).json({ error: "Failed to retrieve tags" });
+    }
+  });
+
+  // Check if current user is admin
+  app.get("/api/auth/admin-status", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const isAdmin = await isUserAdmin(userId);
+      res.json({ isAdmin });
+    } catch (error) {
+      log(`Error checking admin status: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to check admin status" });
     }
   });
 
