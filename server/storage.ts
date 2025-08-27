@@ -1075,6 +1075,7 @@ export class DatabaseStorage implements IStorage {
       // Delete in correct order to respect foreign key constraints
       
       // 1. Delete messages created by this user
+      log(`Deleting ${messageCount.count} messages for user ${userId} (phone: ${existingUser.phoneNumber})`);
       await db
         .delete(messages)
         .where(eq(messages.userId, userId));
@@ -1102,12 +1103,20 @@ export class DatabaseStorage implements IStorage {
           .where(eq(sharedBoards.id, board.id));
       }
 
-      // 4. Delete auth sessions
+      // 4. Delete auth sessions (both by user phone number and any orphaned sessions)
       await db
         .delete(authSessions)
         .where(eq(authSessions.phoneNumber, existingUser.phoneNumber));
 
-      // 5. Finally delete the user
+      // 5. Double-check: Remove any remaining messages that might reference this phone number as senderId
+      // This handles edge cases where messages might exist with senderId but wrong userId
+      log(`Double-checking: Removing any orphaned messages with senderId ${existingUser.phoneNumber}`);
+      const orphanedResult = await db
+        .delete(messages)
+        .where(eq(messages.senderId, existingUser.phoneNumber));
+      log(`Cleaned up any orphaned messages for phone number ${existingUser.phoneNumber}`);
+
+      // 6. Finally delete the user
       await db
         .delete(users)
         .where(eq(users.id, userId));
