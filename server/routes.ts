@@ -41,7 +41,8 @@ function createBoardSlug(name: string): string {
 // Helper function to extract hashtags from content
 function extractHashtags(content: string): string[] {
   // Updated regex to support hyphenated hashtags
-  const tags = (content.match(/#[\w-]+/g) || []).map((tag: string) => tag.slice(1));
+  const tags = (content.match(/#[\w-]+/g) || [])
+    .map((tag: string) => createBoardSlug(tag.slice(1))); // Normalize to lowercase slug format
   return Array.from(new Set(tags)); // Remove duplicates
 }
 
