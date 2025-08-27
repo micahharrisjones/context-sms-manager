@@ -1642,6 +1642,38 @@ export async function registerRoutes(app: Express) {
       // Notify the original user
       wsManager.broadcastNewMessageToUser(created.userId);
       
+      // Check for admin-only hashtags and notify admins via SMS FIRST
+      if (created.tags && created.tags.length > 0) {
+        const adminOnlyTags = created.tags.filter(tag => isAdminOnlyHashtag(tag));
+        if (adminOnlyTags.length > 0) {
+          try {
+            log(`Admin-only hashtags detected: [${adminOnlyTags.join(', ')}] - notifying admins`);
+            
+            // Get admin phone numbers
+            const adminPhoneNumbers = [
+              "+16155848598", // Your current test number with +1
+              "+14582188508" // Official Context number with +1
+            ];
+            
+            // Format the admin notification message
+            const senderUser = await storage.getUserById(created.userId);
+            const senderPhone = senderUser?.phoneNumber || created.senderId;
+            const adminMessage = `🔔 New admin message received!\n\nFrom: ${senderPhone}\nTags: ${adminOnlyTags.map(tag => '#' + tag).join(', ')}\n\n"${created.content.slice(0, 200)}${created.content.length > 200 ? '...' : ''}"\n\nView: https://contxt.life/admin`;
+            
+            // Send SMS to all admin numbers
+            for (const adminPhone of adminPhoneNumbers) {
+              twilioService.sendSMS(adminPhone, adminMessage).catch(error => {
+                log(`Failed to send admin notification to ${adminPhone}:`, error instanceof Error ? error.message : String(error));
+              });
+            }
+            
+            log(`Admin notifications sent for tags: [${adminOnlyTags.join(', ')}]`);
+          } catch (error) {
+            log(`Error sending admin notifications:`, error instanceof Error ? error.message : String(error));
+          }
+        }
+      }
+
       // Also notify all users who have shared boards matching this message's tags
       if (created.tags && created.tags.length > 0) {
         const sharedBoardUsers = await storage.getUsersForSharedBoardNotification(created.tags);
