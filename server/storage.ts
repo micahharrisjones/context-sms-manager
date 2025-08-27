@@ -35,6 +35,7 @@ export interface IStorage {
   // Message management (now user-scoped)
   getMessages(userId: number): Promise<Message[]>;
   getMessagesByTag(userId: number, tag: string): Promise<Message[]>;
+  getAllMessagesByTagAdmin(tag: string): Promise<Message[]>;
   getAllMessagesByTagForDeletion(userId: number, tag: string): Promise<Message[]>;
   searchMessages(userId: number, query: string): Promise<Message[]>;
   getMessageById(messageId: number): Promise<Message | undefined>;
@@ -242,6 +243,24 @@ export class DatabaseStorage implements IStorage {
       return filteredMessages;
     } catch (error) {
       log("Error fetching messages:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getAllMessagesByTagAdmin(tag: string): Promise<Message[]> {
+    try {
+      log(`Admin fetching ALL messages with tag: ${tag}`);
+      
+      const result = await db
+        .select()
+        .from(messages)
+        .where(sql`${messages.tags} @> ARRAY[${tag}]`)
+        .orderBy(desc(messages.timestamp));
+
+      log(`Found ${result.length} messages with tag ${tag} (admin view)`);
+      return result;
+    } catch (error) {
+      log("Error fetching admin messages by tag:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

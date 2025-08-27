@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Users, MessageSquare, Hash, Database, Settings, Send } from "lucide-react";
+import { Trash2, Users, MessageSquare, Hash, Database, Settings, Send, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -27,6 +27,17 @@ interface AdminStats {
   recentSignups: number;
 }
 
+interface FeedbackMessage {
+  id: number;
+  content: string;
+  senderId: string;
+  userId: number;
+  timestamp: string;
+  tags: string[];
+  mediaUrl?: string;
+  mediaType?: string;
+}
+
 export function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -43,6 +54,12 @@ export function AdminPage() {
   // Fetch all users with admin info
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery<AdminUser[]>({
     queryKey: ['/api/admin/users'],
+    retry: false
+  });
+
+  // Fetch feedback messages
+  const { data: feedbackMessages, isLoading: feedbackLoading, error: feedbackError } = useQuery<FeedbackMessage[]>({
+    queryKey: ['/api/admin/feedback'],
     retry: false
   });
 
@@ -452,6 +469,72 @@ export function AdminPage() {
               </TableBody>
             </Table>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Feedback Messages */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5" />
+            Feedback Messages
+          </CardTitle>
+          <CardDescription>
+            View all feedback messages received from users via #feedback hashtag.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {feedbackLoading ? (
+            <div className="animate-pulse space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          ) : feedbackError ? (
+            <div className="text-center text-muted-foreground py-8">
+              <MessageCircle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <p>Failed to load feedback messages</p>
+            </div>
+          ) : feedbackMessages && feedbackMessages.length > 0 ? (
+            <div className="space-y-4">
+              {feedbackMessages.map((message) => (
+                <div key={message.id} className="border rounded-lg p-4 bg-[#fff3ea] border-[#e3cac0]">
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        #{message.tags.join(' #')}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        ID: {message.id}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(message.timestamp)}
+                    </span>
+                  </div>
+                  <div className="mb-2">
+                    <p className="text-sm font-medium">From: {message.senderId}</p>
+                  </div>
+                  <div className="text-sm bg-white p-3 rounded border-[#e3cac0] border">
+                    {message.content}
+                  </div>
+                  {message.mediaUrl && (
+                    <div className="mt-2">
+                      <Badge variant="secondary" className="text-xs">
+                        Media: {message.mediaType}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              <MessageCircle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <p>No feedback messages yet</p>
+              <p className="text-xs mt-1">Users can send feedback using #feedback in their messages</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1155,6 +1155,19 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin feedback messages endpoint
+  app.get("/api/admin/feedback", requireAdmin, async (req, res) => {
+    try {
+      // Get all feedback messages
+      const feedbackMessages = await storage.getAllMessagesByTagAdmin('feedback');
+      
+      res.json(feedbackMessages);
+    } catch (error) {
+      log("Admin feedback fetch error:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: "Failed to fetch feedback messages" });
+    }
+  });
+
   // Shared boards endpoints
   // Get shared boards for the current user (boards they created + boards they're members of)
   app.get("/api/shared-boards", requireAuth, async (req, res) => {
