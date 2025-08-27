@@ -22,6 +22,105 @@ class AIService {
   }
 
   /**
+   * Check if a message is asking for a board list and respond conversationally
+   */
+  async handleBoardListRequest(
+    messageContent: string,
+    userPrivateBoards: string[],
+    userSharedBoards: string[]
+  ): Promise<{ isRequest: boolean; response?: string }> {
+    try {
+      this.log(`Checking for board list request: "${messageContent.substring(0, 100)}..."`); 
+
+      // First, check if this looks like a board list request
+      const detectionPrompt = `
+Analyze this message to determine if the user is asking for a list of their boards, categories, hashtags, or similar organizational elements:
+
+Message: "${messageContent}"
+
+Respond with JSON containing:
+{
+  "isRequest": true/false,
+  "confidence": 0.0-1.0
+}
+
+Examples of board list requests:
+- "Can I get a list of boards I've created?"
+- "What hashtags do I have?"
+- "Show me my categories"
+- "List my boards"
+- "What boards have I made?"
+`;
+
+      const detectionResponse = await this.client.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are a smart assistant that detects when users are asking for lists of their organizational elements. Respond only with valid JSON."
+          },
+          {
+            role: "user",
+            content: detectionPrompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+        max_tokens: 100
+      });
+
+      const detection = JSON.parse(detectionResponse.choices[0].message.content || "{}");
+      this.log(`Board list detection result:`, detection);
+
+      if (!detection.isRequest || detection.confidence < 0.7) {
+        return { isRequest: false };
+      }
+
+      // Generate a conversational response with the board list
+      const responsePrompt = `
+User asked: "${messageContent}"
+
+Provide a helpful, conversational response listing their boards. Be friendly and concise.
+
+Private Boards (${userPrivateBoards.length}): ${userPrivateBoards.join(', ') || 'None'}
+Shared Boards (${userSharedBoards.length}): ${userSharedBoards.join(', ') || 'None'}
+
+Guidelines:
+- Use a warm, helpful tone
+- Organize by Private and Shared if both exist
+- If they have no boards, encourage them to create some
+- Keep response under 160 characters if possible (SMS friendly)
+- Use hashtags (#) before board names
+`;
+
+      const responseGeneration = await this.client.chat.completions.create({
+        model: "deepseek-chat", 
+        messages: [
+          {
+            role: "system",
+            content: "You are Context, a helpful SMS assistant. Generate friendly, concise responses about user's boards."
+          },
+          {
+            role: "user",
+            content: responsePrompt
+          }
+        ],
+        temperature: 0.4,
+        max_tokens: 200
+      });
+
+      const response = responseGeneration.choices[0].message.content?.trim() || "Here are your boards! Check your dashboard at https://contxt.life";
+      this.log(`Generated board list response: ${response}`);
+      
+      return { isRequest: true, response };
+      
+    } catch (error) {
+      this.log(`Error in handleBoardListRequest:`, error instanceof Error ? error.message : String(error));
+      return { isRequest: false };
+    }
+  }
+
+  /**
    * Categorize a message using AI based on user's existing boards
    */
   async categorizeMessage(

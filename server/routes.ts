@@ -224,6 +224,28 @@ const processSMSWebhook = async (body: unknown) => {
       log(`Found existing user account for phone ${senderId}: User ${user.id}`);
     }
 
+    // Check if this is a conversational board list request first
+    const userBoards = await getUserBoards(user.id);
+    const boardListRequest = await aiService.handleBoardListRequest(
+      content,
+      userBoards.privateBoards,
+      userBoards.sharedBoards
+    );
+
+    if (boardListRequest.isRequest && boardListRequest.response) {
+      log(`Detected board list request, responding conversationally`);
+      // Send the AI-generated response back to the user
+      try {
+        await twilioService.sendMessage(senderId, boardListRequest.response);
+        log(`Sent board list response to ${senderId}`);
+      } catch (error) {
+        log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      // Skip storing this message since it was a conversational request
+      return null;
+    }
+
     // Extract hashtags from the message content
     let tags = extractHashtags(content);
 
@@ -237,7 +259,6 @@ const processSMSWebhook = async (body: unknown) => {
         // Try AI categorization if no hashtags and no recent tags
         log("No hashtags or recent tags found, attempting AI categorization");
         try {
-          const userBoards = await getUserBoards(user.id);
           const aiSuggestion = await aiService.categorizeMessage(
             content,
             userBoards.privateBoards,
@@ -316,6 +337,28 @@ const processSMSWebhook = async (body: unknown) => {
     log(`Found existing user account for phone ${senderId}: User ${user.id}`);
   }
 
+  // Check if this is a conversational board list request first
+  const userBoards = await getUserBoards(user.id);
+  const boardListRequest = await aiService.handleBoardListRequest(
+    content,
+    userBoards.privateBoards,
+    userBoards.sharedBoards
+  );
+
+  if (boardListRequest.isRequest && boardListRequest.response) {
+    log(`Detected board list request, responding conversationally`);
+    // Send the AI-generated response back to the user
+    try {
+      await twilioService.sendMessage(senderId, boardListRequest.response);
+      log(`Sent board list response to ${senderId}`);
+    } catch (error) {
+      log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    
+    // Skip storing this message since it was a conversational request
+    return null;
+  }
+
   // Extract hashtags from the message content
   let tags = extractHashtags(content);
 
@@ -329,7 +372,6 @@ const processSMSWebhook = async (body: unknown) => {
       // Try AI categorization if no hashtags and no recent tags
       log("No hashtags or recent tags found, attempting AI categorization");
       try {
-        const userBoards = await getUserBoards(user.id);
         const aiSuggestion = await aiService.categorizeMessage(
           content,
           userBoards.privateBoards,
@@ -699,7 +741,7 @@ export async function registerRoutes(app: Express) {
       });
 
       // Send SMS notification to the invited user
-      await sendSMSNotification(
+      await twilioService.sendMessage(
         inviteeUser.phoneNumber,
         `You've been invited to the shared board #${boardName} on Context! Check your dashboard: https://contxt.life`
       );
