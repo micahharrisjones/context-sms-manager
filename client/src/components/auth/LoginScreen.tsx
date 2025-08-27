@@ -68,7 +68,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       <Card className="w-full max-w-md my-auto">
         <CardHeader className="text-center">
           <div className="mx-auto mb-2">
-            <Logo className="w-auto h-16" />
+            <img 
+              src="/context-avatar.png" 
+              alt="Context" 
+              className="w-16 h-16 mx-auto"
+            />
           </div>
           <div className="space-y-1">
             <h1 className="text-xl font-bold text-[#ed2024] leading-tight">
@@ -105,27 +109,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           </form>
         </CardContent>
         
-        {/* SMS Signup Information */}
-        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 m-4">
-          <h3 className="font-semibold text-blue-900 mb-2 flex items-center">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            New to Context? Sign up via SMS!
-          </h3>
-          <p className="text-sm text-blue-700 mb-2">
-            Just send a text with a hashtag and we'll set up your personal Context account immediately.
-          </p>
-          <div className="bg-white p-3 rounded border border-blue-200 text-center">
-            <p className="text-xs text-gray-600 mb-1">Text your messages to:</p>
-            <a 
-              href="sms:+14582188508" 
-              className="font-mono text-lg font-bold text-[#ed2024] hover:text-[#d61e21] hover:underline cursor-pointer block"
-            >
-              +1 458-218-8508
-            </a>
-            <p className="text-xs text-gray-500 mt-1">Tap the number to start texting</p>
-          </div>
-
-        </div>
       </Card>
     </div>
   );
