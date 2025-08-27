@@ -88,7 +88,8 @@ const twilioWebhookSchema = z.object({
   Body: z.string(),
   From: z.string(),
   To: z.string(),
-  MessageSid: z.string(),
+  MessageSid: z.string().optional(),
+  SmsMessageSid: z.string().optional(),
   AccountSid: z.string(),
   NumMedia: z.string().optional().default("0"),
   MediaUrl0: z.string().optional().nullable(),
@@ -183,6 +184,11 @@ const processSMSWebhook = async (body: unknown) => {
   const twilioResult = twilioWebhookSchema.safeParse(body);
   if (twilioResult.success) {
     log("Processing as Twilio webhook");
+  } else {
+    log("Twilio format validation failed:", JSON.stringify(twilioResult.error.issues, null, 2));
+  }
+  
+  if (twilioResult.success) {
     const validatedData = twilioResult.data;
 
     // Log multi-part message info
@@ -236,7 +242,7 @@ const processSMSWebhook = async (body: unknown) => {
       log(`Detected board list request, responding conversationally`);
       // Send the AI-generated response back to the user
       try {
-        await twilioService.sendMessage(senderId, boardListRequest.response);
+        await twilioService.sendSMS(senderId, boardListRequest.response);
         log(`Sent board list response to ${senderId}`);
       } catch (error) {
         log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
@@ -349,7 +355,7 @@ const processSMSWebhook = async (body: unknown) => {
     log(`Detected board list request, responding conversationally`);
     // Send the AI-generated response back to the user
     try {
-      await twilioService.sendMessage(senderId, boardListRequest.response);
+      await twilioService.sendSMS(senderId, boardListRequest.response);
       log(`Sent board list response to ${senderId}`);
     } catch (error) {
       log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
@@ -741,7 +747,7 @@ export async function registerRoutes(app: Express) {
       });
 
       // Send SMS notification to the invited user
-      await twilioService.sendMessage(
+      await twilioService.sendSMS(
         inviteeUser.phoneNumber,
         `You've been invited to the shared board #${boardName} on Context! Check your dashboard: https://contxt.life`
       );
