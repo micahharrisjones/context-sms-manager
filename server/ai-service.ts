@@ -246,6 +246,112 @@ Respond with JSON in this exact format:
       return null;
     }
   }
+  /**
+   * Check if a message is asking for help/instructions on how to use Context
+   */
+  async handleHelpRequest(messageContent: string): Promise<{ isRequest: boolean; response?: string }> {
+    try {
+      this.log(`Checking for help request: "${messageContent.substring(0, 100)}..."`);
+
+      // First, check if this looks like a help request
+      const detectionPrompt = `
+Analyze this message to determine if the user is asking for help, instructions, or guidance on how to use Context:
+
+Message: "${messageContent}"
+
+Respond with JSON containing:
+{
+  "isRequest": true/false,
+  "confidence": 0.0-1.0
+}
+
+Examples of help requests:
+- "How does this work?"
+- "What can I do with Context?"
+- "How do I use this?"
+- "Help"
+- "Instructions"
+- "What is Context?"
+- "How does Context work?"
+- "Can you explain how to use this?"
+- "What are the features?"
+`;
+
+      const detectionResponse = await this.client.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system", 
+            content: "You are a smart assistant that detects when users are asking for help or instructions. Respond only with valid JSON."
+          },
+          {
+            role: "user",
+            content: detectionPrompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+        max_tokens: 100
+      });
+
+      const detection = JSON.parse(detectionResponse.choices[0].message.content || "{}");
+      this.log(`Help request detection result:`, detection);
+
+      if (!detection.isRequest || detection.confidence < 0.7) {
+        return { isRequest: false };
+      }
+
+      // Generate a helpful response about how to use Context
+      const responsePrompt = `
+User asked: "${messageContent}"
+
+Provide a helpful, concise response explaining how to use Context. Focus on practical examples.
+
+Key Context features to mention:
+- Text anything to save it automatically
+- Use #hashtags to organize messages 
+- AI categorizes messages without hashtags
+- Share boards with others using hashtags
+- Access dashboard at contxt.life
+- Everything is searchable and organized
+
+Guidelines:
+- Use a warm, encouraging tone
+- Give 2-3 specific usage examples
+- Keep response under 160 characters if possible (SMS friendly)
+- Make it actionable and easy to understand
+- Focus on the value proposition: "Save anything from anywhere, with just a text"
+`;
+
+      const responseGeneration = await this.client.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are Context's helpful assistant. Provide clear, concise instructions on how to use Context effectively."
+          },
+          {
+            role: "user", 
+            content: responsePrompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 200
+      });
+
+      const response = responseGeneration.choices[0].message.content?.trim();
+      this.log(`Generated help response: "${response}"`);
+
+      return {
+        isRequest: true,
+        response: response || "Context helps you save and organize anything via text! Use #hashtags to categorize messages, or let AI organize them for you. Visit contxt.life to see your organized content!"
+      };
+
+    } catch (error) {
+      this.log(`Error handling help request:`, error);
+      return { isRequest: false };
+    }
+  }
 }
 
 // Export singleton instance

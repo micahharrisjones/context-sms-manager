@@ -230,7 +230,24 @@ const processSMSWebhook = async (body: unknown) => {
       log(`Found existing user account for phone ${senderId}: User ${user.id}`);
     }
 
-    // Check if this is a conversational board list request first
+    // Check if this is a conversational help request first
+    const helpRequest = await aiService.handleHelpRequest(content);
+    
+    if (helpRequest.isRequest && helpRequest.response) {
+      log(`Detected help request, responding conversationally`);
+      // Send the AI-generated help response back to the user
+      try {
+        await twilioService.sendSMS(senderId, helpRequest.response);
+        log(`Sent help response to ${senderId}`);
+      } catch (error) {
+        log(`Error sending help response: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      // Skip storing this message since it was a conversational request
+      return null;
+    }
+
+    // Check if this is a conversational board list request
     const userBoards = await getUserBoards(user.id);
     const boardListRequest = await aiService.handleBoardListRequest(
       content,
