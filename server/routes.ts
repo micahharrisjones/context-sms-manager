@@ -834,18 +834,29 @@ export async function registerRoutes(app: Express) {
             }
 
             // Send SMS notifications to shared board members (excluding the sender)
+            // CRITICAL FIX: Only notify members of boards where the sender is also a member/creator
             const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
             for (const tag of nonUntaggedTags) {
               try {
-                const phoneNumbers = await storage.getBoardMembersPhoneNumbers(tag, userId);
-                if (phoneNumbers.length > 0) {
-                  log(`Sending SMS notifications to shared board #${tag} members: [${phoneNumbers.join(', ')}]`);
-                  // Don't await - let SMS sending happen in background
-                  twilioService.sendSharedBoardNotification(
-                    phoneNumbers, 
-                    tag, 
-                    created.content
-                  );
+                // First check if the sender is a member or creator of any shared board with this tag name
+                const senderSharedBoards = await storage.getSharedBoardsByNameForUser(tag, userId);
+                
+                if (senderSharedBoards.length > 0) {
+                  // Only send notifications for boards where the sender is actually a member
+                  for (const board of senderSharedBoards) {
+                    const phoneNumbers = await storage.getBoardMembersPhoneNumbers(board.name, userId);
+                    if (phoneNumbers.length > 0) {
+                      log(`Sending SMS notifications to shared board #${board.name} (ID: ${board.id}) members: [${phoneNumbers.join(', ')}]`);
+                      // Don't await - let SMS sending happen in background
+                      twilioService.sendSharedBoardNotification(
+                        phoneNumbers, 
+                        board.name, 
+                        created.content
+                      );
+                    }
+                  }
+                } else {
+                  log(`Sender ${userId} is not a member of any shared board named ${tag}, skipping notifications`);
                 }
               } catch (error) {
                 log(`Error sending SMS notifications for board ${tag}:`, error instanceof Error ? error.message : String(error));
@@ -1717,18 +1728,29 @@ export async function registerRoutes(app: Express) {
         }
 
         // Send SMS notifications to shared board members (excluding the sender)
+        // CRITICAL FIX: Only notify members of boards where the sender is also a member/creator
         const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
         for (const tag of nonUntaggedTags) {
           try {
-            const phoneNumbers = await storage.getBoardMembersPhoneNumbers(tag, created.userId);
-            if (phoneNumbers.length > 0) {
-              log(`Sending SMS notifications to shared board #${tag} members: [${phoneNumbers.join(', ')}]`);
-              // Don't await - let SMS sending happen in background
-              twilioService.sendSharedBoardNotification(
-                phoneNumbers, 
-                tag, 
-                created.content
-              );
+            // First check if the sender is a member or creator of any shared board with this tag name
+            const senderSharedBoards = await storage.getSharedBoardsByNameForUser(tag, created.userId);
+            
+            if (senderSharedBoards.length > 0) {
+              // Only send notifications for boards where the sender is actually a member
+              for (const board of senderSharedBoards) {
+                const phoneNumbers = await storage.getBoardMembersPhoneNumbers(board.name, created.userId);
+                if (phoneNumbers.length > 0) {
+                  log(`Sending SMS notifications to shared board #${board.name} (ID: ${board.id}) members: [${phoneNumbers.join(', ')}]`);
+                  // Don't await - let SMS sending happen in background
+                  twilioService.sendSharedBoardNotification(
+                    phoneNumbers, 
+                    board.name, 
+                    created.content
+                  );
+                }
+              }
+            } else {
+              log(`Sender ${created.userId} is not a member of any shared board named ${tag}, skipping notifications`);
             }
           } catch (error) {
             log(`Error sending SMS notifications for board ${tag}:`, error instanceof Error ? error.message : String(error));

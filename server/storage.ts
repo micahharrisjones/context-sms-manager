@@ -60,6 +60,7 @@ export interface IStorage {
   getSharedMessages(userId: number, boardName: string): Promise<Message[]>;
   getUsersForSharedBoardNotification(tags: string[]): Promise<number[]>;
   getBoardMembersPhoneNumbers(boardName: string, excludeUserId?: number): Promise<string[]>;
+  getSharedBoardsByNameForUser(boardName: string, userId: number): Promise<SharedBoard[]>;
   
   // Admin methods
   getAdminStats(): Promise<{
@@ -961,6 +962,48 @@ export class DatabaseStorage implements IStorage {
       return phoneNumbers;
     } catch (error) {
       log(`Error getting board members phone numbers: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async getSharedBoardsByNameForUser(boardName: string, userId: number): Promise<SharedBoard[]> {
+    try {
+      log(`Getting shared boards named ${boardName} where user ${userId} is a member or creator`);
+      
+      // Find shared boards with the given name where user is creator OR member
+      const creatorBoards = await db
+        .select()
+        .from(sharedBoards)
+        .where(and(
+          eq(sharedBoards.name, boardName),
+          eq(sharedBoards.createdBy, userId)
+        ));
+
+      // Find shared boards with the given name where user is a member
+      const memberBoards = await db
+        .select({
+          id: sharedBoards.id,
+          name: sharedBoards.name,
+          createdBy: sharedBoards.createdBy,
+          createdAt: sharedBoards.createdAt
+        })
+        .from(sharedBoards)
+        .innerJoin(boardMemberships, eq(sharedBoards.id, boardMemberships.boardId))
+        .where(and(
+          eq(sharedBoards.name, boardName),
+          eq(boardMemberships.userId, userId)
+        ));
+
+      // Combine and deduplicate results
+      const allBoards = [...creatorBoards, ...memberBoards];
+      const uniqueBoards = allBoards.filter((board, index, self) => 
+        index === self.findIndex(b => b.id === board.id)
+      );
+
+      log(`Found ${uniqueBoards.length} shared boards named ${boardName} for user ${userId}`);
+      return uniqueBoards;
+    } catch (error) {
+      log(`Error getting shared boards by name for user: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
