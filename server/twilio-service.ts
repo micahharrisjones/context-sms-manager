@@ -131,13 +131,18 @@ class TwilioService {
     const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
     const autoLoginUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
     
-    const welcomeMessage = `Welcome to Context! 🎉 Your account is live!
+    const welcomeMessage = `🎉 Welcome to Context! Your account is ready.
 
-Everything you text us gets saved and organized by your #hashtags. No hashtag? No problem - our AI will categorize messages automatically.
+Here's how to get started:
 
-Access your personal board instantly: ${autoLoginUrl}
+1️⃣ Text anything to this number to save it
+2️⃣ Add #hashtags to organize (like #recipes or #ideas)  
+3️⃣ No hashtag? Our AI categorizes automatically
+4️⃣ Access your dashboard: ${autoLoginUrl}
 
-Save anything from anywhere, with just a text.`;
+Try texting: "Meeting notes #work" or "Grocery list #shopping"
+
+Save anything from anywhere, with just a text! 📱`;
 
     try {
       log(`📧 SENDING WELCOME MESSAGE to ${phoneNumber}`);
