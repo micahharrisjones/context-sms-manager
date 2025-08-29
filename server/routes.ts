@@ -271,6 +271,7 @@ const processSMSWebhook = async (body: unknown) => {
 
     // Extract hashtags from the message content
     let tags = extractHashtags(content);
+    log(`Extracted hashtags: [${tags.join(', ')}] from content: "${content.substring(0, 100)}..."`);
 
     // If no tags were found, try to inherit from recent message from same sender
     if (tags.length === 0) {

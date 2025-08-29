@@ -47,9 +47,16 @@ Respond with JSON containing:
 Examples of board list requests:
 - "Can I get a list of boards I've created?"
 - "What hashtags do I have?"
-- "Show me my categories"
+- "Show me my categories" 
 - "List my boards"
 - "What boards have I made?"
+
+Examples that are NOT board list requests:
+- "Check out this link #ideas"
+- "Great restaurant #food"
+- Messages that contain hashtags but are adding content
+- URLs or media with hashtags
+- Normal content messages with organizational hashtags
 `;
 
       const detectionResponse = await this.client.chat.completions.create({
@@ -275,6 +282,13 @@ Examples of help requests:
 - "How does Context work?"
 - "Can you explain how to use this?"
 - "What are the features?"
+
+Examples that are NOT help requests:
+- "Check out this link #ideas"
+- "Great restaurant #food" 
+- Messages with hashtags that are adding content
+- URLs or media with hashtags
+- Normal content messages with hashtags
 `;
 
       const detectionResponse = await this.client.chat.completions.create({
