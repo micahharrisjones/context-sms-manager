@@ -54,8 +54,11 @@ export function DeleteTagModal({
         title: "Tag deleted",
         description: data.message || `All messages with #${tag} have been removed.`,
       });
+      // Invalidate all queries that could show this tag or its messages
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/by-tag'] }); // All tag-based queries
       queryClient.invalidateQueries({ queryKey: ['/api/tags'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/search'] }); // Search results
       onClose();
     },
     onError: (error: Error) => {

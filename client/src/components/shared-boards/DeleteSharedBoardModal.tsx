@@ -41,9 +41,11 @@ export function DeleteSharedBoardModal({
         description: `Shared board #${boardName} has been permanently deleted along with all its members and access.`,
       });
       
-      // Invalidate relevant queries
+      // Invalidate all queries that could show this board or its messages
       queryClient.invalidateQueries({ queryKey: ["/api/shared-boards"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] }); // All messages
+      queryClient.invalidateQueries({ queryKey: ["/api/messages/by-tag"] }); // Tag-based queries
       
       onClose();
     },

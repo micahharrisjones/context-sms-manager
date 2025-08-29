@@ -47,8 +47,12 @@ export function DeleteMessageModal({
         title: "Message deleted",
         description: "The message has been permanently removed.",
       });
+      // Invalidate all message-related queries to ensure UI updates immediately
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/by-tag'] }); // All tag-based queries
+      queryClient.invalidateQueries({ queryKey: ['/api/shared-boards'] }); // All shared board queries
       queryClient.invalidateQueries({ queryKey: ['/api/tags'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/search'] }); // Search results
       onClose();
     },
     onError: (error: Error) => {
