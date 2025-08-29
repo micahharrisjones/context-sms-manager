@@ -318,6 +318,7 @@ const processSMSWebhook = async (body: unknown) => {
       tags: uniqueTags,
       mediaUrl,
       mediaType,
+      messageSid: body.MessageSid || null, // Store MessageSid for deduplication
       isNewUser
     };
 

@@ -1,7 +1,7 @@
-import { pgTable, text, serial, timestamp, varchar, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, varchar, integer, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Users table - each phone number is a unique user
 export const users = pgTable("users", {
@@ -31,7 +31,10 @@ export const messages = pgTable("messages", {
   tags: text("tags").array().notNull(),
   mediaUrl: text("media_url"),
   mediaType: varchar("media_type", { length: 20 }),
-});
+  messageSid: text("message_sid"), // Twilio MessageSid for deduplication
+}, (table) => ({
+  messageSidIdx: uniqueIndex("message_sid_idx").on(table.messageSid).where(sql`${table.messageSid} IS NOT NULL`),
+}));
 
 // Shared boards table
 export const sharedBoards = pgTable("shared_boards", {

@@ -368,7 +368,20 @@ export class DatabaseStorage implements IStorage {
     try {
       log("Creating new message:", JSON.stringify(insertMessage, null, 2));
 
-      // Look for recent messages from the same sender (within 5 seconds)
+      // First, check for MessageSid-based deduplication if available
+      if (insertMessage.messageSid) {
+        const existingBySid = await db
+          .select()
+          .from(messages)
+          .where(eq(messages.messageSid, insertMessage.messageSid));
+        
+        if (existingBySid.length > 0) {
+          log(`Duplicate MessageSid detected: ${insertMessage.messageSid}, returning existing message`);
+          return existingBySid[0];
+        }
+      }
+
+      // Look for recent messages from the same sender (within 5 seconds) for content merging
       const fiveSecondsAgo = new Date(Date.now() - 5000);
       const recentMessages = await db
         .select()
