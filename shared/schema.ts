@@ -32,9 +32,7 @@ export const messages = pgTable("messages", {
   mediaUrl: text("media_url"),
   mediaType: varchar("media_type", { length: 20 }),
   messageSid: text("message_sid"), // Twilio MessageSid for deduplication
-}, (table) => ({
-  messageSidIdx: uniqueIndex("message_sid_idx").on(table.messageSid).where(sql`${table.messageSid} IS NOT NULL`),
-}));
+});
 
 // Shared boards table
 export const sharedBoards = pgTable("shared_boards", {
