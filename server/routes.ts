@@ -834,35 +834,10 @@ export async function registerRoutes(app: Express) {
               wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
             }
 
-            // Send SMS notifications to shared board members (excluding the sender)
-            // CRITICAL FIX: Only notify members of boards where the sender is also a member/creator
-            const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
-            for (const tag of nonUntaggedTags) {
-              try {
-                // First check if the sender is a member or creator of any shared board with this tag name
-                const senderSharedBoards = await storage.getSharedBoardsByNameForUser(tag, userId);
-                
-                if (senderSharedBoards.length > 0) {
-                  // Only send notifications for boards where the sender is actually a member
-                  for (const board of senderSharedBoards) {
-                    const phoneNumbers = await storage.getBoardMembersPhoneNumbers(board.name, userId);
-                    if (phoneNumbers.length > 0) {
-                      log(`Sending SMS notifications to shared board #${board.name} (ID: ${board.id}) members: [${phoneNumbers.join(', ')}]`);
-                      // Don't await - let SMS sending happen in background
-                      twilioService.sendSharedBoardNotification(
-                        phoneNumbers, 
-                        board.name, 
-                        created.content
-                      );
-                    }
-                  }
-                } else {
-                  log(`Sender ${userId} is not a member of any shared board named ${tag}, skipping notifications`);
-                }
-              } catch (error) {
-                log(`Error sending SMS notifications for board ${tag}:`, error instanceof Error ? error.message : String(error));
-              }
-            }
+            // NOTE: SMS notifications are DISABLED for UI-created messages to prevent duplicates
+            // SMS notifications should only happen when messages come from actual SMS (via webhook)
+            // This prevents duplicate notifications when users create messages via the web dashboard
+            log(`UI message created - SMS notifications disabled to prevent duplicates from webhook handler`);
           }
         } catch (error) {
           log(`Error in background WebSocket/SMS processing: ${error instanceof Error ? error.message : String(error)}`);
