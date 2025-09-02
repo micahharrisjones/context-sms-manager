@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Link } from "wouter";
-import { X, Edit, ExternalLink } from "lucide-react";
+import { X, Edit, ExternalLink, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect } from "react";
 import { DeleteMessageModal } from "./DeleteMessageModal";
 import { EditMessageModal } from "./EditMessageModal";
@@ -267,8 +268,32 @@ export function MessageCard({ message }: MessageCardProps) {
         </div>
         
         <CardHeader className="pb-2 space-y-1">
-          <div className="text-sm text-muted-foreground">
-            {format(new Date(message.timestamp), "PPp")}
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {format(new Date(message.timestamp), "PPp")}
+            </div>
+            {/* Show sender info for shared board messages */}
+            {(message.senderFirstName || message.senderLastName || message.senderId) && (
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={message.senderAvatarUrl || undefined} />
+                  <AvatarFallback className="bg-[#ed2024] text-white text-xs">
+                    {message.senderFirstName && message.senderLastName
+                      ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
+                      : message.senderDisplayName?.[0]?.toUpperCase() || 
+                        message.senderId?.[0] || <User className="h-3 w-3" />
+                    }
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-xs text-muted-foreground">
+                  {message.senderFirstName && message.senderLastName
+                    ? `${message.senderFirstName} ${message.senderLastName}`
+                    : message.senderDisplayName || 
+                      (message.senderId?.replace(/^\+?1?/, '') || 'Unknown')
+                  }
+                </span>
+              </div>
+            )}
           </div>
         </CardHeader>
       <CardContent className="space-y-4">

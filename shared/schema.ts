@@ -137,7 +137,13 @@ export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 export type AuthSession = typeof authSessions.$inferSelect;
 export type InsertAuthSession = z.infer<typeof insertAuthSessionSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
-export type Message = typeof messages.$inferSelect;
+export type Message = typeof messages.$inferSelect & {
+  // Optional sender information for shared board display
+  senderFirstName?: string | null;
+  senderLastName?: string | null;
+  senderAvatarUrl?: string | null;
+  senderDisplayName?: string | null;
+};
 export type SharedBoard = typeof sharedBoards.$inferSelect;
 export type InsertSharedBoard = z.infer<typeof insertSharedBoardSchema>;
 export type BoardMembership = typeof boardMemberships.$inferSelect;

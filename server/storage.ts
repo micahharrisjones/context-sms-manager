@@ -883,10 +883,26 @@ export class DatabaseStorage implements IStorage {
         return [];
       }
 
-      // Get messages with the shared tag from all board members
+      // Get messages with the shared tag from all board members, including sender info
       const result = await db
-        .select()
+        .select({
+          id: messages.id,
+          content: messages.content,
+          senderId: messages.senderId,
+          userId: messages.userId,
+          timestamp: messages.timestamp,
+          tags: messages.tags,
+          mediaUrl: messages.mediaUrl,
+          mediaType: messages.mediaType,
+          messageSid: messages.messageSid,
+          // Include sender profile information
+          senderFirstName: users.firstName,
+          senderLastName: users.lastName,
+          senderAvatarUrl: users.avatarUrl,
+          senderDisplayName: users.displayName,
+        })
         .from(messages)
+        .leftJoin(users, eq(messages.userId, users.id))
         .where(and(
           inArray(messages.userId, memberIds),
           sql`${messages.tags} @> ARRAY[${boardName}]`
