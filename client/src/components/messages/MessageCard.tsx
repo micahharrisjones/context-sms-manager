@@ -185,20 +185,21 @@ export function MessageCard({ message }: MessageCardProps) {
   const [ogData, setOgData] = useState<OpenGraphData | null>(null);
   const [isLoadingOg, setIsLoadingOg] = useState(false);
 
-  const formattedContent = message.content.split(" ").map((word, i) => {
-    // Support hyphenated hashtags like #toyota-parts-list
+  // Extract hashtags and content separately
+  const words = message.content.split(" ");
+  const hashtags: string[] = [];
+  const contentWithoutHashtags: string[] = [];
+  
+  words.forEach(word => {
     if (word.startsWith("#") && /^#[\w-]+$/.test(word)) {
-      return (
-        <Link
-          key={i}
-          href={`/tag/${word.slice(1)}`}
-          className="text-primary hover:underline"
-        >
-          {word}{" "}
-        </Link>
-      );
+      hashtags.push(word);
+    } else {
+      contentWithoutHashtags.push(word);
     }
-
+  });
+  
+  // Format the content without hashtags
+  const formattedContent = contentWithoutHashtags.map((word, i) => {
     // Check if the word is a URL
     try {
       new URL(word);
@@ -217,6 +218,17 @@ export function MessageCard({ message }: MessageCardProps) {
       return word + " ";
     }
   });
+  
+  // Format hashtags for display at bottom
+  const formattedHashtags = hashtags.map((hashtag, i) => (
+    <Link
+      key={i}
+      href={`/tag/${hashtag.slice(1)}`}
+      className="text-primary hover:underline"
+    >
+      {hashtag}
+    </Link>
+  ));
 
   const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
   const pinterestId = message.content ? getPinterestId(message.content) : null;
@@ -608,6 +620,18 @@ export function MessageCard({ message }: MessageCardProps) {
                 View Attachment
               </a>
             )}
+          </div>
+        )}
+        
+        {/* Show hashtags at bottom */}
+        {formattedHashtags.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-3 border-t border-[#e3cac0] mt-3">
+            {formattedHashtags.map((hashtag, i) => (
+              <span key={i} className="inline-flex">
+                {hashtag}
+                {i < formattedHashtags.length - 1 && <span className="ml-1">&nbsp;</span>}
+              </span>
+            ))}
           </div>
         )}
         
