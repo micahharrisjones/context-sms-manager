@@ -482,7 +482,7 @@ export function MessageCard({ message }: MessageCardProps) {
               href={urls.find(url => url.includes('imdb.com')) || '#'}
               target="_blank" 
               rel="noopener noreferrer"
-              className="block rounded-lg border border-[#e3cac0] bg-[#fff3ea] p-4 hover:shadow-lg transition-shadow"
+              className="block rounded-lg bg-white p-4 hover:shadow-lg transition-shadow"
             >
               <div className="flex flex-col">
                 {movieData.posterUrl && (
