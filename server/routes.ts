@@ -1827,7 +1827,7 @@ export async function registerRoutes(app: Express) {
       const users = await storage.searchUsers(query);
       res.json(users);
     } catch (error) {
-      log('Error searching users:', error);
+      log('Error searching users:', error instanceof Error ? error.message : String(error));
       res.status(500).json({ error: 'Failed to search users' });
     }
   });
@@ -1839,7 +1839,7 @@ export async function registerRoutes(app: Express) {
       await twilioService.sendWelcomeMessage(phoneNumber);
       res.json({ success: true, message: 'Welcome message sent' });
     } catch (error) {
-      log('Error in test-welcome endpoint:', error);
+      log('Error in test-welcome endpoint:', error instanceof Error ? error.message : String(error));
       res.status(500).json({ error: 'Failed to send welcome message' });
     }
   });
