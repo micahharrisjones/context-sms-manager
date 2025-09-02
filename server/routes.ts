@@ -1863,11 +1863,9 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Register Twilio webhook handler for both paths
-  app.post("/api/webhook/sms", handleWebhook);
-  app.post("/webhook/sms", handleWebhook); // Add alternate path without /api prefix
-  app.post("/api/webhook/twilio", handleWebhook); // Twilio-specific endpoint
-  app.post("/webhook/twilio", handleWebhook); // Twilio-specific endpoint without /api prefix
+  // Register single primary webhook endpoint for Twilio
+  // CRITICAL FIX: Use only ONE webhook endpoint to prevent duplicate SMS notifications
+  app.post("/api/webhook/twilio", handleWebhook); // Primary Twilio webhook endpoint
 
   return httpServer;
 }

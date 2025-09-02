@@ -129,11 +129,8 @@ A robust SMS management platform that enables persistent message storage and sea
 - `shared/schema.ts` - Database schema and types
 - `client/src/components/messages/` - Message display components
 
-## Webhook Endpoints
-- `/api/webhook/sms` - Primary SMS webhook endpoint
-- `/webhook/sms` - Alternate SMS webhook endpoint 
-- `/api/webhook/twilio` - Twilio-specific webhook endpoint
-- `/webhook/twilio` - Twilio-specific alternate endpoint
+## Webhook Endpoint
+- `/api/webhook/twilio` - Primary Twilio webhook endpoint (ONLY use this one to prevent duplicate notifications)
 
 ## Next Steps
 1. ✅ **Tested and confirmed Twilio webhook integration working**
