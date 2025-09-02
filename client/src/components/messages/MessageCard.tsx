@@ -475,13 +475,41 @@ export function MessageCard({ message }: MessageCardProps) {
             )}
           </div>
         )}
-        {imdbInfo && movieData?.posterUrl && (
+        {imdbInfo && movieData && (
           <div className="w-full">
-            <img 
-              src={movieData.posterUrl}
-              alt={movieData.title || "Movie Poster"}
-              className="w-full max-w-sm rounded-lg shadow-md"
-            />
+            <a 
+              href={urls.find(url => url.includes('imdb.com')) || '#'}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block rounded-lg border border-[#e3cac0] bg-gradient-to-br from-amber-50 to-yellow-50 p-4 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex gap-4">
+                {movieData.posterUrl && (
+                  <img 
+                    src={movieData.posterUrl}
+                    alt={movieData.title || "Movie Poster"}
+                    className="w-24 h-36 object-cover rounded-md shadow-md flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-2xl">🎬</span>
+                    <span className="text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded-full">IMDB</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-lg leading-tight mb-1">
+                    {movieData.title}
+                    {movieData.year && <span className="text-gray-600 font-normal"> ({movieData.year})</span>}
+                  </h3>
+                  {movieData.rating && (
+                    <div className="flex items-center gap-1 mb-2">
+                      <span className="text-yellow-500">⭐</span>
+                      <span className="text-sm font-medium text-gray-700">{movieData.rating.toFixed(1)}/10</span>
+                    </div>
+                  )}
+                  <p className="text-sm text-gray-600">View on IMDB</p>
+                </div>
+              </div>
+            </a>
           </div>
         )}
         
