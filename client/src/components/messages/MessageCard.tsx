@@ -191,6 +191,23 @@ export function MessageCard({ message }: MessageCardProps) {
     }
   });
   
+  const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
+  // Pinterest removed - using Open Graph preview instead
+  const twitterPostId = message.content ? getTwitterPostId(message.content) : null;
+  const redditPostInfo = message.content ? getRedditPostInfo(message.content) : null;
+  const facebookPostId = message.content ? getFacebookPostId(message.content) : null;
+  const youtubeVideoId = message.content ? getYouTubeVideoId(message.content) : null;
+  const tiktokVideoId = message.content ? getTikTokVideoId(message.content) : null;
+  const imdbInfo = message.content ? getIMDbInfo(message.content) : null;
+  
+  // Extract URLs for Open Graph previews
+  const urls = extractUrls(message.content);
+  const hasSpecificEmbed = !!(instagramPostId || twitterPostId || redditPostInfo || facebookPostId || youtubeVideoId || tiktokVideoId || imdbInfo);
+  const previewUrl = urls.find(url => shouldFetchOpenGraph(url, hasSpecificEmbed)) || null;
+  
+  // Check if the preview URL is a Pinterest URL
+  const isPinterestUrl = previewUrl && (previewUrl.includes('pinterest.com') || previewUrl.includes('pin.it'));
+
   // Check if a URL has a rich preview (social media embed, IMDB, Open Graph)
   const hasRichPreview = (url: string): boolean => {
     return !!(
@@ -242,23 +259,6 @@ export function MessageCard({ message }: MessageCardProps) {
       {hashtag}
     </Link>
   ));
-
-  const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
-  // Pinterest removed - using Open Graph preview instead
-  const twitterPostId = message.content ? getTwitterPostId(message.content) : null;
-  const redditPostInfo = message.content ? getRedditPostInfo(message.content) : null;
-  const facebookPostId = message.content ? getFacebookPostId(message.content) : null;
-  const youtubeVideoId = message.content ? getYouTubeVideoId(message.content) : null;
-  const tiktokVideoId = message.content ? getTikTokVideoId(message.content) : null;
-  const imdbInfo = message.content ? getIMDbInfo(message.content) : null;
-  
-  // Extract URLs for Open Graph previews
-  const urls = extractUrls(message.content);
-  const hasSpecificEmbed = !!(instagramPostId || twitterPostId || redditPostInfo || facebookPostId || youtubeVideoId || tiktokVideoId || imdbInfo);
-  const previewUrl = urls.find(url => shouldFetchOpenGraph(url, hasSpecificEmbed)) || null;
-  
-  // Check if the preview URL is a Pinterest URL
-  const isPinterestUrl = previewUrl && (previewUrl.includes('pinterest.com') || previewUrl.includes('pin.it'));
   
 
   // Fetch movie data from TMDB when IMDB link is detected
