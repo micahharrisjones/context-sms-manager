@@ -246,26 +246,6 @@ export function MessageCard({ message }: MessageCardProps) {
   return (
     <>
       <Card className="w-full h-fit relative group">
-        <div className="absolute top-2 right-2 z-10 flex gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowEditModal(true)}
-            className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
-            aria-label="Edit message"
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDeleteModal(true)}
-            className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
-            aria-label="Delete message"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
         
         <CardHeader className="pb-2 space-y-1">
           <div className="text-sm text-muted-foreground">
@@ -550,26 +530,48 @@ export function MessageCard({ message }: MessageCardProps) {
         
         {/* Show sender info for shared board messages at bottom */}
         {(message.senderFirstName || message.senderLastName || message.senderId) && (
-          <div className="flex items-center gap-2 pt-2 border-t border-[#e3cac0]">
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={message.senderAvatarUrl || undefined} />
-              <AvatarFallback className="bg-[#ed2024] text-white text-xs">
+          <div className="flex items-center justify-between pt-2 border-t border-[#e3cac0]">
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={message.senderAvatarUrl || undefined} />
+                <AvatarFallback className="bg-[#ed2024] text-white text-xs">
+                  {message.senderFirstName && message.senderLastName
+                    ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
+                    : message.senderDisplayName?.[0]?.toUpperCase() || 
+                      (message.senderId?.replace(/^\+?1?/, '')?.slice(-4)?.[0] || <User className="h-3 w-3" />)
+                  }
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs text-muted-foreground">
                 {message.senderFirstName && message.senderLastName
-                  ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
-                  : message.senderDisplayName?.[0]?.toUpperCase() || 
-                    (message.senderId?.replace(/^\+?1?/, '')?.slice(-4)?.[0] || <User className="h-3 w-3" />)
+                  ? `${message.senderFirstName} ${message.senderLastName}`
+                  : message.senderDisplayName || 
+                    (message.senderId ? 
+                      `+${message.senderId.replace(/^\+?1?/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}` : 
+                      'Unknown')
                 }
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-xs text-muted-foreground">
-              {message.senderFirstName && message.senderLastName
-                ? `${message.senderFirstName} ${message.senderLastName}`
-                : message.senderDisplayName || 
-                  (message.senderId ? 
-                    `+${message.senderId.replace(/^\+?1?/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}` : 
-                    'Unknown')
-              }
-            </span>
+              </span>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowEditModal(true)}
+                className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
+                aria-label="Edit message"
+              >
+                <Edit className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDeleteModal(true)}
+                className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+                aria-label="Delete message"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>
