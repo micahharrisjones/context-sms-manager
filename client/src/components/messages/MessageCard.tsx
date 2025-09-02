@@ -482,7 +482,7 @@ export function MessageCard({ message }: MessageCardProps) {
               href={urls.find(url => url.includes('imdb.com')) || '#'}
               target="_blank" 
               rel="noopener noreferrer"
-              className="block rounded-lg border-2 border-yellow-400 bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 p-6 hover:shadow-xl hover:border-yellow-500 transition-all duration-300"
+              className="block rounded-lg border border-[#e3cac0] bg-[#fff3ea] p-4 hover:shadow-lg transition-shadow"
             >
               <div className="flex flex-col items-center text-center">
                 {movieData.posterUrl && (
@@ -490,18 +490,17 @@ export function MessageCard({ message }: MessageCardProps) {
                     <img 
                       src={movieData.posterUrl}
                       alt={movieData.title || "Movie Poster"}
-                      className="w-48 h-72 object-cover rounded-lg shadow-xl border-2 border-yellow-300"
+                      className="w-48 h-72 object-cover rounded-lg shadow-lg"
                     />
-                    <div className="absolute -top-3 -right-3 w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
-                      <span className="text-white text-xl">🎬</span>
+                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-[#ed2024] rounded-full flex items-center justify-center shadow-md">
+                      <span className="text-white text-lg">🎬</span>
                     </div>
                   </div>
                 )}
                 
                 <div className="w-full space-y-3">
-                  <div className="flex items-center justify-center gap-3">
-                    <span className="text-xs font-bold text-yellow-800 bg-yellow-200 px-3 py-1.5 rounded-full uppercase tracking-wider border border-yellow-400">IMDB</span>
-                    <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-md">🏆 Movie Database</span>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-xs font-bold text-gray-700 bg-white px-3 py-1 rounded-full uppercase tracking-wider border border-[#e3cac0]">IMDB</span>
                   </div>
                   
                   <h3 className="font-bold text-gray-900 text-2xl leading-tight">
@@ -516,16 +515,16 @@ export function MessageCard({ message }: MessageCardProps) {
                   
                   {movieData.rating && (
                     <div className="flex items-center justify-center gap-2">
-                      <div className="flex items-center gap-1 bg-yellow-100 px-4 py-2 rounded-full border border-yellow-300">
-                        <span className="text-yellow-600 text-xl">⭐</span>
-                        <span className="text-xl font-bold text-yellow-800">{movieData.rating.toFixed(1)}</span>
-                        <span className="text-base text-yellow-700">/10</span>
+                      <div className="flex items-center gap-1 bg-white px-4 py-2 rounded-full border border-[#e3cac0]">
+                        <span className="text-yellow-500 text-xl">⭐</span>
+                        <span className="text-xl font-bold text-gray-800">{movieData.rating.toFixed(1)}</span>
+                        <span className="text-base text-gray-600">/10</span>
                       </div>
                     </div>
                   )}
                   
-                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600 bg-white/60 px-4 py-2 rounded-md border border-yellow-200 mt-4">
-                    <ExternalLink className="w-4 h-4 text-yellow-600" />
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-4">
+                    <ExternalLink className="w-4 h-4" />
                     <span className="font-medium">View full details on IMDB</span>
                   </div>
                 </div>
