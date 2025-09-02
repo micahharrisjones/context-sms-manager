@@ -90,18 +90,18 @@ export function NotificationSettingsPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
+      {/* Back Button */}
+      <Link href="/">
+        <Button variant="ghost" size="sm" className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Messages
+        </Button>
+      </Link>
+      
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link href="/">
-          <Button variant="ghost" size="sm" className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Messages
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Notification Settings</h1>
-          <p className="text-gray-600">Manage SMS notifications for your shared boards</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Notification Settings</h1>
+        <p className="text-gray-600">Manage SMS notifications for your shared boards</p>
       </div>
 
       {/* Overall Status */}
