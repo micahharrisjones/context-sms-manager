@@ -122,6 +122,7 @@ interface MovieData {
   title: string | null;
   year: string | null;
   rating: number | null;
+  genres: string[] | null;
 }
 
 interface OpenGraphData {
@@ -508,6 +509,12 @@ export function MessageCard({ message }: MessageCardProps) {
                       </div>
                     )}
                   </div>
+                  
+                  {movieData.genres && movieData.genres.length > 0 && (
+                    <p className="text-gray-600 text-sm">
+                      {movieData.genres.join(', ')}
+                    </p>
+                  )}
                   
                   <p className="text-gray-600 text-sm">
                     imdb.com

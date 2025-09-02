@@ -57,18 +57,42 @@ class TMDBService {
     return `${this.imageBaseUrl}${posterPath}`;
   }
 
+  // Get detailed movie data including genres
+  async getMovieDetails(movieId: number): Promise<any> {
+    if (!this.apiKey) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/movie/${movieId}?api_key=${this.apiKey}`
+      );
+
+      if (!response.ok) {
+        log(`TMDB movie details API error: ${response.status} - ${response.statusText}`);
+        return null;
+      }
+
+      return await response.json();
+    } catch (error) {
+      log(`Error fetching movie details from TMDB: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
   // Main function to get movie poster for IMDB URL
   async getMoviePoster(imdbUrl: string): Promise<{ 
     posterUrl: string | null, 
     title: string | null, 
     year: string | null,
-    rating: number | null 
+    rating: number | null,
+    genres: string[] | null
   }> {
     const imdbId = this.extractImdbId(imdbUrl);
     
     if (!imdbId) {
       log(`Invalid IMDB URL format: ${imdbUrl}`);
-      return { posterUrl: null, title: null, year: null, rating: null };
+      return { posterUrl: null, title: null, year: null, rating: null, genres: null };
     }
 
     log(`Fetching TMDB data for IMDB ID: ${imdbId}`);
@@ -76,8 +100,12 @@ class TMDBService {
     
     if (!movieData) {
       log(`No TMDB data found for IMDB ID: ${imdbId}`);
-      return { posterUrl: null, title: null, year: null, rating: null };
+      return { posterUrl: null, title: null, year: null, rating: null, genres: null };
     }
+
+    // Get detailed movie data including genres
+    const detailedData = await this.getMovieDetails(movieData.id);
+    const genres = detailedData?.genres?.map((g: any) => g.name) || null;
 
     const posterUrl = this.buildPosterUrl(movieData.poster_path);
     const releaseYear = movieData.release_date ? new Date(movieData.release_date).getFullYear().toString() : null;
@@ -88,7 +116,8 @@ class TMDBService {
       posterUrl,
       title: movieData.title || null,
       year: releaseYear,
-      rating: movieData.vote_average || null
+      rating: movieData.vote_average || null,
+      genres
     };
   }
 
