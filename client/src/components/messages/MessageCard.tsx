@@ -484,38 +484,47 @@ export function MessageCard({ message }: MessageCardProps) {
               rel="noopener noreferrer"
               className="block rounded-lg border-2 border-yellow-400 bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 p-6 hover:shadow-xl hover:border-yellow-500 transition-all duration-300"
             >
-              <div className="flex gap-6">
+              <div className="flex flex-col items-center text-center">
                 {movieData.posterUrl && (
-                  <div className="relative flex-shrink-0">
+                  <div className="relative mb-4">
                     <img 
                       src={movieData.posterUrl}
                       alt={movieData.title || "Movie Poster"}
-                      className="w-32 h-48 object-cover rounded-lg shadow-lg border-2 border-yellow-300"
+                      className="w-48 h-72 object-cover rounded-lg shadow-xl border-2 border-yellow-300"
                     />
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center shadow-md">
-                      <span className="text-white text-lg">🎬</span>
+                    <div className="absolute -top-3 -right-3 w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center shadow-lg">
+                      <span className="text-white text-xl">🎬</span>
                     </div>
                   </div>
                 )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-3">
-                    <span className="text-xs font-bold text-yellow-800 bg-yellow-200 px-3 py-1 rounded-full uppercase tracking-wider border border-yellow-400">IMDB</span>
+                
+                <div className="w-full space-y-3">
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-xs font-bold text-yellow-800 bg-yellow-200 px-3 py-1.5 rounded-full uppercase tracking-wider border border-yellow-400">IMDB</span>
                     <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-md">🏆 Movie Database</span>
                   </div>
-                  <h3 className="font-bold text-gray-900 text-xl leading-tight mb-2">
+                  
+                  <h3 className="font-bold text-gray-900 text-2xl leading-tight">
                     {movieData.title}
-                    {movieData.year && <span className="text-gray-600 font-semibold text-lg"> ({movieData.year})</span>}
                   </h3>
+                  
+                  {movieData.year && (
+                    <p className="text-gray-600 font-semibold text-lg">
+                      ({movieData.year})
+                    </p>
+                  )}
+                  
                   {movieData.rating && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center gap-1 bg-yellow-100 px-3 py-1 rounded-full border border-yellow-300">
-                        <span className="text-yellow-600 text-lg">⭐</span>
-                        <span className="text-lg font-bold text-yellow-800">{movieData.rating.toFixed(1)}</span>
-                        <span className="text-sm text-yellow-700">/10</span>
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center gap-1 bg-yellow-100 px-4 py-2 rounded-full border border-yellow-300">
+                        <span className="text-yellow-600 text-xl">⭐</span>
+                        <span className="text-xl font-bold text-yellow-800">{movieData.rating.toFixed(1)}</span>
+                        <span className="text-base text-yellow-700">/10</span>
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-2 text-sm text-gray-600 bg-white/60 px-3 py-2 rounded-md border border-yellow-200">
+                  
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600 bg-white/60 px-4 py-2 rounded-md border border-yellow-200 mt-4">
                     <ExternalLink className="w-4 h-4 text-yellow-600" />
                     <span className="font-medium">View full details on IMDB</span>
                   </div>
