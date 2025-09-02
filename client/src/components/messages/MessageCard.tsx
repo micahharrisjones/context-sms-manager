@@ -484,49 +484,34 @@ export function MessageCard({ message }: MessageCardProps) {
               rel="noopener noreferrer"
               className="block rounded-lg border border-[#e3cac0] bg-[#fff3ea] p-4 hover:shadow-lg transition-shadow"
             >
-              <div className="flex flex-col items-center text-center">
+              <div className="flex flex-col">
                 {movieData.posterUrl && (
-                  <div className="relative mb-4">
+                  <div className="w-full mb-4">
                     <img 
                       src={movieData.posterUrl}
                       alt={movieData.title || "Movie Poster"}
-                      className="w-48 h-72 object-cover rounded-lg shadow-lg"
+                      className="w-full h-auto object-cover rounded-lg shadow-lg"
                     />
-                    <div className="absolute -top-2 -right-2 w-8 h-8 bg-[#ed2024] rounded-full flex items-center justify-center shadow-md">
-                      <span className="text-white text-lg">🎬</span>
-                    </div>
                   </div>
                 )}
                 
-                <div className="w-full space-y-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-xs font-bold text-gray-700 bg-white px-3 py-1 rounded-full uppercase tracking-wider border border-[#e3cac0]">IMDB</span>
-                  </div>
-                  
-                  <h3 className="font-bold text-gray-900 text-2xl leading-tight">
-                    {movieData.title}
-                  </h3>
-                  
-                  {movieData.year && (
-                    <p className="text-gray-600 font-semibold text-lg">
-                      ({movieData.year})
-                    </p>
-                  )}
-                  
-                  {movieData.rating && (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="flex items-center gap-1 bg-white px-4 py-2 rounded-full border border-[#e3cac0]">
-                        <span className="text-yellow-500 text-xl">⭐</span>
-                        <span className="text-xl font-bold text-gray-800">{movieData.rating.toFixed(1)}</span>
-                        <span className="text-base text-gray-600">/10</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-gray-900 text-lg leading-tight">
+                      {movieData.title}
+                      {movieData.year && <span className="text-gray-600 font-normal"> ({movieData.year})</span>}
+                    </h3>
+                    {movieData.rating && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-yellow-500">⭐</span>
+                        <span className="font-bold text-gray-800">{movieData.rating.toFixed(1)}</span>
                       </div>
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-center gap-2 text-sm text-gray-600 mt-4">
-                    <ExternalLink className="w-4 h-4" />
-                    <span className="font-medium">View full details on IMDB</span>
+                    )}
                   </div>
+                  
+                  <p className="text-gray-600 text-sm">
+                    imdb.com
+                  </p>
                 </div>
               </div>
             </a>
