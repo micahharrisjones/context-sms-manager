@@ -1758,7 +1758,10 @@ export async function registerRoutes(app: Express) {
 
         // Send SMS notifications to shared board members (excluding the sender)
         // CRITICAL FIX: Only notify members of boards where the sender is also a member/creator
+        // Deduplicate notifications to prevent multiple SMS to the same user
         const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
+        const notifiedBoards = new Set<string>(); // Track which boards we've already notified
+        
         for (const tag of nonUntaggedTags) {
           try {
             // First check if the sender is a member or creator of any shared board with this tag name
@@ -1767,9 +1770,17 @@ export async function registerRoutes(app: Express) {
             if (senderSharedBoards.length > 0) {
               // Only send notifications for boards where the sender is actually a member
               for (const board of senderSharedBoards) {
+                // Skip if we've already notified this board to prevent duplicates
+                if (notifiedBoards.has(board.name)) {
+                  log(`Skipping duplicate notification for board #${board.name}`);
+                  continue;
+                }
+                
                 const phoneNumbers = await storage.getBoardMembersPhoneNumbers(board.name, created.userId);
                 if (phoneNumbers.length > 0) {
                   log(`Sending SMS notifications to shared board #${board.name} (ID: ${board.id}) members: [${phoneNumbers.join(', ')}]`);
+                  notifiedBoards.add(board.name); // Mark this board as notified
+                  
                   // Don't await - let SMS sending happen in background
                   twilioService.sendSharedBoardNotification(
                     phoneNumbers, 
