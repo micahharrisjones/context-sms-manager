@@ -319,7 +319,7 @@ export function MessageCard({ message }: MessageCardProps) {
     <>
       <Card className="w-full h-fit relative group">
         
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-6">
         {/* Open Graph Preview - Show first */}
         {ogData && ogData.title && (
           <div className="w-full">
