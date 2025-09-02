@@ -198,11 +198,32 @@ export function MessageCard({ message }: MessageCardProps) {
     }
   });
   
-  // Format the content without hashtags
+  // Check if a URL has a rich preview (social media embed, IMDB, Open Graph)
+  const hasRichPreview = (url: string): boolean => {
+    return !!(
+      getInstagramPostId(url) ||
+      getPinterestId(url) ||
+      getTwitterPostId(url) ||
+      getRedditPostInfo(url) ||
+      getFacebookPostId(url) ||
+      getYouTubeVideoId(url) ||
+      getTikTokVideoId(url) ||
+      getIMDbInfo(url) ||
+      (previewUrl && url === previewUrl)
+    );
+  };
+
+  // Format the content without hashtags and hide URLs that have rich previews
   const formattedContent = contentWithoutHashtags.map((word, i) => {
     // Check if the word is a URL
     try {
       new URL(word);
+      
+      // Hide URLs that have rich previews
+      if (hasRichPreview(word)) {
+        return null;
+      }
+      
       return (
         <a
           key={i}
@@ -217,7 +238,7 @@ export function MessageCard({ message }: MessageCardProps) {
     } catch {
       return word + " ";
     }
-  });
+  }).filter(Boolean); // Remove null entries
   
   // Format hashtags for display at bottom
   const formattedHashtags = hashtags.map((hashtag, i) => (
