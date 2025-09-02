@@ -10,11 +10,15 @@ import {
   type InsertSharedBoard,
   type BoardMembership,
   type InsertBoardMembership,
+  type NotificationPreference,
+  type InsertNotificationPreference,
+  type UpdateNotificationPreference,
   messages, 
   users, 
   authSessions,
   sharedBoards,
-  boardMemberships
+  boardMemberships,
+  notificationPreferences
 } from "@shared/schema";
 import { db } from "./db";
 import { desc, eq, sql, gte, and, inArray, or, like, count, asc } from "drizzle-orm";
@@ -63,6 +67,12 @@ export interface IStorage {
   getUsersForSharedBoardNotification(tags: string[]): Promise<number[]>;
   getBoardMembersPhoneNumbers(boardName: string, excludeUserId?: number): Promise<string[]>;
   getSharedBoardsByNameForUser(boardName: string, userId: number): Promise<SharedBoard[]>;
+  
+  // Notification preferences management
+  getUserNotificationPreferences(userId: number): Promise<NotificationPreference[]>;
+  getBoardNotificationPreference(userId: number, boardId: number): Promise<NotificationPreference | undefined>;
+  updateNotificationPreference(userId: number, boardId: number, smsEnabled: boolean): Promise<NotificationPreference>;
+  deleteNotificationPreference(userId: number, boardId: number): Promise<void>;
   
   // Admin methods
   getAdminStats(): Promise<{
@@ -983,19 +993,31 @@ export class DatabaseStorage implements IStorage {
       const boardInfo = board[0];
       const phoneNumbers: string[] = [];
 
-      // Get creator's phone number (if not excluded)
+      // Helper function to check if SMS notifications are enabled for a user
+      const isSmsEnabled = async (userId: number): Promise<boolean> => {
+        const preference = await this.getBoardNotificationPreference(userId, boardInfo.id);
+        // Default to enabled if no preference is set
+        return preference ? preference.smsEnabled === "true" : true;
+      };
+
+      // Get creator's phone number (if not excluded and notifications enabled)
       if (!excludeUserId || boardInfo.createdBy !== excludeUserId) {
-        const [creator] = await db
-          .select({ phoneNumber: users.phoneNumber })
-          .from(users)
-          .where(eq(users.id, boardInfo.createdBy));
-        
-        if (creator) {
-          phoneNumbers.push(creator.phoneNumber);
+        const smsEnabled = await isSmsEnabled(boardInfo.createdBy);
+        if (smsEnabled) {
+          const [creator] = await db
+            .select({ phoneNumber: users.phoneNumber })
+            .from(users)
+            .where(eq(users.id, boardInfo.createdBy));
+          
+          if (creator) {
+            phoneNumbers.push(creator.phoneNumber);
+          }
+        } else {
+          log(`SMS notifications disabled for board creator ${boardInfo.createdBy}`);
         }
       }
 
-      // Get all board members' phone numbers (excluding the specified user)
+      // Get all board members' phone numbers (excluding the specified user and those with disabled notifications)
       const membersQuery = db
         .select({ 
           phoneNumber: users.phoneNumber,
@@ -1009,11 +1031,16 @@ export class DatabaseStorage implements IStorage {
       
       for (const member of members) {
         if (!excludeUserId || member.userId !== excludeUserId) {
-          phoneNumbers.push(member.phoneNumber);
+          const smsEnabled = await isSmsEnabled(member.userId);
+          if (smsEnabled) {
+            phoneNumbers.push(member.phoneNumber);
+          } else {
+            log(`SMS notifications disabled for member ${member.userId}`);
+          }
         }
       }
 
-      log(`Found ${phoneNumbers.length} phone numbers for board ${boardName} notifications`);
+      log(`Found ${phoneNumbers.length} phone numbers for board ${boardName} notifications (after filtering preferences)`);
       return phoneNumbers;
     } catch (error) {
       log(`Error getting board members phone numbers: ${error instanceof Error ? error.message : String(error)}`);
@@ -1290,6 +1317,105 @@ export class DatabaseStorage implements IStorage {
       return result;
     } catch (error) {
       log("Error searching users:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  // Notification preferences methods
+  async getUserNotificationPreferences(userId: number): Promise<NotificationPreference[]> {
+    try {
+      log(`Getting notification preferences for user ${userId}`);
+      
+      const preferences = await db
+        .select()
+        .from(notificationPreferences)
+        .where(eq(notificationPreferences.userId, userId));
+      
+      log(`Found ${preferences.length} notification preferences for user ${userId}`);
+      return preferences;
+    } catch (error) {
+      log("Error getting user notification preferences:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getBoardNotificationPreference(userId: number, boardId: number): Promise<NotificationPreference | undefined> {
+    try {
+      log(`Getting notification preference for user ${userId} and board ${boardId}`);
+      
+      const preference = await db
+        .select()
+        .from(notificationPreferences)
+        .where(and(
+          eq(notificationPreferences.userId, userId),
+          eq(notificationPreferences.boardId, boardId)
+        ))
+        .limit(1);
+      
+      return preference[0];
+    } catch (error) {
+      log("Error getting board notification preference:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async updateNotificationPreference(userId: number, boardId: number, smsEnabled: boolean): Promise<NotificationPreference> {
+    try {
+      log(`Updating notification preference for user ${userId}, board ${boardId}, smsEnabled: ${smsEnabled}`);
+      
+      // Check if preference already exists
+      const existing = await this.getBoardNotificationPreference(userId, boardId);
+      
+      if (existing) {
+        // Update existing preference
+        const updated = await db
+          .update(notificationPreferences)
+          .set({ 
+            smsEnabled: smsEnabled ? "true" : "false",
+            updatedAt: sql`NOW()`
+          })
+          .where(and(
+            eq(notificationPreferences.userId, userId),
+            eq(notificationPreferences.boardId, boardId)
+          ))
+          .returning();
+        
+        return updated[0];
+      } else {
+        // Create new preference
+        const newPreference: InsertNotificationPreference = {
+          userId,
+          boardId,
+          smsEnabled: smsEnabled ? "true" : "false"
+        };
+        
+        const created = await db
+          .insert(notificationPreferences)
+          .values(newPreference)
+          .returning();
+        
+        return created[0];
+      }
+    } catch (error) {
+      log("Error updating notification preference:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async deleteNotificationPreference(userId: number, boardId: number): Promise<void> {
+    try {
+      log(`Deleting notification preference for user ${userId} and board ${boardId}`);
+      
+      await db
+        .delete(notificationPreferences)
+        .where(and(
+          eq(notificationPreferences.userId, userId),
+          eq(notificationPreferences.boardId, boardId)
+        ));
+      
+      log(`Deleted notification preference for user ${userId} and board ${boardId}`);
+    } catch (error) {
+      log("Error deleting notification preference:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

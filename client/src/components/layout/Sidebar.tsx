@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X, Users, User, Plus, UserPlus, Eye, Trash2, LogOut, Settings, Edit } from "lucide-react";
+import { Hash, X, Users, User, Plus, UserPlus, Eye, Trash2, LogOut, Settings, Edit, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { SearchBar } from "./SearchBar";
@@ -320,7 +320,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             Delete Account
           </Button>
           
-          {/* Logout Button */}
+          {/* Profile and Settings Buttons */}
           <Link href="/profile">
             <Button
               variant="ghost"
@@ -329,6 +329,17 @@ export function Sidebar({ onClose }: SidebarProps) {
             >
               <Settings className="h-4 w-4 mr-2" />
               Edit Profile
+            </Button>
+          </Link>
+          
+          <Link href="/notifications">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-[#e3cac0]/20"
+              onClick={onClose}
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              Notification Settings
             </Button>
           </Link>
           

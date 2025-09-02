@@ -7,6 +7,7 @@ import Home from "@/pages/home";
 import SearchPage from "@/pages/search";
 import { AdminPage } from "@/pages/AdminPage";
 import { ProfilePage } from "@/pages/ProfilePage";
+import { NotificationSettingsPage } from "@/pages/NotificationSettingsPage";
 import { Layout } from "@/components/layout/Layout";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { ProfileSetup } from "@/components/auth/ProfileSetup";
@@ -23,6 +24,7 @@ function Router() {
         <Route path="/search" component={SearchPage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/profile" component={ProfilePage} />
+        <Route path="/notifications" component={NotificationSettingsPage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

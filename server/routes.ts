@@ -1640,6 +1640,66 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Notification preferences endpoints
+  
+  // Get user's notification preferences for all boards
+  app.get("/api/notification-preferences", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      log(`Getting notification preferences for user ${userId}`);
+      
+      const preferences = await storage.getUserNotificationPreferences(userId);
+      res.json(preferences);
+    } catch (error) {
+      log('Error getting notification preferences:', error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: 'Failed to get notification preferences' });
+    }
+  });
+
+  // Update notification preference for a specific board
+  app.put("/api/notification-preferences/:boardId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = parseInt(req.params.boardId);
+      const { smsEnabled } = req.body;
+      
+      if (isNaN(boardId)) {
+        return res.status(400).json({ error: "Invalid board ID" });
+      }
+      
+      if (typeof smsEnabled !== 'boolean') {
+        return res.status(400).json({ error: "smsEnabled must be a boolean" });
+      }
+      
+      log(`Updating notification preference for user ${userId}, board ${boardId}, smsEnabled: ${smsEnabled}`);
+      
+      // Verify user has access to this board
+      const board = await storage.getSharedBoard(boardId);
+      if (!board) {
+        return res.status(404).json({ error: "Board not found" });
+      }
+      
+      // Check if user is member or creator of this board
+      const [boardMemberships, userBoards] = await Promise.all([
+        storage.getUserBoardMemberships(userId),
+        storage.getSharedBoards(userId)
+      ]);
+      
+      const isMember = boardMemberships.some(m => m.board.id === boardId);
+      const isCreator = userBoards.some(b => b.id === boardId);
+      
+      if (!isMember && !isCreator) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const preference = await storage.updateNotificationPreference(userId, boardId, smsEnabled);
+      res.json(preference);
+    } catch (error) {
+      log('Error updating notification preference:', error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: 'Failed to update notification preference' });
+    }
+  });
+
   // Track processed message SIDs to prevent duplicates
   const processedMessageSids = new Set<string>();
 

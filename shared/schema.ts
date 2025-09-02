@@ -60,6 +60,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   messages: many(messages),
   createdBoards: many(sharedBoards),
   boardMemberships: many(boardMemberships),
+  notificationPreferences: many(notificationPreferences),
 }));
 
 export const messagesRelations = relations(messages, ({ one }) => ({
@@ -75,6 +76,7 @@ export const sharedBoardsRelations = relations(sharedBoards, ({ one, many }) => 
     references: [users.id],
   }),
   memberships: many(boardMemberships),
+  notificationPreferences: many(notificationPreferences),
 }));
 
 export const boardMembershipsRelations = relations(boardMemberships, ({ one }) => ({
@@ -89,6 +91,30 @@ export const boardMembershipsRelations = relations(boardMemberships, ({ one }) =
   inviter: one(users, {
     fields: [boardMemberships.invitedBy],
     references: [users.id],
+  }),
+}));
+
+// Notification preferences - controls SMS notifications for shared boards
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  boardId: integer("board_id").references(() => sharedBoards.id).notNull(),
+  smsEnabled: text("sms_enabled").default("true").notNull(), // "true" or "false" 
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => ({
+  // Ensure one preference record per user per board
+  userBoardUnique: uniqueIndex("notification_prefs_user_board_idx").on(table.userId, table.boardId),
+}));
+
+export const notificationPreferencesRelations = relations(notificationPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [notificationPreferences.userId],
+    references: [users.id],
+  }),
+  board: one(sharedBoards, {
+    fields: [notificationPreferences.boardId],
+    references: [sharedBoards.id],
   }),
 }));
 
@@ -130,6 +156,18 @@ export const insertBoardMembershipSchema = createInsertSchema(boardMemberships).
   joinedAt: true,
 });
 
+export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateNotificationPreferenceSchema = createInsertSchema(notificationPreferences).pick({
+  smsEnabled: true,
+}).extend({
+  smsEnabled: z.enum(["true", "false"]),
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -148,3 +186,6 @@ export type SharedBoard = typeof sharedBoards.$inferSelect;
 export type InsertSharedBoard = z.infer<typeof insertSharedBoardSchema>;
 export type BoardMembership = typeof boardMemberships.$inferSelect;
 export type InsertBoardMembership = z.infer<typeof insertBoardMembershipSchema>;
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type InsertNotificationPreference = z.infer<typeof insertNotificationPreferenceSchema>;
+export type UpdateNotificationPreference = z.infer<typeof updateNotificationPreferenceSchema>;
