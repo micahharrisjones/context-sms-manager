@@ -321,7 +321,7 @@ export function MessageCard({ message }: MessageCardProps) {
         
         <CardHeader className="pb-2 space-y-1">
           <div className="text-sm text-muted-foreground">
-            {format(new Date(message.timestamp), "PPp")}
+            {format(new Date(message.timestamp), "MM/dd/yy")}
           </div>
         </CardHeader>
       <CardContent className="space-y-4">
