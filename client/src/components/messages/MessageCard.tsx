@@ -319,11 +319,6 @@ export function MessageCard({ message }: MessageCardProps) {
     <>
       <Card className="w-full h-fit relative group">
         
-        <CardHeader className="pb-2 space-y-1">
-          <div className="text-sm text-muted-foreground">
-            {format(new Date(message.timestamp), "MM/dd/yy")}
-          </div>
-        </CardHeader>
       <CardContent className="space-y-4">
         {/* Open Graph Preview - Show first */}
         {ogData && ogData.title && (
@@ -660,16 +655,23 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         {/* Show hashtags at bottom */}
-        {formattedHashtags.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-3 border-t border-[#e3cac0] mt-3">
-            {formattedHashtags.map((hashtag, i) => (
-              <span key={i} className="inline-flex">
-                {hashtag}
-                {i < formattedHashtags.length - 1 && <span className="ml-1">&nbsp;</span>}
-              </span>
-            ))}
+        <div className="flex items-center justify-between pt-3 border-t border-[#e3cac0] mt-3">
+          {formattedHashtags.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {formattedHashtags.map((hashtag, i) => (
+                <span key={i} className="inline-flex">
+                  {hashtag}
+                  {i < formattedHashtags.length - 1 && <span className="ml-1">&nbsp;</span>}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div></div>
+          )}
+          <div className="text-sm text-muted-foreground">
+            {format(new Date(message.timestamp), "MM/dd/yy")}
           </div>
-        )}
+        </div>
         
         {/* Show sender info for shared board messages at bottom */}
         {(message.senderFirstName || message.senderLastName || message.senderId) && (
