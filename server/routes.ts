@@ -1640,6 +1640,9 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Track processed message SIDs to prevent duplicates
+  const processedMessageSids = new Set<string>();
+
   // Twilio webhook endpoint - handle both /api/webhook/sms and /webhook/sms
   const handleWebhook = async (req: any, res: any) => {
     log("Entering handleWebhook function");
@@ -1651,6 +1654,22 @@ export async function registerRoutes(app: Express) {
         body: req.body,
         query: req.query,
       }, null, 2));
+
+      // Check for duplicate message processing using Twilio MessageSid
+      const messageSid = req.body.MessageSid || req.body.MessageSID;
+      if (messageSid) {
+        if (processedMessageSids.has(messageSid)) {
+          log(`Duplicate message detected - MessageSid ${messageSid} already processed, skipping`);
+          return res.json({ status: "duplicate_skipped" });
+        }
+        processedMessageSids.add(messageSid);
+        // Clean up old SIDs to prevent memory bloat (keep last 1000)
+        if (processedMessageSids.size > 1000) {
+          const oldestSids = Array.from(processedMessageSids).slice(0, 500);
+          oldestSids.forEach(sid => processedMessageSids.delete(sid));
+        }
+        log(`Processing new message - MessageSid: ${messageSid}`);
+      }
 
       const smsData = await processSMSWebhook(req.body);
       log("processSMSWebhook completed");
