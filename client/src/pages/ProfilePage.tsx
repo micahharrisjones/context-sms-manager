@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { User, Save } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 const profileUpdateSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
@@ -32,6 +33,7 @@ interface UserProfile {
 export function ProfilePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const { data: profile, isLoading } = useQuery<UserProfile>({
     queryKey: ['/api/profile'],
@@ -76,6 +78,8 @@ export function ProfilePage() {
         description: "Your profile has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+      // Redirect to main board after successful save
+      setLocation('/');
     },
     onError: (error: any) => {
       toast({
