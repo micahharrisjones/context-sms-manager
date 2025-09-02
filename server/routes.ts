@@ -1825,10 +1825,10 @@ export async function registerRoutes(app: Express) {
         }
 
         // Send SMS notifications to shared board members (excluding the sender)
-        // CRITICAL FIX: Only notify members of boards where the sender is also a member/creator
-        // Deduplicate notifications to prevent multiple SMS to the same user
+        // ENHANCED DEDUPLICATION: Track both boards and individual phone numbers to prevent ALL duplicates
         const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
         const notifiedBoards = new Set<string>(); // Track which boards we've already notified
+        const notifiedPhoneNumbers = new Set<string>(); // Track which phone numbers we've already SMS'd
         
         for (const tag of nonUntaggedTags) {
           try {
@@ -1844,17 +1844,25 @@ export async function registerRoutes(app: Express) {
                   continue;
                 }
                 
-                const phoneNumbers = await storage.getBoardMembersPhoneNumbers(board.name, created.userId);
-                if (phoneNumbers.length > 0) {
-                  log(`Sending SMS notifications to shared board #${board.name} (ID: ${board.id}) members: [${phoneNumbers.join(', ')}]`);
+                const allPhoneNumbers = await storage.getBoardMembersPhoneNumbers(board.name, created.userId);
+                // Filter out phone numbers we've already notified in this request
+                const newPhoneNumbers = allPhoneNumbers.filter(phone => !notifiedPhoneNumbers.has(phone));
+                
+                if (newPhoneNumbers.length > 0) {
+                  log(`Sending SMS notifications to shared board #${board.name} (ID: ${board.id}) members: [${newPhoneNumbers.join(', ')}] (filtered ${allPhoneNumbers.length - newPhoneNumbers.length} duplicates)`);
                   notifiedBoards.add(board.name); // Mark this board as notified
+                  
+                  // Track these phone numbers to prevent duplicates in subsequent tags
+                  newPhoneNumbers.forEach(phone => notifiedPhoneNumbers.add(phone));
                   
                   // Don't await - let SMS sending happen in background
                   twilioService.sendSharedBoardNotification(
-                    phoneNumbers, 
+                    newPhoneNumbers, 
                     board.name, 
                     created.content
                   );
+                } else {
+                  log(`All members of board #${board.name} already notified via other tags, skipping`);
                 }
               }
             } else {
