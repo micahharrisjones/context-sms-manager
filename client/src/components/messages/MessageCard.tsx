@@ -117,6 +117,49 @@ function shouldFetchOpenGraph(url: string, hasSpecificEmbed: boolean = false): b
   }
 }
 
+// Helper function to format sender display (phone number or fallback)
+function formatSenderDisplay(senderId: string): string {
+  // Check if senderId is a phone number (starts with + and contains digits)
+  if (senderId.match(/^\+?\d+$/)) {
+    // It's a phone number, format it
+    const digits = senderId.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+    } else if (digits.length === 11 && digits.startsWith('1')) {
+      return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+    }
+    return senderId; // Return as-is if unrecognized format
+  }
+  
+  // If it's not a phone number (e.g., "user-31"), show "You" or fallback
+  if (senderId.startsWith('user-')) {
+    return 'You';
+  }
+  
+  return senderId; // Fallback for other formats
+}
+
+// Helper function to get initials from senderId
+function getSenderInitials(senderId?: string): React.ReactNode {
+  if (!senderId) {
+    return <User className="h-3 w-3" />;
+  }
+  
+  // For phone numbers, use last 4 digits' first digit
+  if (senderId.match(/^\+?\d+$/)) {
+    const lastFour = senderId.replace(/\D/g, '').slice(-4);
+    return lastFour[0] || <User className="h-3 w-3" />;
+  }
+  
+  // For user IDs like "user-31", show "Y" for "You"
+  if (senderId.startsWith('user-')) {
+    return 'Y';
+  }
+  
+  // Fallback to first character or icon
+  return senderId[0]?.toUpperCase() || <User className="h-3 w-3" />;
+}
+
 interface MovieData {
   posterUrl: string | null;
   title: string | null;
@@ -578,7 +621,7 @@ export function MessageCard({ message }: MessageCardProps) {
                   {message.senderFirstName && message.senderLastName
                     ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
                     : message.senderDisplayName?.[0]?.toUpperCase() || 
-                      (message.senderId?.replace(/^\+?1?/, '')?.slice(-4)?.[0] || <User className="h-3 w-3" />)
+                      getSenderInitials(message.senderId)
                   }
                 </AvatarFallback>
               </Avatar>
@@ -587,7 +630,7 @@ export function MessageCard({ message }: MessageCardProps) {
                   ? `${message.senderFirstName} ${message.senderLastName}`
                   : message.senderDisplayName || 
                     (message.senderId ? 
-                      `+${message.senderId.replace(/^\+?1?/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}` : 
+                      formatSenderDisplay(message.senderId) : 
                       'Unknown')
                 }
               </span>
