@@ -268,32 +268,8 @@ export function MessageCard({ message }: MessageCardProps) {
         </div>
         
         <CardHeader className="pb-2 space-y-1">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              {format(new Date(message.timestamp), "PPp")}
-            </div>
-            {/* Show sender info for shared board messages */}
-            {(message.senderFirstName || message.senderLastName || message.senderId) && (
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={message.senderAvatarUrl || undefined} />
-                  <AvatarFallback className="bg-[#ed2024] text-white text-xs">
-                    {message.senderFirstName && message.senderLastName
-                      ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
-                      : message.senderDisplayName?.[0]?.toUpperCase() || 
-                        message.senderId?.[0] || <User className="h-3 w-3" />
-                    }
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-xs text-muted-foreground">
-                  {message.senderFirstName && message.senderLastName
-                    ? `${message.senderFirstName} ${message.senderLastName}`
-                    : message.senderDisplayName || 
-                      (message.senderId?.replace(/^\+?1?/, '') || 'Unknown')
-                  }
-                </span>
-              </div>
-            )}
+          <div className="text-sm text-muted-foreground">
+            {format(new Date(message.timestamp), "PPp")}
           </div>
         </CardHeader>
       <CardContent className="space-y-4">
@@ -569,6 +545,31 @@ export function MessageCard({ message }: MessageCardProps) {
                 View Attachment
               </a>
             )}
+          </div>
+        )}
+        
+        {/* Show sender info for shared board messages at bottom */}
+        {(message.senderFirstName || message.senderLastName || message.senderId) && (
+          <div className="flex items-center gap-2 pt-2 border-t border-[#e3cac0]">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={message.senderAvatarUrl || undefined} />
+              <AvatarFallback className="bg-[#ed2024] text-white text-xs">
+                {message.senderFirstName && message.senderLastName
+                  ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
+                  : message.senderDisplayName?.[0]?.toUpperCase() || 
+                    (message.senderId?.replace(/^\+?1?/, '')?.slice(-4)?.[0] || <User className="h-3 w-3" />)
+                }
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs text-muted-foreground">
+              {message.senderFirstName && message.senderLastName
+                ? `${message.senderFirstName} ${message.senderLastName}`
+                : message.senderDisplayName || 
+                  (message.senderId ? 
+                    `+${message.senderId.replace(/^\+?1?/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3')}` : 
+                    'Unknown')
+              }
+            </span>
           </div>
         )}
       </CardContent>
