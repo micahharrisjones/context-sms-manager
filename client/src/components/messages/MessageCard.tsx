@@ -451,28 +451,12 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
-        {/* Message text - Show after embeds, with URLs removed */}
-        <p className="text-foreground break-words">
-          {message.content.split(" ").map((word, i) => {
-            // Support hyphenated hashtags like #toyota-parts-list
-            if (word.startsWith("#") && /^#[\w-]+$/.test(word)) {
-              return (
-                <Link
-                  key={i}
-                  href={`/tag/${word.slice(1)}`}
-                  className="text-primary hover:underline"
-                >
-                  {word}{" "}
-                </Link>
-              );
-            }
-            // Skip HTTP/HTTPS URLs completely since they're shown separately above
-            if (word.startsWith('http://') || word.startsWith('https://')) {
-              return null; // Don't render URLs in the message text
-            }
-            return word + " ";
-          })}
-        </p>
+        {/* Message text - Show after embeds, with hashtags and URLs removed */}
+        {contentWithoutHashtags.length > 0 && (
+          <p className="text-foreground break-words">
+            {formattedContent}
+          </p>
+        )}
         
         {facebookPostId && (
           <div className="w-full">
