@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 import { log } from "./vite";
+import { twilioService } from "./twilio-service";
 
 // Generate a 6-digit verification code
 export function generateVerificationCode(): string {
@@ -17,8 +18,8 @@ export function generateTwilioResponse(message: string): string {
 
 // Phone number authentication service
 export class AuthService {
-  // Send verification code via SMS (using Twilio webhook response)
-  static async initializeVerification(phoneNumber: string): Promise<string> {
+  // Send verification code via SMS
+  static async initializeVerification(phoneNumber: string): Promise<{ success: boolean; message: string }> {
     try {
       // Clean phone number (remove any formatting)
       const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
@@ -38,11 +39,28 @@ export class AuthService {
       
       log(`Generated verification code ${verificationCode} for phone ${cleanPhoneNumber}`);
       
-      // Return the verification code to send via SMS
-      return verificationCode;
+      // Send SMS with verification code
+      const smsMessage = `Your Context verification code is: ${verificationCode}\n\nThis code expires in 10 minutes. Don't share this code with anyone.`;
+      
+      const smsSent = await twilioService.sendSMS(cleanPhoneNumber, smsMessage);
+      
+      if (smsSent) {
+        return {
+          success: true,
+          message: "Verification code sent successfully"
+        };
+      } else {
+        return {
+          success: false,
+          message: "Failed to send verification code. Please check your phone number and try again."
+        };
+      }
     } catch (error) {
-      log("Error initializing verification:", error);
-      throw error;
+      log("Error initializing verification:", error instanceof Error ? error.message : String(error));
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to send verification code"
+      };
     }
   }
   
@@ -86,7 +104,7 @@ export class AuthService {
         message: "Authentication successful"
       };
     } catch (error) {
-      log("Error verifying authentication:", error);
+      log("Error verifying authentication:", error instanceof Error ? error.message : String(error));
       return {
         success: false,
         message: "Authentication error"
@@ -108,7 +126,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     req.userId = userId;
     next();
   } catch (error) {
-    log("Auth middleware error:", error);
+    log("Auth middleware error:", error instanceof Error ? error.message : String(error));
     res.status(500).json({ error: "Internal server error" });
   }
 }

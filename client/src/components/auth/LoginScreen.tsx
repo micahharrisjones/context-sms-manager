@@ -14,6 +14,8 @@ interface LoginScreenProps {
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [showVerification, setShowVerification] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -29,7 +31,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setIsLoading(true);
 
     try {
-      console.log('Logging in with phone number:', phoneNumber);
+      console.log('Requesting verification code for phone number:', phoneNumber);
       const response = await apiRequest('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ phoneNumber }),
@@ -40,14 +42,23 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       if (response.ok) {
         const data = await response.json();
         console.log('Login response:', data);
-        // Removed login success toast for cleaner UX
-        onLogin(data.user);
+        
+        if (data.requiresVerification) {
+          setShowVerification(true);
+          toast({
+            title: "Verification code sent",
+            description: "Please check your phone for the verification code",
+          });
+        } else {
+          // Fallback for existing users without verification
+          onLogin(data.user);
+        }
       } else {
         const error = await response.json();
         console.error('API error response:', error);
         toast({
           title: "Error",
-          description: error.error || "Failed to log in",
+          description: error.error || "Failed to send verification code",
           variant: "destructive",
         });
       }
@@ -55,6 +66,55 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       console.error('Login error:', error);
       toast({
         title: "Error", 
+        description: `Network error: ${error instanceof Error ? error.message : 'Please try again.'}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      console.log('Verifying code for phone number:', phoneNumber);
+      const response = await apiRequest('/api/auth/verify', {
+        method: 'POST',
+        body: JSON.stringify({ phoneNumber, code: verificationCode }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Verification response:', data);
+        
+        if (data.success) {
+          toast({
+            title: "Login successful",
+            description: "Welcome to Context!",
+          });
+          onLogin(data.user);
+        } else {
+          toast({
+            title: "Error",
+            description: data.message || "Verification failed",
+            variant: "destructive",
+          });
+        }
+      } else {
+        const error = await response.json();
+        console.error('Verification error response:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Invalid verification code",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Verification error:', error);
+      toast({
+        title: "Error",
         description: `Network error: ${error instanceof Error ? error.message : 'Please try again.'}`,
         variant: "destructive",
       });
@@ -85,28 +145,81 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         </CardHeader>
         
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="234 555 6789"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                required
-                disabled={isLoading}
-                className="text-lg"
-              />
+          {!showVerification ? (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="234 555 6789"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  className="text-lg"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                className="w-full bg-[#ed2024] hover:bg-[#d61e21]"
+                disabled={isLoading || !phoneNumber.trim()}
+              >
+                {isLoading ? "Sending code..." : "Send verification code"}
+              </Button>
+            </form>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-center space-y-2">
+                <MessageSquare className="h-8 w-8 mx-auto text-[#ed2024]" />
+                <h3 className="font-semibold text-gray-900">Check your phone</h3>
+                <p className="text-sm text-gray-600">
+                  We sent a verification code to<br />
+                  <span className="font-medium">{phoneNumber}</span>
+                </p>
+              </div>
+              
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="code">Verification Code</Label>
+                  <Input
+                    id="code"
+                    type="text"
+                    placeholder="123456"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    required
+                    disabled={isLoading}
+                    className="text-lg text-center tracking-widest"
+                    maxLength={6}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-[#ed2024] hover:bg-[#d61e21]"
+                    disabled={isLoading || verificationCode.length !== 6}
+                  >
+                    {isLoading ? "Verifying..." : "Verify and login"}
+                  </Button>
+                  
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    className="w-full text-sm"
+                    onClick={() => {
+                      setShowVerification(false);
+                      setVerificationCode('');
+                    }}
+                    disabled={isLoading}
+                  >
+                    ← Back to phone number
+                  </Button>
+                </div>
+              </form>
             </div>
-            <Button 
-              type="submit" 
-              className="w-full bg-[#ed2024] hover:bg-[#d61e21]"
-              disabled={isLoading || !phoneNumber.trim()}
-            >
-              {isLoading ? "Logging in..." : "Login"}
-            </Button>
-          </form>
+          )}
         </CardContent>
         
       </Card>

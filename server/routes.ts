@@ -497,35 +497,24 @@ export async function registerRoutes(app: Express) {
       // Clean phone number (remove any formatting)
       const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
       
-      // Get or create user based on phone number
-      let user = await storage.getUserByPhoneNumber(cleanPhoneNumber);
-      if (!user) {
-        user = await storage.createUser({
-          phoneNumber: cleanPhoneNumber,
-          displayName: `User ${cleanPhoneNumber.slice(-4)}`
+      log(`Login request for phone ${cleanPhoneNumber}`);
+      
+      // Initialize SMS verification
+      const result = await AuthService.initializeVerification(cleanPhoneNumber);
+      
+      if (result.success) {
+        res.json({ 
+          success: true,
+          message: result.message,
+          requiresVerification: true,
+          phoneNumber: cleanPhoneNumber
         });
-        log(`Created new user account for phone ${cleanPhoneNumber}`);
       } else {
-        log(`Found existing user account for phone ${cleanPhoneNumber}: User ${user.id}`);
-      }
-      
-      // Store user in session
-      req.session.userId = user.id;
-      await new Promise<void>((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) reject(err);
-          else resolve();
+        res.status(400).json({ 
+          success: false,
+          error: result.message 
         });
-      });
-      
-      res.json({ 
-        message: "Login successful",
-        user: {
-          id: user.id,
-          phoneNumber: user.phoneNumber,
-          displayName: user.displayName
-        }
-      });
+      }
     } catch (error) {
       log("Error requesting verification code:", error instanceof Error ? error.message : String(error));
       res.status(500).json({ error: "Failed to send verification code" });
