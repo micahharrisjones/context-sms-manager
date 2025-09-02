@@ -3,6 +3,7 @@ import {
   type InsertMessage, 
   type User, 
   type InsertUser, 
+  type UpdateProfile,
   type AuthSession, 
   type InsertAuthSession,
   type SharedBoard,
@@ -16,7 +17,7 @@ import {
   boardMemberships
 } from "@shared/schema";
 import { db } from "./db";
-import { desc, eq, sql, gte, and, inArray } from "drizzle-orm";
+import { desc, eq, sql, gte, and, inArray, or, like, count, asc } from "drizzle-orm";
 import { log } from "./vite";
 
 export interface IStorage {
@@ -25,6 +26,7 @@ export interface IStorage {
   getUserById(userId: number): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserLastLogin(userId: number): Promise<void>;
+  updateUserProfile(userId: number, profileData: UpdateProfile): Promise<User | undefined>;
   deleteUser(userId: number): Promise<void>;
   
   // Auth session management
@@ -165,6 +167,21 @@ export class DatabaseStorage implements IStorage {
         .where(eq(users.id, userId));
     } catch (error) {
       log("Error updating user last login:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async updateUserProfile(userId: number, profileData: UpdateProfile): Promise<User | undefined> {
+    try {
+      const result = await db
+        .update(users)
+        .set(profileData)
+        .where(eq(users.id, userId))
+        .returning();
+      
+      return result[0];
+    } catch (error) {
+      log("Error updating user profile:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -698,7 +715,16 @@ export class DatabaseStorage implements IStorage {
           role: boardMemberships.role,
           invitedBy: boardMemberships.invitedBy,
           joinedAt: boardMemberships.joinedAt,
-          user: users,
+          user: {
+            id: users.id,
+            phoneNumber: users.phoneNumber,
+            displayName: users.displayName,
+            firstName: users.firstName,
+            lastName: users.lastName,
+            avatarUrl: users.avatarUrl,
+            createdAt: users.createdAt,
+            lastLoginAt: users.lastLoginAt,
+          },
         })
         .from(boardMemberships)
         .innerJoin(users, eq(boardMemberships.userId, users.id))
@@ -1215,6 +1241,39 @@ export class DatabaseStorage implements IStorage {
       };
     } catch (error) {
       log(`Error bulk deleting users: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async searchUsers(query: string): Promise<User[]> {
+    try {
+      const searchTerm = query.toLowerCase();
+      
+      const result = await db
+        .select({
+          id: users.id,
+          phoneNumber: users.phoneNumber,
+          displayName: users.displayName,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          avatarUrl: users.avatarUrl,
+          createdAt: users.createdAt,
+          lastLoginAt: users.lastLoginAt,
+        })
+        .from(users)
+        .where(
+          or(
+            like(users.phoneNumber, `%${searchTerm}%`),
+            like(users.displayName, `%${searchTerm}%`),
+            like(users.firstName, `%${searchTerm}%`),
+            like(users.lastName, `%${searchTerm}%`)
+          )
+        )
+        .limit(10);
+      
+      return result;
+    } catch (error) {
+      log("Error searching users:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

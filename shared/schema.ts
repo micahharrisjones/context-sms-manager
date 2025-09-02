@@ -7,7 +7,10 @@ import { relations, sql } from "drizzle-orm";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   phoneNumber: varchar("phone_number", { length: 20 }).notNull().unique(),
-  displayName: varchar("display_name", { length: 100 }),
+  displayName: varchar("display_name", { length: 100 }), // Keep for backward compatibility
+  firstName: varchar("first_name", { length: 50 }),
+  lastName: varchar("last_name", { length: 50 }),
+  avatarUrl: text("avatar_url"), // For profile pictures
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
 });
@@ -96,6 +99,17 @@ export const insertUserSchema = createInsertSchema(users).omit({
   lastLoginAt: true,
 });
 
+// Profile update schema - allows updating profile fields
+export const updateProfileSchema = createInsertSchema(users).pick({
+  firstName: true,
+  lastName: true,
+  avatarUrl: true,
+}).extend({
+  firstName: z.string().min(1).max(50),
+  lastName: z.string().min(1).max(50),
+  avatarUrl: z.string().url().optional(),
+});
+
 export const insertAuthSessionSchema = createInsertSchema(authSessions).omit({
   id: true,
   createdAt: true,
@@ -119,6 +133,7 @@ export const insertBoardMembershipSchema = createInsertSchema(boardMemberships).
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 export type AuthSession = typeof authSessions.$inferSelect;
 export type InsertAuthSession = z.infer<typeof insertAuthSessionSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;

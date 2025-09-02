@@ -321,6 +321,17 @@ export function Sidebar({ onClose }: SidebarProps) {
           </Button>
           
           {/* Logout Button */}
+          <Link href="/profile">
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-[#e3cac0]/20"
+              onClick={onClose}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Edit Profile
+            </Button>
+          </Link>
+          
           <Button
             variant="ghost"
             onClick={logout}

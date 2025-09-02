@@ -318,7 +318,7 @@ const processSMSWebhook = async (body: unknown) => {
       tags: uniqueTags,
       mediaUrl,
       mediaType,
-      messageSid: body.MessageSid || null, // Store MessageSid for deduplication
+      messageSid: (body as any).MessageSid || null, // Store MessageSid for deduplication
       isNewUser
     };
 
@@ -618,6 +618,59 @@ export async function registerRoutes(app: Express) {
       log("Error stack:", error instanceof Error ? error.stack : "No stack trace");
       log("Raw error object:", JSON.stringify(error, null, 2));
       res.status(500).json({ error: `Failed to delete account: ${error instanceof Error ? error.message : String(error)}` });
+    }
+  });
+
+  // Profile management endpoints
+  app.get("/api/profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const user = await storage.getUserById(userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json({
+        id: user.id,
+        phoneNumber: user.phoneNumber,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        avatarUrl: user.avatarUrl,
+        displayName: user.displayName
+      });
+    } catch (error) {
+      log(`Error retrieving profile: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to retrieve profile" });
+    }
+  });
+
+  app.put("/api/profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const { updateProfileSchema } = await import("@shared/schema");
+      
+      // Validate request body
+      const profileData = updateProfileSchema.parse(req.body);
+      
+      // Update user profile
+      const updatedUser = await storage.updateUserProfile(userId, profileData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      res.json({
+        id: updatedUser.id,
+        phoneNumber: updatedUser.phoneNumber,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        avatarUrl: updatedUser.avatarUrl,
+        displayName: updatedUser.displayName
+      });
+    } catch (error) {
+      log(`Error updating profile: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to update profile" });
     }
   });
 
@@ -1752,10 +1805,26 @@ export async function registerRoutes(app: Express) {
     log("Exiting handleWebhook function");
   };
 
+  // Search for users by name or phone number
+  app.get('/api/users/search', requireAuth, async (req, res) => {
+    try {
+      const query = req.query.q as string;
+      if (!query || query.length < 2) {
+        return res.json([]);
+      }
+
+      const users = await storage.searchUsers(query);
+      res.json(users);
+    } catch (error) {
+      log('Error searching users:', error);
+      res.status(500).json({ error: 'Failed to search users' });
+    }
+  });
+
   // Test endpoint to send welcome message
   app.post('/api/test-welcome', async (req, res) => {
     try {
-      const { phoneNumber } = req.body;
+      const { phoneNumber } = req.body as { phoneNumber: string };
       await twilioService.sendWelcomeMessage(phoneNumber);
       res.json({ success: true, message: 'Welcome message sent' });
     } catch (error) {

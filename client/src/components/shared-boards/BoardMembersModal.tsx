@@ -5,6 +5,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { Users, Phone } from "lucide-react";
 
@@ -52,6 +53,22 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
     return phone;
   };
 
+  // Get display name from profile or fallback to phone
+  const getDisplayName = (user: BoardMember['user']) => {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    return user.displayName || formatPhoneNumber(user.phoneNumber);
+  };
+
+  // Get initials for avatar
+  const getInitials = (user: BoardMember['user']) => {
+    if (user.firstName && user.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    return user.displayName?.[0]?.toUpperCase() || user.phoneNumber[0] || 'U';
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-[#fff3ea] border-[#e3cac0]">
@@ -85,16 +102,28 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
                   className="flex items-center justify-between p-3 rounded-lg border bg-card"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Phone className="w-4 h-4 text-primary" />
-                    </div>
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={member.user?.avatarUrl} alt={getDisplayName(member.user)} />
+                      <AvatarFallback className="bg-[#ed2024] text-white text-sm">
+                        {getInitials(member.user)}
+                      </AvatarFallback>
+                    </Avatar>
                     <div>
                       <div className="font-medium">
-                        {member.user ? formatPhoneNumber(member.user.phoneNumber) : 'Unknown User'}
+                        {member.user ? getDisplayName(member.user) : 'Unknown User'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Joined {new Date(member.joinedAt).toLocaleDateString()}
+                        {member.user?.firstName && member.user?.lastName ? (
+                          formatPhoneNumber(member.user.phoneNumber)
+                        ) : (
+                          `Joined ${new Date(member.joinedAt).toLocaleDateString()}`
+                        )}
                       </div>
+                      {member.user?.firstName && member.user?.lastName && (
+                        <div className="text-xs text-muted-foreground">
+                          Joined {new Date(member.joinedAt).toLocaleDateString()}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">

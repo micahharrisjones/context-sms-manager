@@ -6,9 +6,12 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import SearchPage from "@/pages/search";
 import { AdminPage } from "@/pages/AdminPage";
+import { ProfilePage } from "@/pages/ProfilePage";
 import { Layout } from "@/components/layout/Layout";
 import { LoginScreen } from "@/components/auth/LoginScreen";
+import { ProfileSetup } from "@/components/auth/ProfileSetup";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 function Router() {
   return (
@@ -19,6 +22,7 @@ function Router() {
         <Route path="/shared/:boardName" component={Home} />
         <Route path="/search" component={SearchPage} />
         <Route path="/admin" component={AdminPage} />
+        <Route path="/profile" component={ProfilePage} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
@@ -27,8 +31,9 @@ function Router() {
 
 function AuthenticatedApp() {
   const { isAuthenticated, isLoading, login } = useAuth();
+  const { needsProfileSetup, isLoading: profileLoading } = useProfile();
 
-  if (isLoading) {
+  if (isLoading || profileLoading) {
     return (
       <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff3ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
         <div className="text-center">
@@ -47,6 +52,10 @@ function AuthenticatedApp() {
 
   if (!isAuthenticated) {
     return <LoginScreen onLogin={login} />;
+  }
+
+  if (needsProfileSetup) {
+    return <ProfileSetup onComplete={() => window.location.reload()} />;
   }
 
   return <Router />;
