@@ -526,10 +526,14 @@ export function MessageCard({ message }: MessageCardProps) {
                 </div>
               </div>
               
-              {/* Show post title if available */}
-              {twitterOgData?.title && (
+              {/* Show post title if available from Open Graph, otherwise extract from URL */}
+              {twitterOgData?.title ? (
                 <h3 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
                   {twitterOgData.title}
+                </h3>
+              ) : (
+                <h3 className="font-medium text-gray-900 text-sm mb-2">
+                  Post by @{urls.find(url => getTwitterPostId(url))?.match(/\/(\w+)\/status/)?.[1] || 'User'}
                 </h3>
               )}
               
