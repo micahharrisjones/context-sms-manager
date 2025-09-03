@@ -51,7 +51,7 @@ export default function Dashboard() {
   });
 
   // Generate daily affirmation
-  const { data: affirmation } = useQuery<{ text: string }>({
+  const { data: affirmation, isLoading: affirmationLoading } = useQuery<{ text: string }>({
     queryKey: ["/api/affirmation", new Date().toDateString()], // Cache per day
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
   });
@@ -93,7 +93,7 @@ export default function Dashboard() {
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-gray-800">
           {firstName ? (
             <>
-              Hi {firstName}, {affirmation?.text || "welcome to your Context boards."}
+              Hi {firstName}, {affirmationLoading ? "..." : (affirmation?.text || "welcome to your Context boards.")}
             </>
           ) : (
             <>Welcome to your Context boards.</>
