@@ -9,6 +9,9 @@ interface CategorySuggestion {
 class AIService {
   private client: OpenAI;
   private log: (message: string, ...args: any[]) => void;
+  private static readonly CACHE_KEY = 'daily_affirmation';
+  private static readonly CACHE_DURATION_HOURS = 3;
+  private affirmationCache: { text: string; timestamp: number; userId: number } | null = null;
 
   constructor() {
     this.client = new OpenAI({
@@ -22,11 +25,19 @@ class AIService {
   }
 
   /**
-   * Generate a short, encouraging affirmation for the user
+   * Generate or retrieve cached affirmation for a user
    */
-  async generateAffirmation(): Promise<string> {
+  async generateAffirmation(userId: number): Promise<string> {
     try {
-      this.log("Generating daily affirmation");
+      // Check if we have a valid cached affirmation for this user
+      if (this.affirmationCache && 
+          this.affirmationCache.userId === userId &&
+          this.isCacheValid(this.affirmationCache.timestamp)) {
+        this.log(`Using cached affirmation for user ${userId}`);
+        return this.affirmationCache.text;
+      }
+
+      this.log(`Generating new affirmation for user ${userId}`);
 
       const response = await this.client.chat.completions.create({
         model: "deepseek-chat",
@@ -47,11 +58,35 @@ class AIService {
       const affirmation = response.choices[0]?.message?.content?.trim() || "you're doing great today!";
       this.log(`Generated affirmation: "${affirmation}"`);
       
+      // Cache the new affirmation
+      this.affirmationCache = {
+        text: affirmation,
+        timestamp: Date.now(),
+        userId: userId
+      };
+      
       return affirmation;
     } catch (error) {
       this.log(`Error generating affirmation: ${error instanceof Error ? error.message : String(error)}`);
       return "you're doing great today!";
     }
+  }
+
+  /**
+   * Check if the cached affirmation is still valid
+   */
+  private isCacheValid(timestamp: number): boolean {
+    const now = Date.now();
+    const cacheAgeHours = (now - timestamp) / (1000 * 60 * 60);
+    return cacheAgeHours < AIService.CACHE_DURATION_HOURS;
+  }
+
+  /**
+   * Force refresh the affirmation cache for a user
+   */
+  async refreshAffirmation(userId: number): Promise<string> {
+    this.affirmationCache = null; // Clear cache
+    return this.generateAffirmation(userId);
   }
 
   /**

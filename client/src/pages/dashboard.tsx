@@ -93,7 +93,7 @@ export default function Dashboard() {
         <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-gray-800">
           {firstName ? (
             <>
-              Hi {firstName}, {affirmationLoading ? "..." : (affirmation?.text || "welcome to your Context boards.")}
+              Hi {firstName}, {affirmation?.text || "welcome to your Context boards."}
             </>
           ) : (
             <>Welcome to your Context boards.</>

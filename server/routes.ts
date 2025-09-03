@@ -534,6 +534,12 @@ export async function registerRoutes(app: Express) {
       if (result.success && result.user) {
         // Set session
         req.session.userId = result.user.id;
+        
+        // Preload affirmation for the user (fire and forget - don't wait)
+        aiService.generateAffirmation(result.user.id).catch((error) => {
+          log(`Background affirmation generation failed for user ${result.user.id}: ${error instanceof Error ? error.message : String(error)}`);
+        });
+        
         res.json({ 
           success: true, 
           user: result.user,
@@ -779,7 +785,8 @@ export async function registerRoutes(app: Express) {
   // Generate daily affirmation
   app.get("/api/affirmation", requireAuth, async (req, res) => {
     try {
-      const affirmation = await aiService.generateAffirmation();
+      const userId = req.userId!;
+      const affirmation = await aiService.generateAffirmation(userId);
       res.json({ text: affirmation });
     } catch (error) {
       log(`Error generating affirmation: ${error instanceof Error ? error.message : String(error)}`);
