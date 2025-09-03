@@ -28,13 +28,26 @@ export default function Dashboard() {
   const { profile } = useProfile();
   
   // Get private tags with counts
-  const { data: tagsWithCounts, isLoading: tagsLoading } = useQuery<Tag[]>({
+  const { data: tagsWithCounts, isLoading: tagsLoading, error: tagsError } = useQuery<Tag[]>({
     queryKey: ["/api/tags-with-counts"],
+    retry: false,
   });
 
   // Get shared boards
-  const { data: sharedBoards, isLoading: sharedLoading } = useQuery<SharedBoard[]>({
+  const { data: sharedBoards, isLoading: sharedLoading, error: sharedError } = useQuery<SharedBoard[]>({
     queryKey: ["/api/shared-boards"],
+    retry: false,
+  });
+
+  // Debug logging
+  console.log("Dashboard data:", { 
+    tagsWithCounts, 
+    sharedBoards, 
+    tagsLoading, 
+    sharedLoading,
+    tagsError,
+    sharedError,
+    profile 
   });
 
   const isLoading = tagsLoading || sharedLoading;
