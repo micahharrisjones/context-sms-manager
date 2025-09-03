@@ -21,21 +21,8 @@ interface BoardsData {
   sharedBoards: SharedBoard[];
 }
 
-// Color palette for board cards
-const boardColors = [
-  "bg-gradient-to-br from-rose-100 to-pink-100 border-rose-200 hover:from-rose-200 hover:to-pink-200",
-  "bg-gradient-to-br from-blue-100 to-indigo-100 border-blue-200 hover:from-blue-200 hover:to-indigo-200", 
-  "bg-gradient-to-br from-green-100 to-emerald-100 border-green-200 hover:from-green-200 hover:to-emerald-200",
-  "bg-gradient-to-br from-purple-100 to-violet-100 border-purple-200 hover:from-purple-200 hover:to-violet-200",
-  "bg-gradient-to-br from-yellow-100 to-amber-100 border-yellow-200 hover:from-yellow-200 hover:to-amber-200",
-  "bg-gradient-to-br from-orange-100 to-red-100 border-orange-200 hover:from-orange-200 hover:to-red-200",
-  "bg-gradient-to-br from-teal-100 to-cyan-100 border-teal-200 hover:from-teal-200 hover:to-cyan-200",
-  "bg-gradient-to-br from-slate-100 to-gray-100 border-slate-200 hover:from-slate-200 hover:to-gray-200"
-];
-
-function getColorForBoard(index: number): string {
-  return boardColors[index % boardColors.length];
-}
+// Consistent styling for all board cards
+const boardCardStyle = "bg-[#fff3ea] border-2 border-black hover:bg-[#e3cac0] transition-colors duration-200";
 
 export default function Dashboard() {
   const { profile } = useProfile();
@@ -96,8 +83,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Message */}
-      <div className="text-center">
-        <h1 className="text-3xl md:text-4xl font-light text-gray-800">
+      <div className="text-left">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-gray-800">
           {firstName ? `Hi ${firstName}, welcome to your Context boards.` : "Welcome to your Context boards."}
         </h1>
       </div>
@@ -108,9 +95,9 @@ export default function Dashboard() {
       {/* Boards Grid */}
       {allBoards.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {allBoards.map((board, index) => (
+          {allBoards.map((board) => (
             <Link key={`${board.type}-${board.name}`} href={board.href}>
-              <Card className={`cursor-pointer transition-all duration-200 ${getColorForBoard(index)}`}>
+              <Card className={`cursor-pointer ${boardCardStyle}`}>
                 <CardContent className="p-6">
                   <div className="space-y-2">
                     <h3 className="font-medium text-gray-800 text-lg">
