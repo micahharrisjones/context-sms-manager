@@ -125,7 +125,7 @@ export default function Dashboard() {
                   </div>
                   {/* Large count number - vertically centered, right-aligned */}
                   <div className="ml-4">
-                    <span className="text-6xl font-thin text-gray-700">
+                    <span className="text-6xl font-light text-gray-700">
                       {'count' in board ? board.count : 0}
                     </span>
                   </div>
