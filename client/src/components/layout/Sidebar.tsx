@@ -83,16 +83,16 @@ export function Sidebar({ onClose }: SidebarProps) {
           {/* All Texts Button */}
           <div className={cn(
             "border border-[#e3cac0] rounded-lg transition-colors",
-            location === "/" 
+            location === "/all-texts" 
               ? "border-primary/20 bg-primary/5" 
               : "border-[#e3cac0] bg-[#e3cac0]/10"
           )}>
-            <Link href="/">
+            <Link href="/all-texts">
               <Button 
                 variant="ghost" 
                 className={cn(
                   "w-full justify-start m-1",
-                  location === "/" 
+                  location === "/all-texts" 
                     ? "bg-transparent text-primary font-medium hover:bg-transparent" 
                     : "hover:bg-[#e3cac0]/30"
                 )}

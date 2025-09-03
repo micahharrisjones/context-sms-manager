@@ -358,7 +358,7 @@ export function MessageCard({ message }: MessageCardProps) {
     }
 
     fetchTwitterOpenGraphData();
-  }, [twitterPostId, urls]);
+  }, [twitterPostId]);
 
   return (
     <>

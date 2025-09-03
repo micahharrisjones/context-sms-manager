@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import AllTexts from "@/pages/all-texts";
 import SearchPage from "@/pages/search";
 import { AdminPage } from "@/pages/AdminPage";
 import { ProfilePage } from "@/pages/ProfilePage";
@@ -19,8 +20,9 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/tag/:tag" component={Home} />
-        <Route path="/shared/:boardName" component={Home} />
+        <Route path="/all-texts" component={AllTexts} />
+        <Route path="/tag/:tag" component={AllTexts} />
+        <Route path="/shared/:boardName" component={AllTexts} />
         <Route path="/search" component={SearchPage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/profile" component={ProfilePage} />
