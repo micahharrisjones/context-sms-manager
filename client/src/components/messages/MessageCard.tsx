@@ -202,8 +202,20 @@ export function MessageCard({ message }: MessageCardProps) {
   
   // Extract URLs for Open Graph previews
   const urls = extractUrls(message.content);
-  const hasSpecificEmbed = !!(instagramPostId || twitterPostId || redditPostInfo || facebookPostId || youtubeVideoId || tiktokVideoId || imdbInfo);
-  const previewUrl = urls.find(url => shouldFetchOpenGraph(url, hasSpecificEmbed)) || null;
+  
+  // Check each URL individually for specific embeds instead of message-wide check
+  const previewUrl = urls.find(url => {
+    const hasUrlSpecificEmbed = !!(
+      getInstagramPostId(url) ||
+      getTwitterPostId(url) ||
+      getRedditPostInfo(url) ||
+      getFacebookPostId(url) ||
+      getYouTubeVideoId(url) ||
+      getTikTokVideoId(url) ||
+      getIMDbInfo(url)
+    );
+    return shouldFetchOpenGraph(url, hasUrlSpecificEmbed);
+  }) || null;
   
   // Check if the preview URL is a Pinterest URL
   const isPinterestUrl = previewUrl && (previewUrl.includes('pinterest.com') || previewUrl.includes('pin.it'));
