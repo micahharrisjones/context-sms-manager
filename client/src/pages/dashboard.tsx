@@ -22,7 +22,7 @@ interface BoardsData {
 }
 
 // Consistent styling for all board cards
-const boardCardStyle = "bg-[#fff3ea] border-2 border-black hover:bg-[#e3cac0] transition-colors duration-200";
+const boardCardStyle = "bg-[#fff3ea] border border-black hover:bg-[#e3cac0] transition-colors duration-200";
 
 export default function Dashboard() {
   const { profile } = useProfile();
@@ -83,7 +83,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Welcome Message */}
-      <div className="text-left">
+      <div className="text-left py-8">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-gray-800">
           {firstName ? `Hi ${firstName}, welcome to your Context boards.` : "Welcome to your Context boards."}
         </h1>
