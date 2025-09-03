@@ -39,16 +39,8 @@ export default function Dashboard() {
     retry: false,
   });
 
-  // Debug logging
-  console.log("Dashboard data:", { 
-    tagsWithCounts, 
-    sharedBoards, 
-    tagsLoading, 
-    sharedLoading,
-    tagsError,
-    sharedError,
-    profile 
-  });
+  // Debug logging - remove after testing
+  // console.log("Dashboard data:", { tagsWithCounts, sharedBoards, tagsLoading, sharedLoading, tagsError, sharedError, profile });
 
   const isLoading = tagsLoading || sharedLoading;
   
@@ -118,8 +110,8 @@ export default function Dashboard() {
           {allBoards.map((board) => (
             <Link key={`${board.type}-${board.name}`} href={board.href}>
               <Card className={`cursor-pointer ${boardCardStyle}`}>
-                <CardContent className="p-6 relative">
-                  <div className="space-y-2">
+                <CardContent className="p-6 relative flex items-center">
+                  <div className="flex-1 space-y-2">
                     <h3 className="font-medium text-gray-800 text-lg">
                       {board.type === 'private' ? `#${board.name}` : board.name}
                     </h3>
@@ -131,9 +123,9 @@ export default function Dashboard() {
                       </span>
                     </div>
                   </div>
-                  {/* Large count number in bottom right */}
-                  <div className="absolute bottom-4 right-4">
-                    <span className="text-4xl font-light text-gray-700">
+                  {/* Large count number - vertically centered, right-aligned */}
+                  <div className="ml-4">
+                    <span className="text-6xl font-light text-gray-700">
                       {'count' in board ? board.count : 0}
                     </span>
                   </div>
