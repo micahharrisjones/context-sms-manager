@@ -470,13 +470,32 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         {twitterPostId && (
           <div className="w-full">
-            <iframe
-              src={`https://twitframe.com/show?url=https://x.com/i/status/${twitterPostId}`}
-              className="w-full h-[400px] rounded-md border border-[#e3cac0]"
-              loading="lazy"
-              frameBorder="0"
-              scrolling="no"
-            />
+            <a 
+              href={urls.find(url => getTwitterPostId(url)) || '#'}
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="block rounded-lg border border-[#e3cac0] bg-gradient-to-br from-blue-50 to-sky-50 p-4 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  </div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-medium text-gray-900 text-sm">View on X</span>
+                    <div className="w-1.5 h-1.5 bg-sky-400 rounded-full flex-shrink-0"></div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <ExternalLink className="h-4 w-4 text-gray-400" />
+                </div>
+              </div>
+              <p className="text-gray-600 text-sm mt-2">
+                x.com
+              </p>
+            </a>
           </div>
         )}
         {redditPostInfo && (
