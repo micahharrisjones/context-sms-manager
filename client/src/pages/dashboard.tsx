@@ -90,7 +90,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Welcome Message */}
       <div className="text-left py-8">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-gray-800">
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-gray-800">
           {firstName ? (
             <>
               Hi {firstName}, {affirmationLoading ? "..." : (affirmation?.text || "welcome to your Context boards.")}
