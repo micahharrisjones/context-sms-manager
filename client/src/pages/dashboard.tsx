@@ -27,28 +27,22 @@ const boardCardStyle = "bg-[#fff3ea] border border-black hover:bg-[#e3cac0] tran
 export default function Dashboard() {
   const { profile } = useProfile();
   
-  const { data: boardsData, isLoading } = useQuery<BoardsData>({
+  // Get private tags with counts
+  const { data: tagsWithCounts, isLoading: tagsLoading } = useQuery<Tag[]>({
     queryKey: ["/api/tags-with-counts"],
-    select: (data: any) => {
-      // Split the response into private tags and shared boards
-      const privateTags: Tag[] = [];
-      const sharedBoards: SharedBoard[] = [];
-      
-      if (Array.isArray(data)) {
-        data.forEach(item => {
-          if (typeof item === 'object' && item.tag && typeof item.count === 'number') {
-            // It's a private tag with count
-            privateTags.push({ tag: item.tag, count: item.count });
-          } else if (item.id && item.name) {
-            // It's a shared board
-            sharedBoards.push(item);
-          }
-        });
-      }
-      
-      return { privateTags, sharedBoards };
-    },
   });
+
+  // Get shared boards
+  const { data: sharedBoards, isLoading: sharedLoading } = useQuery<SharedBoard[]>({
+    queryKey: ["/api/shared-boards"],
+  });
+
+  const isLoading = tagsLoading || sharedLoading;
+  
+  const boardsData: BoardsData = {
+    privateTags: tagsWithCounts || [],
+    sharedBoards: sharedBoards || []
+  };
 
   // Generate daily affirmation
   const { data: affirmation, isLoading: affirmationLoading } = useQuery<{ text: string }>({
