@@ -33,11 +33,11 @@ class AIService {
         messages: [
           {
             role: "system",
-            content: "You are a supportive assistant who creates short, encouraging affirmations. Generate a brief, positive message that would motivate someone starting their day. Keep it under 10 words and make it uplifting and personal."
+            content: "You are a supportive friend who creates personal, encouraging affirmations. Generate a brief, intimate positive message that feels like it's coming from someone who really cares about them. Use 'you' language and make it personal and uplifting. Examples: 'You look amazing today!' 'I love how you inspire others.' 'This is your day to kick ass!' 'You have such a beautiful energy.' Keep it under 10 words and make it feel genuinely personal and motivating."
           },
           {
             role: "user",
-            content: "Generate a short encouraging affirmation for someone visiting their Context boards dashboard."
+            content: "Generate a personal, encouraging affirmation that feels like it's from a caring friend."
           }
         ],
         temperature: 0.8,
