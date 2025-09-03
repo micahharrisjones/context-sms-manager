@@ -50,6 +50,12 @@ export default function Dashboard() {
     },
   });
 
+  // Generate daily affirmation
+  const { data: affirmation } = useQuery<{ text: string }>({
+    queryKey: ["/api/affirmation", new Date().toDateString()], // Cache per day
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours
+  });
+
   const firstName = profile?.firstName;
   const allBoards = [
     ...(boardsData?.privateTags.map(tag => ({ 
@@ -85,7 +91,13 @@ export default function Dashboard() {
       {/* Welcome Message */}
       <div className="text-left py-8">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-light text-gray-800">
-          {firstName ? `Hi ${firstName}, welcome to your Context boards.` : "Welcome to your Context boards."}
+          {firstName ? (
+            <>
+              Hi {firstName}, {affirmation?.text || "welcome to your Context boards."}
+            </>
+          ) : (
+            <>Welcome to your Context boards.</>
+          )}
         </h1>
       </div>
 

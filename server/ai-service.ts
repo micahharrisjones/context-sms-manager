@@ -22,6 +22,39 @@ class AIService {
   }
 
   /**
+   * Generate a short, encouraging affirmation for the user
+   */
+  async generateAffirmation(): Promise<string> {
+    try {
+      this.log("Generating daily affirmation");
+
+      const response = await this.client.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are a supportive assistant who creates short, encouraging affirmations. Generate a brief, positive message that would motivate someone starting their day. Keep it under 10 words and make it uplifting and personal."
+          },
+          {
+            role: "user",
+            content: "Generate a short encouraging affirmation for someone visiting their Context boards dashboard."
+          }
+        ],
+        temperature: 0.8,
+        max_tokens: 50
+      });
+
+      const affirmation = response.choices[0]?.message?.content?.trim() || "you're doing great today!";
+      this.log(`Generated affirmation: "${affirmation}"`);
+      
+      return affirmation;
+    } catch (error) {
+      this.log(`Error generating affirmation: ${error instanceof Error ? error.message : String(error)}`);
+      return "you're doing great today!";
+    }
+  }
+
+  /**
    * Check if a message is asking for a board list and respond conversationally
    */
   async handleBoardListRequest(

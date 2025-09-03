@@ -748,6 +748,17 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Generate daily affirmation
+  app.get("/api/affirmation", requireAuth, async (req, res) => {
+    try {
+      const affirmation = await aiService.generateAffirmation();
+      res.json({ text: affirmation });
+    } catch (error) {
+      log(`Error generating affirmation: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to generate affirmation" });
+    }
+  });
+
   // Convert private board to shared board and invite user
   app.post("/api/private-boards/:boardName/convert-and-invite", requireAuth, async (req, res) => {
     try {
