@@ -177,6 +177,8 @@ export function MessageCard({ message }: MessageCardProps) {
   const [isLoadingMovie, setIsLoadingMovie] = useState(false);
   const [ogData, setOgData] = useState<OpenGraphData | null>(null);
   const [isLoadingOg, setIsLoadingOg] = useState(false);
+  const [twitterOgData, setTwitterOgData] = useState<OpenGraphData | null>(null);
+  const [isLoadingTwitterOg, setIsLoadingTwitterOg] = useState(false);
 
   // Extract hashtags and content separately
   const words = message.content.split(" ");
@@ -327,6 +329,37 @@ export function MessageCard({ message }: MessageCardProps) {
     fetchOpenGraphData();
   }, [previewUrl]);
 
+  // Fetch Open Graph data for Twitter URLs to get post titles
+  useEffect(() => {
+    async function fetchTwitterOpenGraphData() {
+      if (!twitterPostId) {
+        setTwitterOgData(null);
+        return;
+      }
+      
+      const twitterUrl = urls.find(url => getTwitterPostId(url));
+      if (!twitterUrl) return;
+      
+      setIsLoadingTwitterOg(true);
+      
+      try {
+        const response = await fetch(`/api/og-preview?url=${encodeURIComponent(twitterUrl)}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.skip && !data.error) {
+            setTwitterOgData(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching Twitter Open Graph data:', error);
+      } finally {
+        setIsLoadingTwitterOg(false);
+      }
+    }
+
+    fetchTwitterOpenGraphData();
+  }, [twitterPostId, urls]);
+
   return (
     <>
       <Card className="w-full h-fit relative group">
@@ -476,7 +509,7 @@ export function MessageCard({ message }: MessageCardProps) {
               rel="noopener noreferrer"
               className="block rounded-lg border border-[#e3cac0] bg-gradient-to-br from-blue-50 to-sky-50 p-4 hover:shadow-lg transition-shadow"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-sky-500 rounded-full flex items-center justify-center flex-shrink-0">
                     <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -484,7 +517,7 @@ export function MessageCard({ message }: MessageCardProps) {
                     </svg>
                   </div>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-medium text-gray-900 text-sm">View on X</span>
+                    <span className="font-medium text-gray-900 text-sm">X Post</span>
                     <div className="w-1.5 h-1.5 bg-sky-400 rounded-full flex-shrink-0"></div>
                   </div>
                 </div>
@@ -492,7 +525,22 @@ export function MessageCard({ message }: MessageCardProps) {
                   <ExternalLink className="h-4 w-4 text-gray-400" />
                 </div>
               </div>
-              <p className="text-gray-600 text-sm mt-2">
+              
+              {/* Show post title if available */}
+              {twitterOgData?.title && (
+                <h3 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
+                  {twitterOgData.title}
+                </h3>
+              )}
+              
+              {/* Show description if available */}
+              {twitterOgData?.description && (
+                <p className="text-gray-700 text-sm mb-3 line-clamp-3">
+                  {twitterOgData.description}
+                </p>
+              )}
+              
+              <p className="text-gray-600 text-sm">
                 x.com
               </p>
             </a>
