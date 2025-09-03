@@ -28,7 +28,7 @@ export default function Dashboard() {
   const { profile } = useProfile();
   
   const { data: boardsData, isLoading } = useQuery<BoardsData>({
-    queryKey: ["/api/tags"],
+    queryKey: ["/api/tags-with-counts"],
     select: (data: any) => {
       // Split the response into private tags and shared boards
       const privateTags: Tag[] = [];
@@ -36,9 +36,9 @@ export default function Dashboard() {
       
       if (Array.isArray(data)) {
         data.forEach(item => {
-          if (typeof item === 'string') {
-            // It's a private tag
-            privateTags.push({ tag: item, count: 0 });
+          if (typeof item === 'object' && item.tag && typeof item.count === 'number') {
+            // It's a private tag with count
+            privateTags.push({ tag: item.tag, count: item.count });
           } else if (item.id && item.name) {
             // It's a shared board
             sharedBoards.push(item);
@@ -68,7 +68,8 @@ export default function Dashboard() {
       name: board.name, 
       type: 'shared' as const, 
       href: `/shared/${board.name}`,
-      role: board.role 
+      role: board.role,
+      count: 0 // TODO: Add shared board counts if needed
     })) || [])
   ];
 
@@ -110,23 +111,24 @@ export default function Dashboard() {
           {allBoards.map((board) => (
             <Link key={`${board.type}-${board.name}`} href={board.href}>
               <Card className={`cursor-pointer ${boardCardStyle}`}>
-                <CardContent className="p-6">
+                <CardContent className="p-6 relative">
                   <div className="space-y-2">
                     <h3 className="font-medium text-gray-800 text-lg">
                       {board.type === 'private' ? `#${board.name}` : board.name}
                     </h3>
-                    <div className="flex items-center justify-between">
+                    <div>
                       <span className="text-sm text-gray-600">
                         {board.type === 'private' ? 'Private Board' : 
                          board.type === 'shared' ? 
                            (board.role === 'owner' ? 'Shared Board (Owner)' : 'Shared Board') : ''}
                       </span>
-                      {board.type === 'private' && 'count' in board && board.count > 0 && (
-                        <span className="text-xs bg-white/80 px-2 py-1 rounded-full text-gray-600">
-                          {board.count}
-                        </span>
-                      )}
                     </div>
+                  </div>
+                  {/* Large count number in bottom right */}
+                  <div className="absolute bottom-4 right-4">
+                    <span className="text-4xl font-light text-gray-700">
+                      {'count' in board ? board.count : 0}
+                    </span>
                   </div>
                 </CardContent>
               </Card>

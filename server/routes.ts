@@ -736,6 +736,34 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get tags with message counts for dashboard
+  app.get("/api/tags-with-counts", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      let tags = await storage.getTags(userId);
+      
+      // Filter out admin-only tags if user is not an admin
+      const userIsAdmin = await isUserAdmin(userId);
+      if (!userIsAdmin) {
+        tags = tags.filter(tag => !isAdminOnlyHashtag(tag));
+      }
+      
+      // Get message counts for each tag
+      const tagsWithCounts = await Promise.all(
+        tags.map(async (tag) => {
+          const messages = await storage.getMessagesByTag(userId, tag);
+          return { tag, count: messages.length };
+        })
+      );
+      
+      log(`Retrieved ${tagsWithCounts.length} tags with counts for user ${userId} (admin: ${userIsAdmin})`);
+      res.json(tagsWithCounts);
+    } catch (error) {
+      log(`Error retrieving tags with counts: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to retrieve tags with counts" });
+    }
+  });
+
   // Check if current user is admin
   app.get("/api/auth/admin-status", requireAuth, async (req, res) => {
     try {
