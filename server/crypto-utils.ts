@@ -56,6 +56,11 @@ export function decryptPII(encryptedText: string): string {
     const authTag = Buffer.from(authTagHex, 'hex');
     const key = deriveKey(ENCRYPTION_KEY, salt);
     
+    // Validate auth tag length for GCM mode (should be 16 bytes)
+    if (authTag.length !== 16) {
+      throw new Error('Invalid authentication tag length');
+    }
+    
     const decipher = createDecipheriv(ALGORITHM, key, iv);
     decipher.setAuthTag(authTag);
     
