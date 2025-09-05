@@ -591,7 +591,7 @@ export function MessageCard({ message }: MessageCardProps) {
             {/* Check if this is a plain text message (no rich embeds) */}
             {!instagramPostId && !twitterPostId && !redditPostInfo && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <div className="w-8 h-8 bg-[#e3cac0] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                   <MessageSquare className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
