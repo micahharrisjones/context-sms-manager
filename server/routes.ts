@@ -11,6 +11,7 @@ import { twilioService } from "./twilio-service";
 import { tmdbService } from "./tmdb-service";
 import { openGraphService } from "./og-service";
 import aiService from "./ai-service";
+import { OnboardingService } from "./onboarding-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -440,6 +441,9 @@ const processSMSWebhook = async (body: unknown) => {
 export async function registerRoutes(app: Express) {
   const httpServer = createServer(app);
   const wsManager = new WebSocketManager(httpServer);
+  
+  // Initialize onboarding service
+  const onboardingService = new OnboardingService(twilioService, storage);
 
   // Add request logging middleware
   app.use(logRequest);
@@ -1777,7 +1781,7 @@ export async function registerRoutes(app: Express) {
 
       // Check if this is a new user for welcome message
       const isNewUser = (smsData as any).isNewUser;
-      log(`📨 WELCOME MESSAGE CHECK: isNewUser=${isNewUser}, senderId=${smsData.senderId}`);
+      log(`📨 ONBOARDING CHECK: isNewUser=${isNewUser}, senderId=${smsData.senderId}`);
       
       log("Parsing smsData with insertMessageSchema");
       const message = insertMessageSchema.parse(smsData);
@@ -1787,30 +1791,28 @@ export async function registerRoutes(app: Express) {
       const created = await storage.createMessage(message);
       log("Message creation complete");
 
-      // Send welcome message to new users (skip problematic numbers)
-      if (isNewUser && smsData.senderId) {
+      // Handle onboarding flow for new and existing users
+      if (smsData.userId) {
         try {
-          // Skip SMS for test numbers containing 555 or other problematic patterns
-          const digitsOnly = smsData.senderId.replace(/\D/g, '');
-          const usNumber = digitsOnly.startsWith('1') && digitsOnly.length === 11 ? digitsOnly.slice(1) : digitsOnly;
+          const wasHandledByOnboarding = await onboardingService.handleOnboardingProgress(
+            smsData.userId, 
+            smsData.content, 
+            smsData.tags
+          );
           
-          // Check for various problematic patterns
-          const isProblematic = usNumber.includes('555') || 
-                                /^(800|888|877|866|855|844|833|822|880|881|882|883|884|885|886|887|889)/.test(usNumber) ||
-                                /^(900|976|411|511|611|711|811|911)/.test(usNumber);
-          
-          if (isProblematic) {
-            log(`Skipping welcome SMS for potentially unreachable number: ${smsData.senderId}`);
+          if (wasHandledByOnboarding) {
+            log(`Onboarding progress updated for user ${smsData.userId}`);
           } else {
-            log(`Sending welcome SMS to new user ${smsData.senderId}`);
-            // Send welcome message with proper error handling
-            twilioService.sendWelcomeMessage(smsData.senderId).catch(error => {
-              log(`Welcome message delivery failed for ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
-            });
+            log(`User ${smsData.userId} not in onboarding flow or already completed`);
           }
         } catch (error) {
-          log(`Error sending welcome SMS to ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
+          log(`Error processing onboarding: ${error instanceof Error ? error.message : String(error)}`);
         }
+      }
+
+      // New users automatically get onboarding messages through onboardingService.handleOnboardingProgress above
+      if (isNewUser) {
+        log(`New user ${smsData.senderId} - onboarding flow initiated`);
       }
 
       log("Successfully created message:", JSON.stringify(created, null, 2));

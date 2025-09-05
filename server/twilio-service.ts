@@ -127,22 +127,10 @@ class TwilioService {
   }
 
   async sendWelcomeMessage(phoneNumber: string): Promise<void> {
-    // Clean phone number for URL (remove any formatting)
-    const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
-    const autoLoginUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
-    
-    const welcomeMessage = `🎉 Welcome to Context! Your account is ready.
+    // Step 1 of guided onboarding flow
+    const welcomeMessage = `👋 Welcome to Context! This is your space to save any text by sending it here.
 
-Here's how to get started:
-
-1️⃣ Text anything to this number to save it
-2️⃣ Add #hashtags to organize (like #recipes or #ideas)  
-3️⃣ No hashtag? Our AI categorizes automatically
-4️⃣ Access your dashboard: ${autoLoginUrl}
-
-Try texting: "Meeting notes #work" or "Grocery list #shopping"
-
-Save anything from anywhere, with just a text! 📱`;
+Let's try it — send me a text right now, anything you want.`;
 
     try {
       log(`📧 SENDING WELCOME MESSAGE to ${phoneNumber}`);

@@ -11,6 +11,8 @@ export const users = pgTable("users", {
   firstName: varchar("first_name", { length: 50 }),
   lastName: varchar("last_name", { length: 50 }),
   avatarUrl: text("avatar_url"), // For profile pictures
+  onboardingStep: varchar("onboarding_step", { length: 20 }).default("welcome_sent"), // Track onboarding progress
+  onboardingCompletedAt: timestamp("onboarding_completed_at"), // When they completed onboarding
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
 });

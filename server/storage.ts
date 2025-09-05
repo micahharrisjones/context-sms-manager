@@ -102,6 +102,10 @@ export interface IStorage {
     totalBoardMemberships: number;
     totalSharedBoards: number;
   }>;
+
+  // Onboarding methods
+  updateUserOnboardingStep(userId: number, step: string): Promise<void>;
+  markOnboardingCompleted(userId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1394,6 +1398,42 @@ export class DatabaseStorage implements IStorage {
       log(`Deleted notification preference for user ${userId} and board ${boardId}`);
     } catch (error) {
       log("Error deleting notification preference:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  // Onboarding methods
+  async updateUserOnboardingStep(userId: number, step: string): Promise<void> {
+    try {
+      log(`Updating onboarding step for user ${userId} to ${step}`);
+      
+      await db
+        .update(users)
+        .set({ onboardingStep: step })
+        .where(eq(users.id, userId));
+      
+      log(`Updated onboarding step for user ${userId} to ${step}`);
+    } catch (error) {
+      log("Error updating onboarding step:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async markOnboardingCompleted(userId: number): Promise<void> {
+    try {
+      log(`Marking onboarding completed for user ${userId}`);
+      
+      await db
+        .update(users)
+        .set({ 
+          onboardingStep: "completed",
+          onboardingCompletedAt: new Date()
+        })
+        .where(eq(users.id, userId));
+      
+      log(`Marked onboarding completed for user ${userId}`);
+    } catch (error) {
+      log("Error marking onboarding completed:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
