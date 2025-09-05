@@ -57,9 +57,9 @@ export function Sidebar({ onClose }: SidebarProps) {
   };
 
   return (
-    <div className="w-full lg:w-64 h-full bg-[#fff3ea] border-r border-[#e3cac0] flex flex-col">
+    <div className="w-full lg:w-64 h-full lg:h-screen bg-[#fff3ea] border-r border-[#e3cac0] flex flex-col lg:overflow-hidden">
       {/* Logo Section */}
-      <div className="p-6 border-b border-[#e3cac0] flex justify-between items-center">
+      <div className="p-6 border-b border-[#e3cac0] flex justify-between items-center flex-shrink-0">
         <Link href="/">
           <div className="flex items-center gap-2">
             <Logo className="w-auto h-8 lg:h-10" />
@@ -78,8 +78,8 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="p-4">
+      <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden">
+        <div className="p-4 flex-shrink-0">
           {/* All Texts Button */}
           <div className={cn(
             "border border-[#e3cac0] rounded-lg transition-colors",
@@ -105,7 +105,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           </div>
         </div>
       {/* Scrollable Tags and Shared Boards */}
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="flex-1 min-h-0 lg:overflow-auto">
         {/* Private Boards Section */}
         <div className="px-4 pt-2 pb-0">
           <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
@@ -311,48 +311,52 @@ export function Sidebar({ onClose }: SidebarProps) {
           <AdminButton onClose={onClose} location={location} />
           
           {/* Account Management Buttons */}
-          <Button
-            variant="ghost"
-            onClick={() => setDeleteAccountModalOpen(true)}
-            className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Delete Account
-          </Button>
-          
-          {/* Profile and Settings Buttons */}
-          <Link href="/profile">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-[#e3cac0]/20"
-              onClick={onClose}
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Edit Profile
-            </Button>
-          </Link>
-          
-          <Link href="/notifications">
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-[#e3cac0]/20"
-              onClick={onClose}
-            >
-              <Bell className="h-4 w-4 mr-2" />
-              Notification Settings
-            </Button>
-          </Link>
-          
-          <Button
-            variant="ghost"
-            onClick={logout}
-            className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-[#e3cac0]/20"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
         </div>
       </ScrollArea>
+      
+      {/* Fixed bottom section with profile, settings and logout */}
+      <div className="flex-shrink-0 p-4 border-t border-[#e3cac0] space-y-1">
+        <Button
+          variant="ghost"
+          onClick={() => setDeleteAccountModalOpen(true)}
+          className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
+        >
+          <Trash2 className="h-4 w-4 mr-2" />
+          Delete Account
+        </Button>
+        
+        {/* Profile and Settings Buttons */}
+        <Link href="/profile">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-[#e3cac0]/20"
+            onClick={onClose}
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Edit Profile
+          </Button>
+        </Link>
+        
+        <Link href="/notifications">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-[#e3cac0]/20"
+            onClick={onClose}
+          >
+            <Bell className="h-4 w-4 mr-2" />
+            Notification Settings
+          </Button>
+        </Link>
+        
+        <Button
+          variant="ghost"
+          onClick={logout}
+          className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-[#e3cac0]/20"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
+      </div>
       </div>
       
       <DeleteTagModal

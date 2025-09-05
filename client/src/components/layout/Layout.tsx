@@ -54,10 +54,10 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Sidebar with mobile overlay */}
       <div className={`
-        fixed inset-0 lg:relative
+        fixed inset-0 lg:relative lg:h-screen
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         transition-transform duration-200 ease-in-out
-        lg:w-64 z-40
+        lg:w-64 z-40 lg:flex-shrink-0 lg:overflow-hidden
       `}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
