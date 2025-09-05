@@ -162,7 +162,8 @@ Save anything from anywhere, with just a text! 📱`;
     boardName: string, 
     messagePreview: string
   ): Promise<void> {
-    const notificationText = `🔔 Someone added to your shared board #${boardName}\n\n"${messagePreview.slice(0, 100)}${messagePreview.length > 100 ? '...' : ''}"\n\nReply STOP to unsubscribe`;
+    const boardUrl = `https://contxt.life/board/${encodeURIComponent(boardName)}`;
+    const notificationText = `🔔 Someone added to your shared board #${boardName}\n\n"${messagePreview.slice(0, 100)}${messagePreview.length > 100 ? '...' : ''}"\n\nView: ${boardUrl}\n\nReply STOP to unsubscribe`;
 
     const sendPromises = recipientPhoneNumbers.map(phoneNumber => 
       this.sendSMS(phoneNumber, notificationText)
