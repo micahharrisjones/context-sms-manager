@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Link } from "wouter";
-import { X, Edit, ExternalLink, User } from "lucide-react";
+import { X, Edit, ExternalLink, User, MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect } from "react";
 import { DeleteMessageModal } from "./DeleteMessageModal";
@@ -587,9 +587,25 @@ export function MessageCard({ message }: MessageCardProps) {
         
         {/* Message text - Show after embeds, with hashtags and URLs removed */}
         {contentWithoutHashtags.length > 0 && (
-          <p className="text-foreground break-words">
-            {formattedContent}
-          </p>
+          <>
+            {/* Check if this is a plain text message (no rich embeds) */}
+            {!instagramPostId && !twitterPostId && !redditPostInfo && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
+              <div className="flex items-start gap-3 p-4 border border-[#e3cac0] rounded-lg bg-gradient-to-br from-slate-50 to-gray-50 hover:shadow-md transition-shadow">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <MessageSquare className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-foreground break-words leading-relaxed">
+                    {formattedContent}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-foreground break-words">
+                {formattedContent}
+              </p>
+            )}
+          </>
         )}
         
         {facebookPostId && (
