@@ -223,7 +223,9 @@ const processSMSWebhook = async (body: unknown) => {
       // This allows people to start using Context without explicit signup
       user = await storage.createUser({
         phoneNumber: senderId,
-        displayName: `User ${senderId.slice(-4)}`
+        displayName: `User ${senderId.slice(-4)}`,
+        firstName: `User`,
+        lastName: senderId.slice(-4) // Use last 4 digits as surname to avoid profile setup
       });
       isNewUser = true;
       log(`🆕 NEW USER CREATED: Account created for phone ${senderId} - User ID: ${user.id}`);
