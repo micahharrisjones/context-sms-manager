@@ -1326,16 +1326,6 @@ export async function registerRoutes(app: Express) {
   });
 
   // Seed onboarding messages endpoint (for production deployment)
-  app.post("/api/admin/seed-onboarding", requireAdmin, async (req, res) => {
-    try {
-      const { seedOnboardingMessages } = await import('./seed-onboarding');
-      await seedOnboardingMessages();
-      res.json({ message: "Onboarding messages seeded successfully" });
-    } catch (error) {
-      log("Error seeding onboarding messages:", error instanceof Error ? error.message : String(error));
-      res.status(500).json({ message: "Failed to seed onboarding messages" });
-    }
-  });
 
   // Shared boards endpoints
   // Get shared boards for the current user (boards they created + boards they're members of)

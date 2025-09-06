@@ -191,28 +191,6 @@ export function AdminPage() {
     },
   });
 
-  // Seed onboarding messages mutation
-  const seedOnboardingMessagesMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('/api/admin/seed-onboarding', {
-        method: 'POST'
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/admin/onboarding-messages'] });
-      toast({
-        title: "Messages Seeded",
-        description: "Onboarding messages have been seeded successfully.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Seeding Failed",
-        description: error.message || "Failed to seed onboarding messages",
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleDeleteUser = (userId: number) => {
     deleteUserMutation.mutate(userId);
@@ -581,18 +559,9 @@ export function AdminPage() {
                 Onboarding Messages
               </CardTitle>
               <CardDescription>
-                Customize the SMS messages sent during the onboarding flow for new users.
+                View onboarding messages used during the SMS flow for new users. Messages are now built into the application.
               </CardDescription>
             </div>
-            {(!onboardingMessages || onboardingMessages.length === 0) && (
-              <Button
-                onClick={() => seedOnboardingMessagesMutation.mutate()}
-                disabled={seedOnboardingMessagesMutation.isPending}
-                className="bg-[#ed2024] hover:bg-[#d11d20] text-white"
-              >
-                {seedOnboardingMessagesMutation.isPending ? "Seeding..." : "Seed Messages"}
-              </Button>
-            )}
           </div>
         </CardHeader>
         <CardContent>
