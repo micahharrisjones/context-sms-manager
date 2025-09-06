@@ -191,6 +191,29 @@ export function AdminPage() {
     },
   });
 
+  // Seed onboarding messages mutation
+  const seedOnboardingMessagesMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/seed-onboarding', {
+        method: 'POST'
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/onboarding-messages'] });
+      toast({
+        title: "Messages Seeded",
+        description: "Onboarding messages have been seeded successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Seeding Failed",
+        description: error.message || "Failed to seed onboarding messages",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteUser = (userId: number) => {
     deleteUserMutation.mutate(userId);
   };
@@ -551,13 +574,26 @@ export function AdminPage() {
       {/* Onboarding Messages Management */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5" />
-            Onboarding Messages
-          </CardTitle>
-          <CardDescription>
-            Customize the SMS messages sent during the onboarding flow for new users.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="h-5 w-5" />
+                Onboarding Messages
+              </CardTitle>
+              <CardDescription>
+                Customize the SMS messages sent during the onboarding flow for new users.
+              </CardDescription>
+            </div>
+            {(!onboardingMessages || onboardingMessages.length === 0) && (
+              <Button
+                onClick={() => seedOnboardingMessagesMutation.mutate()}
+                disabled={seedOnboardingMessagesMutation.isPending}
+                className="bg-[#ed2024] hover:bg-[#d11d20] text-white"
+              >
+                {seedOnboardingMessagesMutation.isPending ? "Seeding..." : "Seed Messages"}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {onboardingLoading ? (
