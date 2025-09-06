@@ -57,33 +57,96 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  try {
+    log("Starting application...");
+    
+    // Register routes and get the server
+    const server = await registerRoutes(app);
+    log("Routes registered successfully");
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    // Enhanced error handling middleware
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
-  });
+      log(`Error handled: ${status} - ${message}`);
+      
+      // Don't throw the error in production to prevent crashes
+      if (app.get("env") === "development") {
+        log("Development mode: throwing error for debugging");
+        throw err;
+      } else {
+        log("Production mode: error logged but not thrown to prevent crash");
+      }
+      
+      res.status(status).json({ message });
+    });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
+    // Setup Vite in development or serve static files in production
+    if (app.get("env") === "development") {
+      log("Setting up Vite for development...");
+      await setupVite(app, server);
+      log("Vite setup complete");
+    } else {
+      log("Setting up static file serving for production...");
+      serveStatic(app);
+      log("Static file serving setup complete");
+    }
+
+    // ALWAYS serve the app on port 5000
+    // this serves both the API and the client
+    const port = 5000;
+    const host = "0.0.0.0";
+    
+    log(`Attempting to start server on ${host}:${port}...`);
+    
+    server.listen({
+      port,
+      host,
+      reusePort: true,
+    }, () => {
+      log(`✓ Server successfully started and listening on ${host}:${port}`);
+      log(`✓ Environment: ${app.get("env") || "production"}`);
+      log(`✓ Health check available at: http://${host}:${port}/api/health`);
+    });
+
+    // Handle server errors
+    server.on('error', (error: any) => {
+      log(`Server error: ${error.message}`);
+      if (error.code === 'EADDRINUSE') {
+        log(`Port ${port} is already in use. Retrying in 5 seconds...`);
+        setTimeout(() => {
+          server.close(() => {
+            server.listen({ port, host, reusePort: true });
+          });
+        }, 5000);
+      }
+    });
+
+  } catch (error) {
+    log(`Critical startup error: ${error instanceof Error ? error.message : String(error)}`);
+    log("Stack trace:", error instanceof Error ? error.stack : "No stack trace available");
+    
+    // In production, attempt graceful degradation instead of immediate exit
+    if (process.env.NODE_ENV === "production") {
+      log("Production mode: attempting to continue with limited functionality...");
+      
+      // Set up a minimal health check server
+      app.get('/api/health', (req, res) => {
+        res.status(503).json({ 
+          status: "DEGRADED", 
+          error: "Startup error occurred",
+          timestamp: new Date().toISOString()
+        });
+      });
+      
+      const port = 5000;
+      app.listen(port, "0.0.0.0", () => {
+        log(`Minimal server started on port ${port} with degraded functionality`);
+      });
+    } else {
+      log("Development mode: exiting due to startup error");
+      process.exit(1);
+    }
   }
-
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client
-  const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
 })();

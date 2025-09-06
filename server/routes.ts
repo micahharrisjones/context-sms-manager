@@ -453,6 +453,30 @@ export async function registerRoutes(app: Express) {
   // Add database connection check middleware to all API routes
   app.use("/api", checkDatabaseConnection);
 
+  // Health check endpoint for deployment verification
+  app.get("/api/health", async (_req, res) => {
+    try {
+      // Check database connection
+      const client = await pool.connect();
+      client.release();
+      
+      res.status(200).json({ 
+        status: "OK",
+        timestamp: new Date().toISOString(),
+        database: "connected",
+        uptime: process.uptime()
+      });
+    } catch (error) {
+      log("Health check failed:", error instanceof Error ? error.message : String(error));
+      res.status(503).json({ 
+        status: "ERROR",
+        timestamp: new Date().toISOString(),
+        database: "disconnected",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
   // Auto-login endpoint for new users (from welcome SMS)
   app.get("/auto-login/:phoneNumber", async (req, res) => {
     try {
