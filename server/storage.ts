@@ -722,6 +722,8 @@ export class DatabaseStorage implements IStorage {
             firstName: users.firstName,
             lastName: users.lastName,
             avatarUrl: users.avatarUrl,
+            onboardingStep: users.onboardingStep,
+            onboardingCompletedAt: users.onboardingCompletedAt,
             createdAt: users.createdAt,
             lastLoginAt: users.lastLoginAt,
           },
@@ -1290,6 +1292,8 @@ export class DatabaseStorage implements IStorage {
           firstName: users.firstName,
           lastName: users.lastName,
           avatarUrl: users.avatarUrl,
+          onboardingStep: users.onboardingStep,
+          onboardingCompletedAt: users.onboardingCompletedAt,
           createdAt: users.createdAt,
           lastLoginAt: users.lastLoginAt,
         })
