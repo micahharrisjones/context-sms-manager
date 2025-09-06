@@ -120,6 +120,17 @@ export const notificationPreferencesRelations = relations(notificationPreference
   }),
 }));
 
+// Onboarding messages table - configurable SMS messages for onboarding flow
+export const onboardingMessages = pgTable("onboarding_messages", {
+  id: serial("id").primaryKey(),
+  step: varchar("step", { length: 20 }).notNull().unique(), // welcome, first_text, first_hashtag, first_link, completion
+  title: varchar("title", { length: 100 }).notNull(), // Display title for admin UI
+  content: text("content").notNull(), // The actual SMS message content
+  isActive: varchar("is_active", { length: 5 }).default("true").notNull(), // "true" or "false"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Schema exports
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -170,6 +181,18 @@ export const updateNotificationPreferenceSchema = createInsertSchema(notificatio
   smsEnabled: z.enum(["true", "false"]),
 });
 
+export const insertOnboardingMessageSchema = createInsertSchema(onboardingMessages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateOnboardingMessageSchema = createInsertSchema(onboardingMessages).pick({
+  title: true,
+  content: true,
+  isActive: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -191,3 +214,6 @@ export type InsertBoardMembership = z.infer<typeof insertBoardMembershipSchema>;
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
 export type InsertNotificationPreference = z.infer<typeof insertNotificationPreferenceSchema>;
 export type UpdateNotificationPreference = z.infer<typeof updateNotificationPreferenceSchema>;
+export type OnboardingMessage = typeof onboardingMessages.$inferSelect;
+export type InsertOnboardingMessage = z.infer<typeof insertOnboardingMessageSchema>;
+export type UpdateOnboardingMessage = z.infer<typeof updateOnboardingMessageSchema>;

@@ -1267,6 +1267,40 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Admin onboarding messages endpoints
+  app.get("/api/admin/onboarding-messages", requireAdmin, async (req, res) => {
+    try {
+      const messages = await storage.getOnboardingMessages();
+      res.json(messages);
+    } catch (error) {
+      log("Error fetching onboarding messages:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ message: "Failed to fetch onboarding messages" });
+    }
+  });
+
+  app.put("/api/admin/onboarding-messages/:step", requireAdmin, async (req, res) => {
+    try {
+      const { step } = req.params;
+      const { title, content, isActive } = req.body;
+
+      // Validate the request body
+      if (!title || !content || typeof isActive !== 'string') {
+        return res.status(400).json({ message: "Title, content, and isActive are required" });
+      }
+
+      const updated = await storage.updateOnboardingMessage(step, {
+        title,
+        content,
+        isActive
+      });
+
+      res.json(updated);
+    } catch (error) {
+      log("Error updating onboarding message:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ message: "Failed to update onboarding message" });
+    }
+  });
+
   // Shared boards endpoints
   // Get shared boards for the current user (boards they created + boards they're members of)
   app.get("/api/shared-boards", requireAuth, async (req, res) => {
@@ -1810,7 +1844,7 @@ export async function registerRoutes(app: Express) {
           } else {
             log(`Sending welcome SMS to new user ${smsData.senderId}`);
             // Send welcome message with proper error handling
-            twilioService.sendWelcomeMessage(smsData.senderId).catch(error => {
+            twilioService.sendWelcomeMessage(smsData.senderId, storage).catch(error => {
               log(`Welcome message delivery failed for ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
             });
           }
@@ -1983,7 +2017,7 @@ export async function registerRoutes(app: Express) {
   app.post('/api/test-welcome', async (req, res) => {
     try {
       const { phoneNumber } = req.body as { phoneNumber: string };
-      await twilioService.sendWelcomeMessage(phoneNumber);
+      await twilioService.sendWelcomeMessage(phoneNumber, storage);
       res.json({ success: true, message: 'Welcome message sent' });
     } catch (error) {
       log('Error in test-welcome endpoint:', error instanceof Error ? error.message : String(error));

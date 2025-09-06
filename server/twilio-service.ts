@@ -126,11 +126,23 @@ class TwilioService {
     }
   }
 
-  async sendWelcomeMessage(phoneNumber: string): Promise<void> {
-    // Step 1 of guided onboarding flow
-    const welcomeMessage = `👋 Welcome to Context! This is your space to save any text by sending it here.
+  async sendWelcomeMessage(phoneNumber: string, storage?: any): Promise<void> {
+    let welcomeMessage = `👋 Welcome to Context! This is your space to save any text by sending it here.
 
 Let's try it — send me a text right now, anything you want.`;
+
+    // Try to get welcome message from database if storage is provided
+    if (storage) {
+      try {
+        const messageData = await storage.getOnboardingMessage("welcome");
+        if (messageData && messageData.isActive === "true") {
+          welcomeMessage = messageData.content;
+        }
+      } catch (error) {
+        log(`Error fetching welcome message from database: ${error instanceof Error ? error.message : String(error)}`);
+        // Fall back to default message
+      }
+    }
 
     try {
       log(`📧 SENDING WELCOME MESSAGE to ${phoneNumber}`);

@@ -71,13 +71,16 @@ export class OnboardingService {
       return true;
     }
 
-    // Step 2: First text received → Trust & Tease
-    const responseMessage = `✅ Saved! This text is now in your private space — only you can see it.
+    // Get the message from database
+    const messageData = await this.storage.getOnboardingMessage("first_text");
+    if (!messageData || messageData.isActive !== "true") {
+      log(`Onboarding message for first_text not found or inactive`);
+      // Skip this step but update progress
+      await this.storage.updateUserOnboardingStep(userId, "first_text");
+      return true;
+    }
 
-Next, let's organize. Try sending a text with a hashtag, like:
-#quotes To be, or not to be`;
-
-    await this.twilioService.sendSMS(phoneNumber, responseMessage);
+    await this.twilioService.sendSMS(phoneNumber, messageData.content);
     await this.storage.updateUserOnboardingStep(userId, "first_text");
     
     log(`Sent step 2 onboarding message to user ${userId}`);
@@ -96,14 +99,19 @@ Next, let's organize. Try sending a text with a hashtag, like:
       return true;
     }
 
-    // Step 3: First hashtag received → Organization Magic
+    // Get the message from database
+    const messageData = await this.storage.getOnboardingMessage("first_hashtag");
+    if (!messageData || messageData.isActive !== "true") {
+      log(`Onboarding message for first_hashtag not found or inactive`);
+      await this.storage.updateUserOnboardingStep(userId, "first_hashtag");
+      return true;
+    }
+
+    // Replace placeholder for hashtag name
     const firstTag = tags[0].charAt(0) === '#' ? tags[0].slice(1) : tags[0];
-    const responseMessage = `✨ Perfect! You just created your first board: ${firstTag}.
-Every time you add #${firstTag} to a text, it'll land there automatically.
+    const personalizedMessage = messageData.content.replace(/\{firstTag\}/g, firstTag);
 
-Now let's try saving a link — maybe a recipe, an Instagram post, or a movie review. Just paste any link here.`;
-
-    await this.twilioService.sendSMS(phoneNumber, responseMessage);
+    await this.twilioService.sendSMS(phoneNumber, personalizedMessage);
     await this.storage.updateUserOnboardingStep(userId, "first_hashtag");
     
     log(`Sent step 3 onboarding message to user ${userId}`);
@@ -124,16 +132,20 @@ Now let's try saving a link — maybe a recipe, an Instagram post, or a movie re
       return true;
     }
 
-    // Step 4: First link received → Dashboard Reveal
+    // Get the message from database
+    const messageData = await this.storage.getOnboardingMessage("first_link");
+    if (!messageData || messageData.isActive !== "true") {
+      log(`Onboarding message for first_link not found or inactive`);
+      await this.storage.updateUserOnboardingStep(userId, "first_link");
+      return true;
+    }
+
+    // Replace placeholder for dashboard URL
     const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
     const dashboardUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
-    
-    const responseMessage = `🔗 Got it — your link's been saved!
-Now let's go see all your texts organized in one place.
+    const personalizedMessage = messageData.content.replace(/\{dashboardUrl\}/g, dashboardUrl);
 
-👉 ${dashboardUrl}`;
-
-    await this.twilioService.sendSMS(phoneNumber, responseMessage);
+    await this.twilioService.sendSMS(phoneNumber, personalizedMessage);
     await this.storage.updateUserOnboardingStep(userId, "first_link");
     
     log(`Sent step 4 onboarding message to user ${userId}`);
@@ -149,14 +161,16 @@ Now let's go see all your texts organized in one place.
       return true;
     }
 
-    // Step 5: Closing & Support
-    const responseMessage = `🎉 You're all set! From now on, just text me anything — links, reminders, ideas — and it'll be saved to your account.
+    // Get the completion message from database
+    const messageData = await this.storage.getOnboardingMessage("completion");
+    if (!messageData || messageData.isActive !== "true") {
+      log(`Onboarding message for completion not found or inactive`);
+      await this.storage.updateUserOnboardingStep(userId, "completed");
+      await this.storage.markOnboardingCompleted(userId);
+      return true;
+    }
 
-If you ever get stuck or have a question, just text #support followed by your question — I'll help you out.
-
-Welcome to Context — your texts, organized.`;
-
-    await this.twilioService.sendSMS(phoneNumber, responseMessage);
+    await this.twilioService.sendSMS(phoneNumber, messageData.content);
     await this.storage.updateUserOnboardingStep(userId, "completed");
     await this.storage.markOnboardingCompleted(userId);
     

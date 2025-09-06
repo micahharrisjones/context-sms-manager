@@ -13,12 +13,15 @@ import {
   type NotificationPreference,
   type InsertNotificationPreference,
   type UpdateNotificationPreference,
+  type OnboardingMessage,
+  type UpdateOnboardingMessage,
   messages, 
   users, 
   authSessions,
   sharedBoards,
   boardMemberships,
-  notificationPreferences
+  notificationPreferences,
+  onboardingMessages
 } from "@shared/schema";
 import { db } from "./db";
 import { desc, eq, sql, gte, and, inArray, or, like, count, asc } from "drizzle-orm";
@@ -106,6 +109,11 @@ export interface IStorage {
   // Onboarding methods
   updateUserOnboardingStep(userId: number, step: string): Promise<void>;
   markOnboardingCompleted(userId: number): Promise<void>;
+
+  // Onboarding messages management
+  getOnboardingMessages(): Promise<OnboardingMessage[]>;
+  getOnboardingMessage(step: string): Promise<OnboardingMessage | undefined>;
+  updateOnboardingMessage(step: string, data: UpdateOnboardingMessage): Promise<OnboardingMessage>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1434,6 +1442,60 @@ export class DatabaseStorage implements IStorage {
       log(`Marked onboarding completed for user ${userId}`);
     } catch (error) {
       log("Error marking onboarding completed:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  // Onboarding messages management
+  async getOnboardingMessages(): Promise<OnboardingMessage[]> {
+    try {
+      const messages = await db
+        .select()
+        .from(onboardingMessages)
+        .orderBy(asc(onboardingMessages.step));
+      
+      return messages;
+    } catch (error) {
+      log("Error getting onboarding messages:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getOnboardingMessage(step: string): Promise<OnboardingMessage | undefined> {
+    try {
+      const [message] = await db
+        .select()
+        .from(onboardingMessages)
+        .where(eq(onboardingMessages.step, step));
+      
+      return message;
+    } catch (error) {
+      log("Error getting onboarding message:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async updateOnboardingMessage(step: string, data: UpdateOnboardingMessage): Promise<OnboardingMessage> {
+    try {
+      log(`Updating onboarding message for step ${step}`);
+      
+      const [updated] = await db
+        .update(onboardingMessages)
+        .set({
+          ...data,
+          updatedAt: new Date()
+        })
+        .where(eq(onboardingMessages.step, step))
+        .returning();
+      
+      if (!updated) {
+        throw new Error(`Onboarding message for step ${step} not found`);
+      }
+      
+      log(`Updated onboarding message for step ${step}`);
+      return updated;
+    } catch (error) {
+      log("Error updating onboarding message:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

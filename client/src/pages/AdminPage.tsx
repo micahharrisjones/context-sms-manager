@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Trash2, Users, MessageSquare, Hash, Database, Settings, Send, MessageCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Trash2, Users, MessageSquare, Hash, Database, Settings, Send, MessageCircle, Edit3, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -38,12 +41,30 @@ interface FeedbackMessage {
   mediaType?: string;
 }
 
+interface OnboardingMessage {
+  id: number;
+  step: string;
+  title: string;
+  content: string;
+  isActive: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [bulkSmsMessage, setBulkSmsMessage] = useState("");
   const [showBulkSmsModal, setShowBulkSmsModal] = useState(false);
+  
+  // Onboarding message editing state
+  const [editingMessage, setEditingMessage] = useState<OnboardingMessage | null>(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    content: "",
+    isActive: "true"
+  });
 
   // Fetch admin stats
   const { data: stats, error: statsError } = useQuery<AdminStats>({
@@ -60,6 +81,12 @@ export function AdminPage() {
   // Fetch feedback messages
   const { data: feedbackMessages, isLoading: feedbackLoading, error: feedbackError } = useQuery<FeedbackMessage[]>({
     queryKey: ['/api/admin/feedback'],
+    retry: false
+  });
+
+  // Fetch onboarding messages
+  const { data: onboardingMessages, isLoading: onboardingLoading, error: onboardingError } = useQuery<OnboardingMessage[]>({
+    queryKey: ['/api/admin/onboarding-messages'],
     retry: false
   });
 
@@ -138,6 +165,32 @@ export function AdminPage() {
     }
   });
 
+  // Update onboarding message mutation
+  const updateOnboardingMessageMutation = useMutation({
+    mutationFn: async ({ step, data }: { step: string; data: { title: string; content: string; isActive: string } }) => {
+      return apiRequest(`/api/admin/onboarding-messages/${step}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/onboarding-messages'] });
+      toast({
+        title: "Message Updated",
+        description: "Onboarding message has been updated successfully.",
+      });
+      setEditingMessage(null);
+      setEditForm({ title: "", content: "", isActive: "true" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update onboarding message",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDeleteUser = (userId: number) => {
     deleteUserMutation.mutate(userId);
   };
@@ -167,6 +220,29 @@ export function AdminPage() {
 
   const clearSelection = () => {
     setSelectedUsers([]);
+  };
+
+  // Onboarding message handlers
+  const handleEditMessage = (message: OnboardingMessage) => {
+    setEditingMessage(message);
+    setEditForm({
+      title: message.title,
+      content: message.content,
+      isActive: message.isActive
+    });
+  };
+
+  const handleUpdateMessage = () => {
+    if (!editingMessage) return;
+    updateOnboardingMessageMutation.mutate({
+      step: editingMessage.step,
+      data: editForm
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setEditForm({ title: "", content: "", isActive: "true" });
   };
 
   const formatDate = (dateString: string) => {
@@ -471,6 +547,131 @@ export function AdminPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Onboarding Messages Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5" />
+            Onboarding Messages
+          </CardTitle>
+          <CardDescription>
+            Customize the SMS messages sent during the onboarding flow for new users.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {onboardingLoading ? (
+            <div className="animate-pulse space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-20 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          ) : onboardingError ? (
+            <div className="text-center text-muted-foreground py-8">
+              <Smartphone className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <p>Failed to load onboarding messages</p>
+            </div>
+          ) : onboardingMessages && onboardingMessages.length > 0 ? (
+            <div className="space-y-4">
+              {onboardingMessages.map((message) => (
+                <div key={message.id} className="border rounded-lg p-4 bg-[#fff3ea] border-[#e3cac0]">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {message.step.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                      <Badge variant={message.isActive === "true" ? "default" : "secondary"} className="text-xs">
+                        {message.isActive === "true" ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditMessage(message)}
+                      className="h-8 w-8 p-0 hover:bg-[#e3cac0]"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  <div className="mb-2">
+                    <h4 className="text-sm font-medium">{message.title}</h4>
+                  </div>
+                  <div className="text-sm bg-white p-3 rounded border-[#e3cac0] border">
+                    {message.content}
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Last updated: {formatDate(message.updatedAt)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              <Smartphone className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <p>No onboarding messages found</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Edit Onboarding Message Dialog */}
+      <Dialog open={!!editingMessage} onOpenChange={(open) => !open && handleCancelEdit()}>
+        <DialogContent className="bg-[#fff3ea] border-[#e3cac0] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Onboarding Message</DialogTitle>
+            <DialogDescription>
+              Update the {editingMessage?.step.replace('_', ' ')} message for the onboarding flow.
+            </DialogDescription>
+          </DialogHeader>
+          {editingMessage && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="title">Display Title</Label>
+                <Input
+                  id="title"
+                  value={editForm.title}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter a descriptive title..."
+                  className="bg-white border-[#e3cac0]"
+                />
+              </div>
+              <div>
+                <Label htmlFor="content">SMS Message Content</Label>
+                <Textarea
+                  id="content"
+                  value={editForm.content}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, content: e.target.value }))}
+                  placeholder="Enter the SMS message content..."
+                  rows={6}
+                  className="bg-white border-[#e3cac0]"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Character count: {editForm.content.length}/1600
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={editForm.isActive === "true"}
+                  onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, isActive: checked ? "true" : "false" }))}
+                />
+                <Label htmlFor="isActive">Message is active</Label>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelEdit}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleUpdateMessage}
+              disabled={updateOnboardingMessageMutation.isPending || !editForm.title.trim() || !editForm.content.trim()}
+              className="bg-[#ed2024] hover:bg-[#d01d21] text-white"
+            >
+              {updateOnboardingMessageMutation.isPending ? "Updating..." : "Update Message"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Feedback Messages */}
       <Card>
