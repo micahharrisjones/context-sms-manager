@@ -1853,8 +1853,8 @@ export async function registerRoutes(app: Express) {
         }
       }
 
-      // Handle onboarding flow for existing users (new users just got welcome message above)
-      if (smsData.userId && !isNewUser) {
+      // Handle onboarding flow for all users (new users get welcome message above, then start onboarding)
+      if (smsData.userId) {
         try {
           const wasHandledByOnboarding = await onboardingService.handleOnboardingProgress(
             smsData.userId, 
