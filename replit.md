@@ -108,6 +108,11 @@ A robust SMS management platform that enables persistent message storage and sea
 - ✅ **Redesigned homepage from "All Texts" view to a new dashboard with personalized welcome message using user's name**
 - ✅ **Created board grid view with clickable cards in cream background with black borders and dark cream hover states**
 - ✅ **Enhanced dashboard with AI-powered daily affirmations - personalized encouraging messages generated using DeepSeek API**
+- ✅ **Implemented SMS-first onboarding flow - comprehensive guided experience triggered by texting "join" or any message to Context phone number**
+- ✅ **Created step-by-step SMS onboarding: Welcome → First text saved → Hashtag tutorial → Link saving → Dashboard reveal → Completion message**
+- ✅ **Added onboarding state tracking with database fields onboardingStep and onboardingCompletedAt for persistent progress management**
+- ✅ **Fixed profile setup blocking issue - new users no longer forced to complete profile forms before accessing dashboard**
+- ✅ **Enhanced auto-login system for seamless transition from SMS onboarding to web dashboard access**
 
 ## User Preferences
 - **Design**: #ed2024 primary color, Context branding, mobile-responsive
