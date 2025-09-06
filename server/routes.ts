@@ -1791,8 +1791,34 @@ export async function registerRoutes(app: Express) {
       const created = await storage.createMessage(message);
       log("Message creation complete");
 
-      // Handle onboarding flow for new and existing users
-      if (smsData.userId) {
+      // Send initial welcome message to new users first
+      if (isNewUser && smsData.senderId) {
+        try {
+          // Check if this is a problematic number before sending SMS
+          const digitsOnly = smsData.senderId.replace(/\D/g, '');
+          const usNumber = digitsOnly.startsWith('1') && digitsOnly.length === 11 ? digitsOnly.slice(1) : digitsOnly;
+          
+          // Check for various problematic patterns
+          const isProblematic = usNumber.includes('555') || 
+                                /^(800|888|877|866|855|844|833|822|880|881|882|883|884|885|886|887|889)/.test(usNumber) ||
+                                /^(900|976|411|511|611|711|811|911)/.test(usNumber);
+          
+          if (isProblematic) {
+            log(`Skipping welcome SMS for potentially unreachable number: ${smsData.senderId}`);
+          } else {
+            log(`Sending welcome SMS to new user ${smsData.senderId}`);
+            // Send welcome message with proper error handling
+            twilioService.sendWelcomeMessage(smsData.senderId).catch(error => {
+              log(`Welcome message delivery failed for ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
+            });
+          }
+        } catch (error) {
+          log(`Error sending welcome SMS to ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
+        }
+      }
+
+      // Handle onboarding flow for existing users (new users just got welcome message above)
+      if (smsData.userId && !isNewUser) {
         try {
           const wasHandledByOnboarding = await onboardingService.handleOnboardingProgress(
             smsData.userId, 
@@ -1808,11 +1834,6 @@ export async function registerRoutes(app: Express) {
         } catch (error) {
           log(`Error processing onboarding: ${error instanceof Error ? error.message : String(error)}`);
         }
-      }
-
-      // New users automatically get onboarding messages through onboardingService.handleOnboardingProgress above
-      if (isNewUser) {
-        log(`New user ${smsData.senderId} - onboarding flow initiated`);
       }
 
       log("Successfully created message:", JSON.stringify(created, null, 2));
