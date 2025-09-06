@@ -9,6 +9,34 @@ export type OnboardingStep =
   | "dashboard_revealed" // Step 5: Dashboard link sent, closing onboarding
   | "completed";         // Onboarding finished
 
+// Built-in onboarding messages - no database seeding required
+const ONBOARDING_MESSAGES = {
+  welcome: `👋 Welcome to Context! This is your space to save any text by sending it here.
+
+Let's try it — send me a text right now, anything you want.`,
+  
+  first_text: `✅ Saved! This text is now in your private space — only you can see it.
+
+Next, let's organize. Try sending a text with a hashtag, like:
+#quotes To be, or not to be`,
+  
+  first_hashtag: `✨ Perfect! You just created your first board: {firstTag}.
+Every time you add #{firstTag} to a text, it'll land there automatically.
+
+Now let's try saving a link — maybe a recipe, an Instagram post, or a movie review. Just paste any link here.`,
+  
+  first_link: `🔗 Got it — your link's been saved!
+Now let's go see all your texts organized in one place.
+
+👉 {dashboardUrl}`,
+  
+  completion: `🎉 You're all set! From now on, just text me anything — links, reminders, ideas — and it'll be saved to your account.
+
+If you ever get stuck or have a question, just text #support followed by your question — I'll help you out.
+
+Welcome to Context — your texts, organized.`
+} as const;
+
 export class OnboardingService {
   private twilioService: any;
   private storage: any;
@@ -16,6 +44,11 @@ export class OnboardingService {
   constructor(twilioService: any, storage: any) {
     this.twilioService = twilioService;
     this.storage = storage;
+  }
+
+  // Get welcome message for new users
+  getWelcomeMessage(): string {
+    return ONBOARDING_MESSAGES.welcome;
   }
 
   private isValidPhoneNumber(phoneNumber: string): boolean {
@@ -71,16 +104,9 @@ export class OnboardingService {
       return true;
     }
 
-    // Get the message from database
-    const messageData = await this.storage.getOnboardingMessage("first_text");
-    if (!messageData || messageData.isActive !== "true") {
-      log(`Onboarding message for first_text not found or inactive`);
-      // Skip this step but update progress
-      await this.storage.updateUserOnboardingStep(userId, "first_text");
-      return true;
-    }
-
-    await this.twilioService.sendSMS(phoneNumber, messageData.content);
+    // Use built-in message instead of database lookup
+    const message = ONBOARDING_MESSAGES.first_text;
+    await this.twilioService.sendSMS(phoneNumber, message);
     await this.storage.updateUserOnboardingStep(userId, "first_text");
     
     log(`Sent step 2 onboarding message to user ${userId}`);
@@ -99,17 +125,9 @@ export class OnboardingService {
       return true;
     }
 
-    // Get the message from database
-    const messageData = await this.storage.getOnboardingMessage("first_hashtag");
-    if (!messageData || messageData.isActive !== "true") {
-      log(`Onboarding message for first_hashtag not found or inactive`);
-      await this.storage.updateUserOnboardingStep(userId, "first_hashtag");
-      return true;
-    }
-
-    // Replace placeholder for hashtag name
+    // Use built-in message and replace placeholder for hashtag name
     const firstTag = tags[0].charAt(0) === '#' ? tags[0].slice(1) : tags[0];
-    const personalizedMessage = messageData.content.replace(/\{firstTag\}/g, firstTag);
+    const personalizedMessage = ONBOARDING_MESSAGES.first_hashtag.replace(/\{firstTag\}/g, firstTag);
 
     await this.twilioService.sendSMS(phoneNumber, personalizedMessage);
     await this.storage.updateUserOnboardingStep(userId, "first_hashtag");
@@ -132,18 +150,10 @@ export class OnboardingService {
       return true;
     }
 
-    // Get the message from database
-    const messageData = await this.storage.getOnboardingMessage("first_link");
-    if (!messageData || messageData.isActive !== "true") {
-      log(`Onboarding message for first_link not found or inactive`);
-      await this.storage.updateUserOnboardingStep(userId, "first_link");
-      return true;
-    }
-
-    // Replace placeholder for dashboard URL
+    // Use built-in message and replace placeholder for dashboard URL
     const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
     const dashboardUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
-    const personalizedMessage = messageData.content.replace(/\{dashboardUrl\}/g, dashboardUrl);
+    const personalizedMessage = ONBOARDING_MESSAGES.first_link.replace(/\{dashboardUrl\}/g, dashboardUrl);
 
     await this.twilioService.sendSMS(phoneNumber, personalizedMessage);
     await this.storage.updateUserOnboardingStep(userId, "first_link");
@@ -161,16 +171,8 @@ export class OnboardingService {
       return true;
     }
 
-    // Get the completion message from database
-    const messageData = await this.storage.getOnboardingMessage("completion");
-    if (!messageData || messageData.isActive !== "true") {
-      log(`Onboarding message for completion not found or inactive`);
-      await this.storage.updateUserOnboardingStep(userId, "completed");
-      await this.storage.markOnboardingCompleted(userId);
-      return true;
-    }
-
-    await this.twilioService.sendSMS(phoneNumber, messageData.content);
+    // Use built-in completion message
+    await this.twilioService.sendSMS(phoneNumber, ONBOARDING_MESSAGES.completion);
     await this.storage.updateUserOnboardingStep(userId, "completed");
     await this.storage.markOnboardingCompleted(userId);
     
