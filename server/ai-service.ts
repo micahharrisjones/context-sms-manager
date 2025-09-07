@@ -454,9 +454,9 @@ Guidelines:
     try {
       this.log(`Checking for conversational query: "${messageContent.substring(0, 100)}..."`);
 
-      // First, detect if this is a conversational question
+      // First, detect if this is a conversational question or request for help
       const detectionPrompt = `
-Analyze this message to determine if the user is asking a conversational question about Context, their account, usage advice, or general inquiries:
+Analyze this message to determine if the user is asking a question, seeking help, or trying to have a conversation:
 
 Message: "${messageContent}"
 
@@ -464,28 +464,24 @@ Respond with JSON containing:
 {
   "isConversational": true/false,
   "confidence": 0.0-1.0,
-  "queryType": "account_status|usage_tips|features|billing|general_question|compliment|feedback|none"
+  "queryType": "context_specific|general_question|personal_help|creative_help|information_request|compliment|feedback|casual_chat|none"
 }
 
 Examples of conversational messages:
-- "How many messages have I saved?"
-- "What's my account status?"
-- "How should I best organize my content?"
-- "What are the best practices for using Context?"
-- "How much have I used Context?"
-- "Can you tell me about my activity?"
-- "What's the best way to use hashtags?"
-- "This is amazing! I love Context!"
-- "Context is so helpful"
-- "Thank you for this service"
-- "How long have I been using this?"
-- "What features do you have?"
-- "How does pricing work?"
-- "Can I export my data?"
-- "Is my data secure?"
-- "Who can see my messages?"
-- "How do I share with someone?"
-- "What's new with Context?"
+- "What's the weather like?"
+- "Can you help me write an email?"
+- "How do I cook pasta?"
+- "What's 25 * 47?"
+- "Tell me a joke"
+- "I'm feeling stressed, any advice?"
+- "What's the capital of France?"
+- "How many messages have I saved?" (Context-specific)
+- "Can you explain quantum physics?"
+- "Help me brainstorm ideas for my project"
+- "What's my account status?" (Context-specific)
+- "Thanks for your help!"
+- "How's your day going?"
+- "What should I make for dinner?"
 
 Examples that are NOT conversational:
 - "Check out this recipe #cooking"
@@ -493,7 +489,7 @@ Examples that are NOT conversational:
 - "https://example.com #links"
 - Messages with clear content being saved
 - URLs with hashtags
-- Normal organizational content
+- Normal organizational content with hashtags
 `;
 
       const detectionResponse = await this.client.chat.completions.create({
@@ -520,50 +516,35 @@ Examples that are NOT conversational:
         return { isConversational: false };
       }
 
-      // Generate contextual response based on user info and query type
+      // Generate helpful response based on query type
       const responsePrompt = `
 User asked: "${messageContent}"
 Query type: ${detection.queryType}
 
-User context:
+User context (use only if relevant to Context-specific queries):
 - Name: ${userInfo.displayName}
-- Phone: ${userInfo.phoneNumber}
-- User ID: ${userInfo.id}
 - Messages saved: ${userInfo.messageCount || 0}
 - Private boards: ${userInfo.boardCount || 0}
 - Shared boards: ${userInfo.sharedBoardCount || 0}
 - Account age: ${userInfo.createdAt ? this.getAccountAge(userInfo.createdAt) : 'Unknown'}
-- Onboarding status: ${userInfo.onboardingStep === 'completed' ? 'Completed' : 'In progress'}
 
-Generate a helpful, personalized response that:
-- Uses their name when appropriate
-- References their actual usage stats when relevant
-- Provides actionable advice based on their activity level
-- Maintains a warm, supportive tone
-- Keeps response under 160 characters for SMS (can be longer for complex topics)
-- For compliments/feedback, respond graciously and encourage continued use
+You are a helpful AI assistant. Respond naturally and helpfully to the user's question:
 
-Context features to reference when relevant:
-- SMS-based saving and organization
-- Hashtag-based boards (private and shared)
-- AI-powered categorization
-- Social media link previews
-- Dashboard at contxt.life
-- Collaborative shared boards
-- Search functionality
-- Account security and privacy
+- For general questions: Provide accurate, helpful information
+- For personal help/advice: Be supportive and practical
+- For creative requests: Be imaginative and helpful
+- For Context-specific queries: Use their actual stats when relevant
+- For casual chat: Be friendly and engaging
+- For compliments: Respond graciously but briefly
 
-For account status queries, include:
-- How long they've been using Context
-- Number of messages/boards they've created
-- Recent activity insights
-- Suggestions for better organization
-
-For usage tips, provide:
-- Specific hashtag strategies
-- Collaboration tips
-- Organization best practices
-- Feature recommendations based on their usage
+Guidelines:
+- Be conversational and natural, not robotic
+- Keep responses concise for SMS delivery (under 160 chars when possible)
+- Only mention Context features if directly relevant to their question
+- Don't force hashtag suggestions unless they specifically ask about organization
+- Be genuinely helpful with any question they ask
+- Use their name occasionally but don't overdo it
+- For complex topics, provide clear, actionable information
 `;
 
       const responseGeneration = await this.client.chat.completions.create({
@@ -571,15 +552,15 @@ For usage tips, provide:
         messages: [
           {
             role: "system",
-            content: "You are Context's helpful and friendly assistant. Provide personalized, actionable responses using the user's actual data. Be warm but concise for SMS delivery."
+            content: "You are a helpful, knowledgeable AI assistant. Be conversational, accurate, and genuinely helpful. Answer any question the user has - whether it's about Context, general knowledge, personal advice, or creative help. Keep responses concise for SMS but informative."
           },
           {
             role: "user",
             content: responsePrompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 250
+        temperature: 0.8,
+        max_tokens: 200
       });
 
       const response = responseGeneration.choices[0].message.content?.trim();
@@ -587,7 +568,7 @@ For usage tips, provide:
 
       return {
         isConversational: true,
-        response: response || "Thanks for using Context! I'm here to help you save and organize anything via text. Feel free to ask me questions anytime!"
+        response: response || "I'm here to help! Feel free to ask me anything you'd like to know."
       };
 
     } catch (error) {
