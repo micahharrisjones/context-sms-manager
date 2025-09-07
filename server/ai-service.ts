@@ -544,22 +544,20 @@ Respond with JSON containing:
 }
 
 Examples of appropriate conversational messages:
-- "What's the weather like?" (simple factual question)
-- "What's 25 * 47?" (quick calculation)
-- "Tell me a joke" (brief entertainment)
-- "What's the capital of France?" (simple fact)
+- "What should I make for dinner?" (when they have saved recipes)
+- "Tell me about my politics stuff" (when they have saved political content)
 - "How many messages have I saved?" (Context-specific)
 - "What's my account status?" (Context-specific)
-- "Thanks for your help!" (acknowledgment)
-- "How's your day going?" (casual greeting)
-- "Quick dinner ideas?" (brief help)
+- "Thanks!" (brief acknowledgment)
+- "What's the recipe for that pasta?" (specific content question)
 
-Examples requiring gentle redirection:
-- "Can you help me write a full business plan?" (too complex)
-- "Let's have a long philosophical discussion" (extended conversation)
-- "Help me debug my code for 30 minutes" (extended technical support)
-- "Be my therapist and solve my life problems" (inappropriate scope)
-- "Write me a full essay about history" (too extensive)
+Examples that should NOT trigger conversational AI:
+- "What's the weather?" (general questions not related to saved content)
+- "Tell me a joke" (entertainment requests)
+- "How do I cook pasta?" (general how-to questions)
+- "What's 25 * 47?" (math questions)
+- "Can you help me write something?" (writing assistance)
+- Most questions that aren't about their saved Context content
 
 Examples that are NOT conversational:
 - "Check out this recipe #cooking"
@@ -590,7 +588,7 @@ Examples that are NOT conversational:
       const detection = JSON.parse(detectionResponse.choices[0].message.content || "{}");
       this.log(`Conversational detection result:`, detection);
 
-      if (!detection.isConversational || detection.confidence < 0.7) {
+      if (!detection.isConversational || detection.confidence < 0.85) {
         return { isConversational: false };
       }
 
@@ -617,30 +615,27 @@ ${userContent.messages.length > 0 ?
   ).join('\n') 
   : 'No relevant saved content found - provide general helpful answer'}
 
-You are Context's AI assistant. PRIORITIZE using the user's saved content to provide personalized answers:
+You are Context's assistant. Only respond if you can use their saved content to be genuinely helpful:
 
-- FIRST: Check if their saved content can answer the question (recipes for dinner, articles for topics, etc.)
-- If they have relevant saved content: Reference it specifically and provide answers based on what they've saved
-- For recipe questions: Use their saved recipes and extract ingredients/instructions as needed
-- For topic questions: Reference their saved articles, notes, or links on that topic
-- If no relevant content: Provide brief general help but suggest they save content on this topic
-- For Context-specific queries: Use their actual stats when relevant
-- For casual chat: Be friendly but brief
+- ONLY answer if their saved content is relevant to the question
+- If they have saved recipes and ask about dinner: suggest specific dishes they saved
+- If they have saved articles and ask about a topic: reference what they've saved
+- For Context account questions: use their stats
+- If NO relevant saved content: say "I don't see any saved content about that. Save some and I can help you find it later!"
+- Keep responses very short and natural - like texting a friend
+- Don't be overly helpful or chatty
 
 Guidelines:
-- ALWAYS check their saved content first - make responses personal and specific
-- Reference specific recipes, articles, or notes they've saved when relevant
-- For dinner questions: suggest from their saved recipes with specific dish names
-- For topic questions: quote or reference their saved articles/notes on that topic
-- Keep responses concise for SMS (under 160 chars when possible)
-- If no relevant saved content: suggest they save content on this topic for future reference
-- Gently redirect overly complex requests but prioritize content-based answers
-- Use their name occasionally but focus on their content
+- Be very selective - only respond when you can actually help with their saved content
+- Keep responses super short and casual (under 80 chars when possible)
+- Talk like a friend, not a formal assistant
+- If they don't have relevant saved content, keep the "no content" response brief
 
-Content-based response examples:
-- "Based on your saved recipes: How about the Thai curry you saved last week? Or the pasta recipe from your #dinner board?"
-- "From your saved articles on politics: You have that piece about voting reform and the analysis of recent polls. What specifically interests you?"
-- "I found the chocolate chip cookie recipe in your #baking board. Ingredients: flour, sugar, eggs, chocolate chips, butter, vanilla..."
+Examples:
+- "You've got that Thai curry recipe and the pasta one in #dinner - try either?"
+- "From your politics stuff: that voting article and the polls analysis. Which one?"
+- "Cookie recipe ingredients: flour, sugar, eggs, chocolate chips, butter, vanilla"
+- "I don't see any recipes saved. Save some and I'll help you pick!"
 `;
 
       const responseGeneration = await this.client.chat.completions.create({
@@ -648,15 +643,15 @@ Content-based response examples:
         messages: [
           {
             role: "system",
-            content: "You are Context's AI assistant. Be helpful with simple questions and Context features, but gently redirect users who try to use you for extended conversations or complex tasks beyond quick help. You're designed for brief, helpful interactions and Context platform assistance."
+            content: "You are Context's assistant. Only respond when you can use their saved content. Be super brief and casual - like texting a friend. If they don't have relevant saved content, say so briefly and suggest saving content."
           },
           {
             role: "user",
             content: responsePrompt
           }
         ],
-        temperature: 0.8,
-        max_tokens: 200
+        temperature: 0.9,
+        max_tokens: 80
       });
 
       const response = responseGeneration.choices[0].message.content?.trim();
@@ -664,7 +659,7 @@ Content-based response examples:
 
       return {
         isConversational: true,
-        response: response || "I'm here to help! Feel free to ask me anything you'd like to know."
+        response: response || "Nothing saved on that topic yet. Save some content and I can help you find it!"
       };
 
     } catch (error) {
