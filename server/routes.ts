@@ -267,10 +267,56 @@ const processSMSWebhook = async (body: unknown) => {
         phoneNumber: senderId,
         displayName: `User ${senderId.slice(-4)}`,
         firstName: `User`,
-        lastName: senderId.slice(-4) // Use last 4 digits as surname to avoid profile setup
+        lastName: senderId.slice(-4), // Use last 4 digits as surname to avoid profile setup
+        onboardingStep: "welcome_sent" // Set initial onboarding step
       });
       isNewUser = true;
       log(`🆕 NEW USER CREATED: Account created for phone ${senderId} - User ID: ${user.id}`);
+      
+      // IMMEDIATELY send welcome message to new users for fast response
+      const digitsOnly = senderId.replace(/\D/g, '');
+      const usNumber = digitsOnly.startsWith('1') && digitsOnly.length === 11 ? digitsOnly.slice(1) : digitsOnly;
+      const isProblematic = usNumber.includes('555') || 
+                            /^(800|888|877|866|855|844|833|822|880|881|882|883|884|885|886|887|889)/.test(usNumber) ||
+                            /^(900|976|411|511|611|711|811|911)/.test(usNumber);
+      
+      if (!isProblematic) {
+        log(`🚀 SENDING IMMEDIATE WELCOME MESSAGE to new user ${senderId}`);
+        // Send welcome message immediately using async fire-and-forget
+        twilioService.sendWelcomeMessage(senderId, storage).catch(error => {
+          log(`Welcome message delivery failed for ${senderId}:`, error instanceof Error ? error.message : String(error));
+        });
+        
+        // For new users, just save their message and return quickly
+        // Skip all other processing to minimize response time
+        const basicMessage = {
+          content,
+          senderId,
+          userId: user.id,
+          tags: [], // New users don't have complex tagging yet
+          mediaUrl: null,
+          mediaType: null,
+          messageSid: (body as any).MessageSid || null
+        };
+        
+        // Save message asynchronously 
+        setImmediate(async () => {
+          try {
+            const message = insertMessageSchema.parse(basicMessage);
+            await storage.createMessage(message);
+            log(`Saved first message for new user ${user.id}`);
+          } catch (error) {
+            log(`Error saving first message for new user:`, error instanceof Error ? error.message : String(error));
+          }
+        });
+        
+        // Return immediately for new users
+        return null;
+      } else {
+        log(`Skipping welcome SMS for potentially unreachable number: ${senderId}`);
+        // Still return early for problematic numbers
+        return null;
+      }
     } else {
       log(`Found existing user account for phone ${senderId}: User ${user.id}`);
     }
@@ -1920,34 +1966,8 @@ export async function registerRoutes(app: Express) {
       const created = await storage.createMessage(message);
       log("Message creation complete");
 
-      // Send initial welcome message to new users first
-      if (isNewUser && smsData.senderId) {
-        try {
-          // Check if this is a problematic number before sending SMS
-          const digitsOnly = smsData.senderId.replace(/\D/g, '');
-          const usNumber = digitsOnly.startsWith('1') && digitsOnly.length === 11 ? digitsOnly.slice(1) : digitsOnly;
-          
-          // Check for various problematic patterns
-          const isProblematic = usNumber.includes('555') || 
-                                /^(800|888|877|866|855|844|833|822|880|881|882|883|884|885|886|887|889)/.test(usNumber) ||
-                                /^(900|976|411|511|611|711|811|911)/.test(usNumber);
-          
-          if (isProblematic) {
-            log(`Skipping welcome SMS for potentially unreachable number: ${smsData.senderId}`);
-          } else {
-            log(`Sending welcome SMS to new user ${smsData.senderId}`);
-            // Send welcome message with proper error handling
-            twilioService.sendWelcomeMessage(smsData.senderId, storage).catch(error => {
-              log(`Welcome message delivery failed for ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
-            });
-          }
-        } catch (error) {
-          log(`Error sending welcome SMS to ${smsData.senderId}:`, error instanceof Error ? error.message : String(error));
-        }
-      }
-
-      // Handle onboarding flow for all users (new users get welcome message above, then start onboarding)
-      if (smsData.userId) {
+      // Handle onboarding flow for existing users (new users already got welcome message above)
+      if (smsData.userId && !isNewUser) {
         try {
           const wasHandledByOnboarding = await onboardingService.handleOnboardingProgress(
             smsData.userId, 
@@ -1963,6 +1983,8 @@ export async function registerRoutes(app: Express) {
         } catch (error) {
           log(`Error processing onboarding: ${error instanceof Error ? error.message : String(error)}`);
         }
+      } else if (isNewUser) {
+        log(`Skipping onboarding progress for new user - they just got welcome message`);
       }
 
       log("Successfully created message:", JSON.stringify(created, null, 2));
