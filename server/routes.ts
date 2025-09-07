@@ -154,8 +154,8 @@ async function getUserStats(userId: number, user: any): Promise<{
   createdAt: Date;
 }> {
   try {
-    const [messageCount, userBoards] = await Promise.all([
-      storage.getMessageCountForUser(userId),
+    const [userMessages, userBoards] = await Promise.all([
+      storage.getMessages(userId),
       getUserBoards(userId)
     ]);
     
