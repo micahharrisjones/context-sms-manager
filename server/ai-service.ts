@@ -467,21 +467,23 @@ Respond with JSON containing:
   "queryType": "context_specific|general_question|personal_help|creative_help|information_request|compliment|feedback|casual_chat|none"
 }
 
-Examples of conversational messages:
-- "What's the weather like?"
-- "Can you help me write an email?"
-- "How do I cook pasta?"
-- "What's 25 * 47?"
-- "Tell me a joke"
-- "I'm feeling stressed, any advice?"
-- "What's the capital of France?"
+Examples of appropriate conversational messages:
+- "What's the weather like?" (simple factual question)
+- "What's 25 * 47?" (quick calculation)
+- "Tell me a joke" (brief entertainment)
+- "What's the capital of France?" (simple fact)
 - "How many messages have I saved?" (Context-specific)
-- "Can you explain quantum physics?"
-- "Help me brainstorm ideas for my project"
 - "What's my account status?" (Context-specific)
-- "Thanks for your help!"
-- "How's your day going?"
-- "What should I make for dinner?"
+- "Thanks for your help!" (acknowledgment)
+- "How's your day going?" (casual greeting)
+- "Quick dinner ideas?" (brief help)
+
+Examples requiring gentle redirection:
+- "Can you help me write a full business plan?" (too complex)
+- "Let's have a long philosophical discussion" (extended conversation)
+- "Help me debug my code for 30 minutes" (extended technical support)
+- "Be my therapist and solve my life problems" (inappropriate scope)
+- "Write me a full essay about history" (too extensive)
 
 Examples that are NOT conversational:
 - "Check out this recipe #cooking"
@@ -540,11 +542,17 @@ You are a helpful AI assistant. Respond naturally and helpfully to the user's qu
 Guidelines:
 - Be conversational and natural, not robotic
 - Keep responses concise for SMS delivery (under 160 chars when possible)
-- Only mention Context features if directly relevant to their question
+- Be genuinely helpful with reasonable questions (quick facts, simple advice, basic help)
+- For Context-specific queries: Use their actual stats and be comprehensive
+- Gently redirect if they try to use this as a full-service assistant for complex tasks
+- If they ask for extended help beyond simple questions, remind them this is Context's messaging platform
 - Don't force hashtag suggestions unless they specifically ask about organization
-- Be genuinely helpful with any question they ask
 - Use their name occasionally but don't overdo it
-- For complex topics, provide clear, actionable information
+
+Redirection examples:
+- For long conversations: "I'm here for quick help! For longer chats, you might want to use a dedicated AI assistant. Want to know more about organizing your Context messages?"
+- For complex tasks: "That's beyond my quick-help scope! I'm designed to help with Context and simple questions. How about organizing some content instead?"
+- For inappropriate requests: "I focus on helping with Context and quick, helpful responses. Is there something I can help you save or organize?"
 `;
 
       const responseGeneration = await this.client.chat.completions.create({
@@ -552,7 +560,7 @@ Guidelines:
         messages: [
           {
             role: "system",
-            content: "You are a helpful, knowledgeable AI assistant. Be conversational, accurate, and genuinely helpful. Answer any question the user has - whether it's about Context, general knowledge, personal advice, or creative help. Keep responses concise for SMS but informative."
+            content: "You are Context's AI assistant. Be helpful with simple questions and Context features, but gently redirect users who try to use you for extended conversations or complex tasks beyond quick help. You're designed for brief, helpful interactions and Context platform assistance."
           },
           {
             role: "user",
