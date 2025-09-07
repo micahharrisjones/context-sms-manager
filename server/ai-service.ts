@@ -434,6 +434,183 @@ Guidelines:
       return { isRequest: false };
     }
   }
+
+  /**
+   * Handle comprehensive conversational queries about Context, account status, usage tips, etc.
+   */
+  async handleGeneralConversation(
+    messageContent: string,
+    userInfo: {
+      id: number;
+      phoneNumber: string;
+      displayName: string;
+      messageCount?: number;
+      boardCount?: number;
+      sharedBoardCount?: number;
+      onboardingStep?: string;
+      createdAt?: Date;
+    }
+  ): Promise<{ isConversational: boolean; response?: string }> {
+    try {
+      this.log(`Checking for conversational query: "${messageContent.substring(0, 100)}..."`);
+
+      // First, detect if this is a conversational question
+      const detectionPrompt = `
+Analyze this message to determine if the user is asking a conversational question about Context, their account, usage advice, or general inquiries:
+
+Message: "${messageContent}"
+
+Respond with JSON containing:
+{
+  "isConversational": true/false,
+  "confidence": 0.0-1.0,
+  "queryType": "account_status|usage_tips|features|billing|general_question|compliment|feedback|none"
+}
+
+Examples of conversational messages:
+- "How many messages have I saved?"
+- "What's my account status?"
+- "How should I best organize my content?"
+- "What are the best practices for using Context?"
+- "How much have I used Context?"
+- "Can you tell me about my activity?"
+- "What's the best way to use hashtags?"
+- "This is amazing! I love Context!"
+- "Context is so helpful"
+- "Thank you for this service"
+- "How long have I been using this?"
+- "What features do you have?"
+- "How does pricing work?"
+- "Can I export my data?"
+- "Is my data secure?"
+- "Who can see my messages?"
+- "How do I share with someone?"
+- "What's new with Context?"
+
+Examples that are NOT conversational:
+- "Check out this recipe #cooking"
+- "Meeting notes #work"
+- "https://example.com #links"
+- Messages with clear content being saved
+- URLs with hashtags
+- Normal organizational content
+`;
+
+      const detectionResponse = await this.client.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are a smart assistant that detects conversational queries vs content being saved. Respond only with valid JSON."
+          },
+          {
+            role: "user",
+            content: detectionPrompt
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.2,
+        max_tokens: 150
+      });
+
+      const detection = JSON.parse(detectionResponse.choices[0].message.content || "{}");
+      this.log(`Conversational detection result:`, detection);
+
+      if (!detection.isConversational || detection.confidence < 0.7) {
+        return { isConversational: false };
+      }
+
+      // Generate contextual response based on user info and query type
+      const responsePrompt = `
+User asked: "${messageContent}"
+Query type: ${detection.queryType}
+
+User context:
+- Name: ${userInfo.displayName}
+- Phone: ${userInfo.phoneNumber}
+- User ID: ${userInfo.id}
+- Messages saved: ${userInfo.messageCount || 0}
+- Private boards: ${userInfo.boardCount || 0}
+- Shared boards: ${userInfo.sharedBoardCount || 0}
+- Account age: ${userInfo.createdAt ? this.getAccountAge(userInfo.createdAt) : 'Unknown'}
+- Onboarding status: ${userInfo.onboardingStep === 'completed' ? 'Completed' : 'In progress'}
+
+Generate a helpful, personalized response that:
+- Uses their name when appropriate
+- References their actual usage stats when relevant
+- Provides actionable advice based on their activity level
+- Maintains a warm, supportive tone
+- Keeps response under 160 characters for SMS (can be longer for complex topics)
+- For compliments/feedback, respond graciously and encourage continued use
+
+Context features to reference when relevant:
+- SMS-based saving and organization
+- Hashtag-based boards (private and shared)
+- AI-powered categorization
+- Social media link previews
+- Dashboard at contxt.life
+- Collaborative shared boards
+- Search functionality
+- Account security and privacy
+
+For account status queries, include:
+- How long they've been using Context
+- Number of messages/boards they've created
+- Recent activity insights
+- Suggestions for better organization
+
+For usage tips, provide:
+- Specific hashtag strategies
+- Collaboration tips
+- Organization best practices
+- Feature recommendations based on their usage
+`;
+
+      const responseGeneration = await this.client.chat.completions.create({
+        model: "deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content: "You are Context's helpful and friendly assistant. Provide personalized, actionable responses using the user's actual data. Be warm but concise for SMS delivery."
+          },
+          {
+            role: "user",
+            content: responsePrompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 250
+      });
+
+      const response = responseGeneration.choices[0].message.content?.trim();
+      this.log(`Generated conversational response: "${response}"`);
+
+      return {
+        isConversational: true,
+        response: response || "Thanks for using Context! I'm here to help you save and organize anything via text. Feel free to ask me questions anytime!"
+      };
+
+    } catch (error) {
+      this.log(`Error handling conversational query:`, error instanceof Error ? error.message : String(error));
+      return { isConversational: false };
+    }
+  }
+
+  /**
+   * Helper to calculate account age in a human-readable format
+   */
+  private getAccountAge(createdAt: Date): string {
+    const now = new Date();
+    const ageMs = now.getTime() - createdAt.getTime();
+    const ageDays = Math.floor(ageMs / (1000 * 60 * 60 * 24));
+    
+    if (ageDays === 0) return "Today";
+    if (ageDays === 1) return "1 day";
+    if (ageDays < 7) return `${ageDays} days`;
+    if (ageDays < 30) return `${Math.floor(ageDays / 7)} weeks`;
+    if (ageDays < 365) return `${Math.floor(ageDays / 30)} months`;
+    return `${Math.floor(ageDays / 365)} years`;
+  }
 }
 
 // Export singleton instance
