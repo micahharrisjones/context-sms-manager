@@ -142,6 +142,48 @@ async function getUserBoards(userId: number): Promise<{ privateBoards: string[];
   }
 }
 
+// Helper function to get comprehensive user statistics for conversational AI
+async function getUserStats(userId: number, user: any): Promise<{
+  id: number;
+  phoneNumber: string;
+  displayName: string;
+  messageCount: number;
+  boardCount: number;
+  sharedBoardCount: number;
+  onboardingStep: string;
+  createdAt: Date;
+}> {
+  try {
+    const [messageCount, userBoards] = await Promise.all([
+      storage.getMessageCountForUser(userId),
+      getUserBoards(userId)
+    ]);
+    
+    return {
+      id: userId,
+      phoneNumber: user.phoneNumber,
+      displayName: user.displayName || user.firstName || `User ${user.phoneNumber.slice(-4)}`,
+      messageCount: userMessages.length,
+      boardCount: userBoards.privateBoards.length,
+      sharedBoardCount: userBoards.sharedBoards.length,
+      onboardingStep: user.onboardingStep || 'unknown',
+      createdAt: user.createdAt || new Date()
+    };
+  } catch (error) {
+    log("Error getting user stats:", error instanceof Error ? error.message : String(error));
+    return {
+      id: userId,
+      phoneNumber: user.phoneNumber,
+      displayName: user.displayName || `User ${user.phoneNumber.slice(-4)}`,
+      messageCount: 0,
+      boardCount: 0,
+      sharedBoardCount: 0,
+      onboardingStep: 'unknown',
+      createdAt: new Date()
+    };
+  }
+}
+
 // Post-processing function to fix untagged URL messages
 async function fixUntaggedUrlMessage(messageId: number, userId: number, senderId: string, wsManager: WebSocketManager): Promise<void> {
   try {
@@ -266,6 +308,24 @@ const processSMSWebhook = async (body: unknown) => {
         log(`Sent board list response to ${senderId}`);
       } catch (error) {
         log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      // Skip storing this message since it was a conversational request
+      return null;
+    }
+
+    // Check if this is a general conversational query about Context
+    const userStats = await getUserStats(user.id, user);
+    const conversationalRequest = await aiService.handleGeneralConversation(content, userStats);
+
+    if (conversationalRequest.isConversational && conversationalRequest.response) {
+      log(`Detected conversational query, responding with personalized information`);
+      // Send the AI-generated personalized response back to the user
+      try {
+        await twilioService.sendSMS(senderId, conversationalRequest.response);
+        log(`Sent conversational response to ${senderId}`);
+      } catch (error) {
+        log(`Error sending conversational response: ${error instanceof Error ? error.message : String(error)}`);
       }
       
       // Skip storing this message since it was a conversational request
