@@ -315,21 +315,28 @@ const processSMSWebhook = async (body: unknown) => {
     }
 
     // Check if this is a general conversational query about Context
-    const userStats = await getUserStats(user.id, user);
-    const conversationalRequest = await aiService.handleGeneralConversation(content, userStats);
+    // BUT skip conversational AI if user is still in onboarding flow
+    const isOnboardingComplete = user.onboardingStep === 'completed' || !user.onboardingStep;
+    
+    if (isOnboardingComplete) {
+      const userStats = await getUserStats(user.id, user);
+      const conversationalRequest = await aiService.handleGeneralConversation(content, userStats);
 
-    if (conversationalRequest.isConversational && conversationalRequest.response) {
-      log(`Detected conversational query, responding with personalized information`);
-      // Send the AI-generated personalized response back to the user
-      try {
-        await twilioService.sendSMS(senderId, conversationalRequest.response);
-        log(`Sent conversational response to ${senderId}`);
-      } catch (error) {
-        log(`Error sending conversational response: ${error instanceof Error ? error.message : String(error)}`);
+      if (conversationalRequest.isConversational && conversationalRequest.response) {
+        log(`Detected conversational query, responding with personalized information`);
+        // Send the AI-generated personalized response back to the user
+        try {
+          await twilioService.sendSMS(senderId, conversationalRequest.response);
+          log(`Sent conversational response to ${senderId}`);
+        } catch (error) {
+          log(`Error sending conversational response: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        
+        // Skip storing this message since it was a conversational request
+        return null;
       }
-      
-      // Skip storing this message since it was a conversational request
-      return null;
+    } else {
+      log(`Skipping conversational AI for user ${user.id} - onboarding step: ${user.onboardingStep}`);
     }
 
     // Extract hashtags from the message content
