@@ -320,7 +320,7 @@ const processSMSWebhook = async (body: unknown) => {
     
     if (isOnboardingComplete) {
       const userStats = await getUserStats(user.id, user);
-      const conversationalRequest = await aiService.handleGeneralConversation(content, userStats);
+      const conversationalRequest = await aiService.handleGeneralConversation(content, userStats, storage);
 
       if (conversationalRequest.isConversational && conversationalRequest.response) {
         log(`Detected conversational query, responding with personalized information`);

@@ -436,7 +436,82 @@ Guidelines:
   }
 
   /**
-   * Handle comprehensive conversational queries about Context, account status, usage tips, etc.
+   * Get relevant user content based on query type and keywords
+   */
+  async getRelevantUserContent(
+    userId: number, 
+    messageContent: string, 
+    storage: any
+  ): Promise<{ messages: any[]; relevantBoards: string[] }> {
+    try {
+      this.log(`Finding relevant content for query: "${messageContent}"`);
+      
+      // Get all user messages
+      const allMessages = await storage.getMessages(userId);
+      
+      // Keywords for different content types
+      const foodKeywords = ['recipe', 'cook', 'dinner', 'lunch', 'breakfast', 'food', 'meal', 'ingredient', 'restaurant', 'kitchen'];
+      const politicsKeywords = ['politics', 'political', 'government', 'election', 'vote', 'policy', 'politician', 'democrat', 'republican'];
+      const workKeywords = ['work', 'job', 'career', 'meeting', 'office', 'business', 'project'];
+      const healthKeywords = ['health', 'fitness', 'exercise', 'diet', 'medical', 'doctor', 'wellness'];
+      
+      const queryLower = messageContent.toLowerCase();
+      let relevantMessages: any[] = [];
+      let relevantBoards: string[] = [];
+      
+      // Determine query type and search for relevant content
+      if (foodKeywords.some(keyword => queryLower.includes(keyword))) {
+        // Food/recipe related query
+        relevantMessages = allMessages.filter((msg: any) => {
+          const contentLower = msg.content.toLowerCase();
+          const hasFood = foodKeywords.some(keyword => contentLower.includes(keyword));
+          const hasRecipeTag = msg.tags.some((tag: string) => ['recipes', 'food', 'cooking', 'dinner', 'lunch'].includes(tag.toLowerCase()));
+          return hasFood || hasRecipeTag;
+        });
+        relevantBoards = ['recipes', 'food', 'cooking', 'restaurants'];
+      } else if (politicsKeywords.some(keyword => queryLower.includes(keyword))) {
+        // Politics related query
+        relevantMessages = allMessages.filter((msg: any) => {
+          const contentLower = msg.content.toLowerCase();
+          const hasPolitics = politicsKeywords.some(keyword => contentLower.includes(keyword));
+          const hasPoliticsTag = msg.tags.some((tag: string) => ['politics', 'news', 'government'].includes(tag.toLowerCase()));
+          return hasPolitics || hasPoliticsTag;
+        });
+        relevantBoards = ['politics', 'news', 'government'];
+      } else if (workKeywords.some(keyword => queryLower.includes(keyword))) {
+        // Work related query
+        relevantMessages = allMessages.filter((msg: any) => {
+          const contentLower = msg.content.toLowerCase();
+          const hasWork = workKeywords.some(keyword => contentLower.includes(keyword));
+          const hasWorkTag = msg.tags.some((tag: string) => ['work', 'business', 'career', 'projects'].includes(tag.toLowerCase()));
+          return hasWork || hasWorkTag;
+        });
+        relevantBoards = ['work', 'business', 'career'];
+      } else {
+        // General query - look for any content that might be relevant
+        const queryWords = queryLower.split(' ').filter(word => word.length > 3);
+        relevantMessages = allMessages.filter((msg: any) => {
+          const contentLower = msg.content.toLowerCase();
+          return queryWords.some(word => contentLower.includes(word));
+        });
+      }
+      
+      // Sort by most recent and limit to avoid overwhelming the AI
+      relevantMessages = relevantMessages
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 10);
+      
+      this.log(`Found ${relevantMessages.length} relevant messages for query`);
+      return { messages: relevantMessages, relevantBoards };
+      
+    } catch (error) {
+      this.log(`Error retrieving relevant content:`, error instanceof Error ? error.message : String(error));
+      return { messages: [], relevantBoards: [] };
+    }
+  }
+
+  /**
+   * Handle comprehensive conversational queries using user's saved content
    */
   async handleGeneralConversation(
     messageContent: string,
@@ -449,7 +524,8 @@ Guidelines:
       sharedBoardCount?: number;
       onboardingStep?: string;
       createdAt?: Date;
-    }
+    },
+    storage: any
   ): Promise<{ isConversational: boolean; response?: string }> {
     try {
       this.log(`Checking for conversational query: "${messageContent.substring(0, 100)}..."`);
@@ -518,7 +594,10 @@ Examples that are NOT conversational:
         return { isConversational: false };
       }
 
-      // Generate helpful response based on query type
+      // Get relevant user content to make responses contextual
+      const userContent = await this.getRelevantUserContent(userInfo.id, messageContent, storage);
+      
+      // Generate helpful response based on query type and user's actual content
       const responsePrompt = `
 User asked: "${messageContent}"
 Query type: ${detection.queryType}
@@ -530,29 +609,38 @@ User context (use only if relevant to Context-specific queries):
 - Shared boards: ${userInfo.sharedBoardCount || 0}
 - Account age: ${userInfo.createdAt ? this.getAccountAge(userInfo.createdAt) : 'Unknown'}
 
-You are a helpful AI assistant. Respond naturally and helpfully to the user's question:
+User's relevant saved content (USE THIS to provide personalized answers):
+${userContent.messages.length > 0 ? 
+  `Found ${userContent.messages.length} relevant saved items:\n` + 
+  userContent.messages.map((msg, i) => 
+    `${i + 1}. [${msg.tags.join(', ')}] ${msg.content.substring(0, 200)}${msg.content.length > 200 ? '...' : ''}`
+  ).join('\n') 
+  : 'No relevant saved content found - provide general helpful answer'}
 
-- For general questions: Provide accurate, helpful information
-- For personal help/advice: Be supportive and practical
-- For creative requests: Be imaginative and helpful
+You are Context's AI assistant. PRIORITIZE using the user's saved content to provide personalized answers:
+
+- FIRST: Check if their saved content can answer the question (recipes for dinner, articles for topics, etc.)
+- If they have relevant saved content: Reference it specifically and provide answers based on what they've saved
+- For recipe questions: Use their saved recipes and extract ingredients/instructions as needed
+- For topic questions: Reference their saved articles, notes, or links on that topic
+- If no relevant content: Provide brief general help but suggest they save content on this topic
 - For Context-specific queries: Use their actual stats when relevant
-- For casual chat: Be friendly and engaging
-- For compliments: Respond graciously but briefly
+- For casual chat: Be friendly but brief
 
 Guidelines:
-- Be conversational and natural, not robotic
-- Keep responses concise for SMS delivery (under 160 chars when possible)
-- Be genuinely helpful with reasonable questions (quick facts, simple advice, basic help)
-- For Context-specific queries: Use their actual stats and be comprehensive
-- Gently redirect if they try to use this as a full-service assistant for complex tasks
-- If they ask for extended help beyond simple questions, remind them this is Context's messaging platform
-- Don't force hashtag suggestions unless they specifically ask about organization
-- Use their name occasionally but don't overdo it
+- ALWAYS check their saved content first - make responses personal and specific
+- Reference specific recipes, articles, or notes they've saved when relevant
+- For dinner questions: suggest from their saved recipes with specific dish names
+- For topic questions: quote or reference their saved articles/notes on that topic
+- Keep responses concise for SMS (under 160 chars when possible)
+- If no relevant saved content: suggest they save content on this topic for future reference
+- Gently redirect overly complex requests but prioritize content-based answers
+- Use their name occasionally but focus on their content
 
-Redirection examples:
-- For long conversations: "I'm here for quick help! For longer chats, you might want to use a dedicated AI assistant. Want to know more about organizing your Context messages?"
-- For complex tasks: "That's beyond my quick-help scope! I'm designed to help with Context and simple questions. How about organizing some content instead?"
-- For inappropriate requests: "I focus on helping with Context and quick, helpful responses. Is there something I can help you save or organize?"
+Content-based response examples:
+- "Based on your saved recipes: How about the Thai curry you saved last week? Or the pasta recipe from your #dinner board?"
+- "From your saved articles on politics: You have that piece about voting reform and the analysis of recent polls. What specifically interests you?"
+- "I found the chocolate chip cookie recipe in your #baking board. Ingredients: flour, sugar, eggs, chocolate chips, butter, vanilla..."
 `;
 
       const responseGeneration = await this.client.chat.completions.create({
