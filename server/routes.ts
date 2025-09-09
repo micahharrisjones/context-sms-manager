@@ -304,7 +304,7 @@ const processSMSWebhook = async (body: unknown) => {
           try {
             const message = insertMessageSchema.parse(basicMessage);
             await storage.createMessage(message);
-            log(`Saved first message for new user ${user.id}`);
+            log(`Saved first message for new user ${user?.id}`);
           } catch (error) {
             log(`Error saving first message for new user:`, error instanceof Error ? error.message : String(error));
           }
@@ -714,6 +714,99 @@ export async function registerRoutes(app: Express) {
       res.json({ authenticated: true, userId: req.session.userId });
     } else {
       res.json({ authenticated: false });
+    }
+  });
+
+  // Public signup endpoint for Squarespace form integration
+  app.post("/api/signup", async (req, res) => {
+    try {
+      const { phoneNumber } = req.body;
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+      
+      // Clean phone number (remove any formatting)
+      const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
+      
+      // Validate phone number format
+      if (cleanPhoneNumber.length < 10 || cleanPhoneNumber.length > 11) {
+        return res.status(400).json({ error: "Invalid phone number format" });
+      }
+      
+      // Add country code if missing
+      const formattedNumber = cleanPhoneNumber.startsWith('1') ? 
+        `+${cleanPhoneNumber}` : `+1${cleanPhoneNumber}`;
+      
+      log(`Signup request for phone ${formattedNumber}`);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByPhoneNumber(formattedNumber);
+      if (existingUser) {
+        return res.status(409).json({ 
+          error: "Account already exists", 
+          message: "This phone number is already registered with Context" 
+        });
+      }
+      
+      // Check for problematic phone numbers
+      const digitsOnly = formattedNumber.replace(/\D/g, '');
+      const usNumber = digitsOnly.startsWith('1') && digitsOnly.length === 11 ? digitsOnly.slice(1) : digitsOnly;
+      const isProblematic = usNumber.includes('555') || 
+                            /^(800|888|877|866|855|844|833|822|880|881|882|883|884|885|886|887|889)/.test(usNumber) ||
+                            /^(900|976|411|511|611|711|811|911)/.test(usNumber);
+      
+      if (isProblematic) {
+        return res.status(400).json({ 
+          error: "Invalid phone number", 
+          message: "Please provide a valid mobile phone number" 
+        });
+      }
+      
+      // Send welcome SMS IMMEDIATELY
+      log(`🚀 SENDING IMMEDIATE WELCOME SMS for signup: ${formattedNumber}`);
+      try {
+        await twilioService.sendWelcomeMessage(formattedNumber, storage);
+        log(`✅ Welcome SMS sent successfully to ${formattedNumber}`);
+      } catch (smsError) {
+        log(`❌ Welcome SMS failed for ${formattedNumber}:`, smsError instanceof Error ? smsError.message : String(smsError));
+        return res.status(500).json({ 
+          error: "SMS delivery failed", 
+          message: "Unable to send welcome message. Please try again." 
+        });
+      }
+      
+      // Create user account in background (async)
+      setImmediate(async () => {
+        try {
+          const user = await storage.createUser({
+            phoneNumber: formattedNumber,
+            displayName: `User ${usNumber.slice(-4)}`,
+            firstName: `User`,
+            lastName: usNumber.slice(-4),
+            onboardingStep: "welcome_sent"
+          });
+          
+          log(`✅ User account created successfully for ${formattedNumber} - ID: ${user.id}`);
+        } catch (createError) {
+          log(`❌ User account creation failed for ${formattedNumber}:`, createError instanceof Error ? createError.message : String(createError));
+          // Note: SMS was already sent successfully, so this is logged but not returned to user
+        }
+      });
+      
+      // Return success response immediately
+      res.json({
+        success: true,
+        message: "Welcome to Context! Check your phone for a welcome message.",
+        phoneNumber: formattedNumber
+      });
+      
+    } catch (error) {
+      log("Error in signup endpoint:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ 
+        error: "Signup failed", 
+        message: "An unexpected error occurred. Please try again." 
+      });
     }
   });
 
