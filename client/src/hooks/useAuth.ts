@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
+import analytics from '@/lib/mixpanel';
 
 interface User {
   id: number;
@@ -32,11 +33,32 @@ export function useAuth() {
       
       if (data.authenticated) {
         // Get user details if authenticated
-        setAuthState({
-          user: null, // We could fetch user details here if needed
-          isLoading: false,
-          isAuthenticated: true,
-        });
+        try {
+          const profileResponse = await apiRequest('/api/profile');
+          if (profileResponse.ok) {
+            const user = await profileResponse.json();
+            // Identify user for session-based tracking
+            analytics.identify(user.id.toString());
+            setAuthState({
+              user,
+              isLoading: false,
+              isAuthenticated: true,
+            });
+          } else {
+            setAuthState({
+              user: null,
+              isLoading: false,
+              isAuthenticated: true,
+            });
+          }
+        } catch (profileError) {
+          console.error('Failed to fetch profile:', profileError);
+          setAuthState({
+            user: null,
+            isLoading: false,
+            isAuthenticated: true,
+          });
+        }
       } else {
         setAuthState({
           user: null,
@@ -83,6 +105,9 @@ export function useAuth() {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Reset Mixpanel tracking to avoid cross-user contamination
+      analytics.reset();
+      
       // Clear auth state regardless of API call success
       setAuthState({
         user: null,

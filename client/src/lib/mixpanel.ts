@@ -13,6 +13,15 @@ if (MIXPANEL_TOKEN) {
   console.warn('Mixpanel token not found. Analytics will not be tracked.');
 }
 
+// Hash phone number for privacy (client-side)
+const hashPhoneNumber = async (phoneNumber: string): Promise<string> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(phoneNumber);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
 // Wrapper functions for cleaner usage
 export const analytics = {
   // Track events
@@ -29,10 +38,19 @@ export const analytics = {
     }
   },
 
-  // Set user properties
-  setUserProperties: (properties: Record<string, any>) => {
+  // Set user properties with phone hashing
+  setUserProperties: async (properties: Record<string, any>) => {
     if (MIXPANEL_TOKEN) {
-      mixpanel.people.set(properties);
+      const sanitizedProperties = { ...properties };
+      if (sanitizedProperties.phone_number && typeof sanitizedProperties.phone_number === 'string') {
+        // Keep last 4 digits separate and hash the full number
+        const phoneNumber = sanitizedProperties.phone_number;
+        if (phoneNumber.length > 4) {
+          sanitizedProperties.phone_last4 = phoneNumber.slice(-4);
+          sanitizedProperties.phone_number = await hashPhoneNumber(phoneNumber);
+        }
+      }
+      mixpanel.people.set(sanitizedProperties);
     }
   },
 

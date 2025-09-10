@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Logo } from '@/components/layout/Logo';
 import { MessageSquare } from 'lucide-react';
+import analytics from '@/lib/mixpanel';
 
 interface LoginScreenProps {
   onLogin: (user: any) => void;
@@ -90,6 +91,19 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         console.log('Verification response:', data);
         
         if (data.success) {
+          // Track login success and identify user
+          analytics.identify(data.user.id.toString());
+          analytics.setUserProperties({
+            phone_number: data.user.phoneNumber, // Will be hashed by setUserProperties
+            display_name: data.user.displayName,
+            signup_source: 'sms' // Default assumption, backend will have more precise data
+          });
+          analytics.track('User Login Success', {
+            user_id: data.user.id.toString(),
+            login_method: 'sms_verification',
+            platform: 'web'
+          });
+          
           toast({
             title: "Login successful",
             description: "Welcome to Context!",

@@ -1,4 +1,5 @@
 import Mixpanel from 'mixpanel';
+import { createHash } from 'crypto';
 import { log } from './vite';
 
 class MixpanelService {
@@ -36,12 +37,25 @@ class MixpanelService {
     }
   }
 
+  // Hash phone number for privacy
+  private hashPhoneNumber(phoneNumber: string): string {
+    return createHash('sha256').update(phoneNumber).digest('hex');
+  }
+
   // Set user properties
   setUserProperties(userId: string, properties: Record<string, any>) {
     if (!this.mixpanel) return;
 
     try {
-      this.mixpanel.people.set(userId, properties);
+      // Hash phone number for privacy if present
+      const sanitizedProperties = { ...properties };
+      if (sanitizedProperties.$phone) {
+        const phoneNumber = sanitizedProperties.$phone;
+        sanitizedProperties.$phone = this.hashPhoneNumber(phoneNumber);
+        sanitizedProperties.phone_last4 = phoneNumber.slice(-4); // Keep last 4 as separate property
+      }
+      
+      this.mixpanel.people.set(userId, sanitizedProperties);
       log(`Mixpanel user properties set for ${userId}`);
     } catch (error) {
       log(`Error setting Mixpanel user properties: ${error instanceof Error ? error.message : String(error)}`);
@@ -52,14 +66,14 @@ class MixpanelService {
   trackSignup(userId: string, phoneNumber: string, source: string = 'sms') {
     this.track('User Signup', {
       user_id: userId,
-      phone_number: phoneNumber.slice(-4), // Only last 4 digits for privacy
+      phone_last4: phoneNumber.slice(-4), // Only last 4 digits for privacy
       signup_source: source,
       signup_method: source === 'squarespace' ? 'website_form' : 'sms_direct'
     }, userId);
 
     // Set user properties
     this.setUserProperties(userId, {
-      $phone: phoneNumber,
+      $phone: phoneNumber, // Will be hashed by setUserProperties
       $created: new Date().toISOString(),
       signup_source: source
     });
@@ -67,9 +81,9 @@ class MixpanelService {
 
   // Track user login
   trackLogin(userId: string, phoneNumber: string) {
-    this.track('User Login', {
+    this.track('User Login Success', {
       user_id: userId,
-      phone_number: phoneNumber.slice(-4),
+      phone_last4: phoneNumber.slice(-4),
       login_method: 'sms_verification'
     }, userId);
   }
@@ -82,7 +96,7 @@ class MixpanelService {
     messageLength: number;
     source: string;
   }) {
-    this.track('Message Sent', {
+    this.track('Message Created', {
       user_id: userId,
       has_hashtags: messageData.hasHashtags,
       hashtag_count: messageData.hashtagCount,

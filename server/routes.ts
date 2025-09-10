@@ -307,8 +307,19 @@ const processSMSWebhook = async (body: unknown) => {
         setImmediate(async () => {
           try {
             const message = insertMessageSchema.parse(basicMessage);
-            await storage.createMessage(message);
+            const savedMessage = await storage.createMessage(message);
             log(`Saved first message for new user ${user?.id}`);
+            
+            // Track first message event for new user
+            if (user?.id && savedMessage) {
+              mixpanelService.trackMessageSent(user.id.toString(), {
+                hasHashtags: savedMessage.tags.length > 0,
+                hashtagCount: savedMessage.tags.length,
+                hasUrl: /https?:\/\/[^\s]+/.test(savedMessage.content),
+                messageLength: savedMessage.content.length,
+                source: 'sms_first'
+              });
+            }
           } catch (error) {
             log(`Error saving first message for new user:`, error instanceof Error ? error.message : String(error));
           }
