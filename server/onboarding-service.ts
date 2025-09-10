@@ -50,8 +50,8 @@ export class OnboardingService {
   async getWelcomeMessage(): Promise<string> {
     try {
       const dbMessage = await this.storage.getOnboardingMessage("welcome");
-      if (dbMessage && dbMessage.enabled === "true") {
-        return dbMessage.message;
+      if (dbMessage && dbMessage.isActive === "true") {
+        return dbMessage.content;
       }
       log("Welcome message not found in database or disabled, using fallback");
       return ONBOARDING_MESSAGES.welcome;
@@ -115,8 +115,8 @@ export class OnboardingService {
     let message: string;
     try {
       const dbMessage = await this.storage.getOnboardingMessage("first_text");
-      if (dbMessage && dbMessage.enabled === "true") {
-        message = dbMessage.message;
+      if (dbMessage && dbMessage.isActive === "true") {
+        message = dbMessage.content;
       } else {
         log("First text message not found in database or disabled, using fallback");
         message = ONBOARDING_MESSAGES.first_text;
@@ -149,8 +149,8 @@ export class OnboardingService {
     let baseMessage: string;
     try {
       const dbMessage = await this.storage.getOnboardingMessage("first_hashtag");
-      if (dbMessage && dbMessage.enabled === "true") {
-        baseMessage = dbMessage.message;
+      if (dbMessage && dbMessage.isActive === "true") {
+        baseMessage = dbMessage.content;
       } else {
         log("First hashtag message not found in database or disabled, using fallback");
         baseMessage = ONBOARDING_MESSAGES.first_hashtag;
@@ -191,8 +191,8 @@ export class OnboardingService {
     let baseMessage: string;
     try {
       const dbMessage = await this.storage.getOnboardingMessage("first_link");
-      if (dbMessage && dbMessage.enabled === "true") {
-        baseMessage = dbMessage.message;
+      if (dbMessage && dbMessage.isActive === "true") {
+        baseMessage = dbMessage.content;
       } else {
         log("First link message not found in database or disabled, using fallback");
         baseMessage = ONBOARDING_MESSAGES.first_link;
@@ -231,8 +231,8 @@ export class OnboardingService {
     let message: string;
     try {
       const dbMessage = await this.storage.getOnboardingMessage("completion");
-      if (dbMessage && dbMessage.enabled === "true") {
-        message = dbMessage.message;
+      if (dbMessage && dbMessage.isActive === "true") {
+        message = dbMessage.content;
       } else {
         log("Completion message not found in database or disabled, using fallback");
         message = ONBOARDING_MESSAGES.completion;
