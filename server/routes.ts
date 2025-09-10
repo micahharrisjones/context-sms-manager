@@ -1364,7 +1364,8 @@ export async function registerRoutes(app: Express) {
       const adminPhoneNumbers = [
         "6155848598", // Your current test number
         "4582188508", // Official Context number without +1
-        "+14582188508" // Official Context number with +1
+        "+14582188508", // Official Context number with +1
+        "3182081034" // New admin user
       ];
       
       // Check if user's phone number is in admin list
