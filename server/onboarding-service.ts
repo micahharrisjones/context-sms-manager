@@ -47,8 +47,18 @@ export class OnboardingService {
   }
 
   // Get welcome message for new users
-  getWelcomeMessage(): string {
-    return ONBOARDING_MESSAGES.welcome;
+  async getWelcomeMessage(): Promise<string> {
+    try {
+      const dbMessage = await this.storage.getOnboardingMessage("welcome");
+      if (dbMessage && dbMessage.enabled === "true") {
+        return dbMessage.message;
+      }
+      log("Welcome message not found in database or disabled, using fallback");
+      return ONBOARDING_MESSAGES.welcome;
+    } catch (error) {
+      log(`Error fetching welcome message from database: ${error instanceof Error ? error.message : String(error)}`);
+      return ONBOARDING_MESSAGES.welcome;
+    }
   }
 
   private isValidPhoneNumber(phoneNumber: string): boolean {
@@ -104,8 +114,21 @@ export class OnboardingService {
       return true;
     }
 
-    // Use built-in message instead of database lookup
-    const message = ONBOARDING_MESSAGES.first_text;
+    // Fetch message from database with fallback
+    let message: string;
+    try {
+      const dbMessage = await this.storage.getOnboardingMessage("first_text");
+      if (dbMessage && dbMessage.enabled === "true") {
+        message = dbMessage.message;
+      } else {
+        log("First text message not found in database or disabled, using fallback");
+        message = ONBOARDING_MESSAGES.first_text;
+      }
+    } catch (error) {
+      log(`Error fetching first_text message from database: ${error instanceof Error ? error.message : String(error)}`);
+      message = ONBOARDING_MESSAGES.first_text;
+    }
+
     await this.twilioService.sendSMS(phoneNumber, message);
     await this.storage.updateUserOnboardingStep(userId, "first_text");
     
@@ -125,9 +148,24 @@ export class OnboardingService {
       return true;
     }
 
-    // Use built-in message and replace placeholder for hashtag name
+    // Fetch message from database with fallback and template replacement
+    let baseMessage: string;
+    try {
+      const dbMessage = await this.storage.getOnboardingMessage("first_hashtag");
+      if (dbMessage && dbMessage.enabled === "true") {
+        baseMessage = dbMessage.message;
+      } else {
+        log("First hashtag message not found in database or disabled, using fallback");
+        baseMessage = ONBOARDING_MESSAGES.first_hashtag;
+      }
+    } catch (error) {
+      log(`Error fetching first_hashtag message from database: ${error instanceof Error ? error.message : String(error)}`);
+      baseMessage = ONBOARDING_MESSAGES.first_hashtag;
+    }
+
+    // Replace placeholder for hashtag name
     const firstTag = tags[0].charAt(0) === '#' ? tags[0].slice(1) : tags[0];
-    const personalizedMessage = ONBOARDING_MESSAGES.first_hashtag.replace(/\{firstTag\}/g, firstTag);
+    const personalizedMessage = baseMessage.replace(/\{firstTag\}/g, firstTag);
 
     await this.twilioService.sendSMS(phoneNumber, personalizedMessage);
     await this.storage.updateUserOnboardingStep(userId, "first_hashtag");
@@ -150,10 +188,25 @@ export class OnboardingService {
       return true;
     }
 
-    // Use built-in message and replace placeholder for dashboard URL
+    // Fetch message from database with fallback and template replacement
+    let baseMessage: string;
+    try {
+      const dbMessage = await this.storage.getOnboardingMessage("first_link");
+      if (dbMessage && dbMessage.enabled === "true") {
+        baseMessage = dbMessage.message;
+      } else {
+        log("First link message not found in database or disabled, using fallback");
+        baseMessage = ONBOARDING_MESSAGES.first_link;
+      }
+    } catch (error) {
+      log(`Error fetching first_link message from database: ${error instanceof Error ? error.message : String(error)}`);
+      baseMessage = ONBOARDING_MESSAGES.first_link;
+    }
+
+    // Replace placeholder for dashboard URL
     const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
     const dashboardUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
-    const personalizedMessage = ONBOARDING_MESSAGES.first_link.replace(/\{dashboardUrl\}/g, dashboardUrl);
+    const personalizedMessage = baseMessage.replace(/\{dashboardUrl\}/g, dashboardUrl);
 
     await this.twilioService.sendSMS(phoneNumber, personalizedMessage);
     await this.storage.updateUserOnboardingStep(userId, "first_link");
@@ -171,8 +224,22 @@ export class OnboardingService {
       return true;
     }
 
-    // Use built-in completion message
-    await this.twilioService.sendSMS(phoneNumber, ONBOARDING_MESSAGES.completion);
+    // Fetch completion message from database with fallback
+    let message: string;
+    try {
+      const dbMessage = await this.storage.getOnboardingMessage("completion");
+      if (dbMessage && dbMessage.enabled === "true") {
+        message = dbMessage.message;
+      } else {
+        log("Completion message not found in database or disabled, using fallback");
+        message = ONBOARDING_MESSAGES.completion;
+      }
+    } catch (error) {
+      log(`Error fetching completion message from database: ${error instanceof Error ? error.message : String(error)}`);
+      message = ONBOARDING_MESSAGES.completion;
+    }
+
+    await this.twilioService.sendSMS(phoneNumber, message);
     await this.storage.updateUserOnboardingStep(userId, "completed");
     await this.storage.markOnboardingCompleted(userId);
     
