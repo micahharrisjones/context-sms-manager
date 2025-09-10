@@ -93,9 +93,6 @@ export class OnboardingService {
         case "first_hashtag":
           return await this.handleFirstLink(userId, messageContent, user.phoneNumber);
         
-        case "first_link":
-          return await this.handleDashboardReveal(userId, user.phoneNumber);
-        
         default:
           return false; // Already completed or unknown step
       }
@@ -185,6 +182,8 @@ export class OnboardingService {
     if (!this.isValidPhoneNumber(phoneNumber)) {
       log(`Skipping onboarding SMS for potentially unreachable number: ${phoneNumber}`);
       await this.storage.updateUserOnboardingStep(userId, "first_link");
+      // Immediately complete onboarding for problematic numbers
+      await this.handleDashboardReveal(userId, phoneNumber);
       return true;
     }
 
@@ -212,6 +211,10 @@ export class OnboardingService {
     await this.storage.updateUserOnboardingStep(userId, "first_link");
     
     log(`Sent step 4 onboarding message to user ${userId}`);
+    
+    // Immediately trigger completion after sending the dashboard link
+    await this.handleDashboardReveal(userId, phoneNumber);
+    
     return true;
   }
 
