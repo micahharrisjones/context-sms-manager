@@ -1,11 +1,76 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import cors from "cors";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Configure CORS for Squarespace integration
+const corsOptions = {
+  origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
+    // In production, reject requests with no origin for security
+    if (!origin) {
+      if (process.env.NODE_ENV === 'production') {
+        log(`CORS blocked request with no origin in production`);
+        return callback(new Error('Not allowed by CORS'));
+      }
+      return callback(null, true); // Allow in development
+    }
+    
+    // Allow Squarespace domains and subdomains
+    const allowedOrigins = [
+      /\.squarespace\.com$/,
+      /\.sqsp\.com$/,
+      // Add your specific Squarespace site domain here
+      process.env.SQUARESPACE_DOMAIN || ''
+    ].filter(Boolean);
+    
+    const isAllowed = allowedOrigins.some(pattern => {
+      if (typeof pattern === 'string') {
+        return origin === pattern;
+      }
+      return pattern.test(origin);
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      log(`CORS blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'x-ss-secret', 'X-SS-Secret'],
+  credentials: false,
+  optionsSuccessStatus: 200
+};
+
+// Apply CORS to signup endpoint specifically
+app.options('/api/signup', cors(corsOptions));
+app.use('/api/signup', cors(corsOptions));
+
+// Rate limiting for signup endpoint to prevent abuse
+const signupRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 signup requests per windowMs
+  message: {
+    error: 'Too many signup requests',
+    message: 'Please try again later'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting in development
+    return process.env.NODE_ENV === 'development';
+  }
+});
+
+app.use('/api/signup', signupRateLimit);
+
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true })); // Changed to true for better form parsing
 
 // Configure session middleware
 app.use(session({

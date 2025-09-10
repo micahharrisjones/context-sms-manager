@@ -735,17 +735,66 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Shared secret validation middleware for Squarespace integration
+  const validateSquarespaceSecret = (req: any, res: any, next: any) => {
+    const expectedSecret = process.env.SQUARESPACE_WEBHOOK_SECRET;
+    
+    // FAIL-CLOSED: Reject if secret not configured in production
+    if (!expectedSecret) {
+      log("CRITICAL: SQUARESPACE_WEBHOOK_SECRET not configured - rejecting request");
+      return res.status(503).json({ 
+        error: "Service unavailable",
+        message: "Integration not properly configured"
+      });
+    }
+    
+    // Extract secret header (case-insensitive)
+    const providedSecret = req.headers['x-ss-secret'] || req.headers['X-SS-Secret'];
+    
+    if (!providedSecret) {
+      log("Squarespace signup blocked: Missing secret header");
+      return res.status(401).json({ 
+        error: "Authorization required",
+        message: "Missing authentication header"
+      });
+    }
+    
+    // Handle array values from headers and ensure string comparison
+    const secretToCheck = Array.isArray(providedSecret) ? providedSecret[0] : providedSecret;
+    
+    if (typeof secretToCheck !== 'string' || secretToCheck !== expectedSecret) {
+      log("Squarespace signup blocked: Invalid secret");
+      return res.status(401).json({ 
+        error: "Authorization failed",
+        message: "Invalid authentication"
+      });
+    }
+    
+    log("Squarespace secret validation passed");
+    next();
+  };
+
   // Public signup endpoint for Squarespace form integration
-  app.post("/api/signup", async (req, res) => {
+  app.post("/api/signup", validateSquarespaceSecret, async (req, res) => {
     try {
-      const { phoneNumber } = req.body;
+      // Extract phone number from both JSON and form-encoded data (handle multiple possible field names)
+      const { phoneNumber, phone, firstName, lastName, name, source = 'squarespace' } = req.body;
+      const extractedPhone = phoneNumber || phone;
       
-      if (!phoneNumber) {
-        return res.status(400).json({ error: "Phone number is required" });
+      if (!extractedPhone) {
+        log("Signup failed: Missing phone number in request body:", req.body);
+        return res.status(400).json({ 
+          error: "Phone number is required",
+          message: "Please provide a phone number to continue"
+        });
       }
       
+      // Extract name fields
+      const extractedFirstName = firstName || (name ? name.split(' ')[0] : 'User');
+      const extractedLastName = lastName || (name ? name.split(' ').slice(1).join(' ') : '');
+      
       // Clean phone number (remove any formatting)
-      const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
+      const cleanPhoneNumber = extractedPhone.replace(/\D/g, '');
       
       // Validate phone number format
       if (cleanPhoneNumber.length < 10 || cleanPhoneNumber.length > 11) {
@@ -799,16 +848,16 @@ export async function registerRoutes(app: Express) {
         try {
           const user = await storage.createUser({
             phoneNumber: formattedNumber,
-            displayName: `User ${usNumber.slice(-4)}`,
-            firstName: `User`,
-            lastName: usNumber.slice(-4),
+            displayName: extractedLastName ? `${extractedFirstName} ${extractedLastName}` : `${extractedFirstName} ${usNumber.slice(-4)}`,
+            firstName: extractedFirstName,
+            lastName: extractedLastName || usNumber.slice(-4),
             onboardingStep: "welcome_sent"
           });
           
           log(`✅ User account created successfully for ${formattedNumber} - ID: ${user.id}`);
         
-        // Track signup event
-        mixpanelService.trackSignup(user.id.toString(), formattedNumber, 'squarespace');
+        // Track signup event with source information
+        mixpanelService.trackSignup(user.id.toString(), formattedNumber, source);
         } catch (createError) {
           log(`❌ User account creation failed for ${formattedNumber}:`, createError instanceof Error ? createError.message : String(createError));
           // Note: SMS was already sent successfully, so this is logged but not returned to user
