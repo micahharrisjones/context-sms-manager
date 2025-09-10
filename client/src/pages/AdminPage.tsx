@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Trash2, Users, MessageSquare, Hash, Database, Settings, Send, MessageCircle, Edit3, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { OnboardingMessage, UpdateOnboardingMessage } from "@shared/schema";
 
 interface AdminUser {
   id: number;
@@ -41,15 +42,6 @@ interface FeedbackMessage {
   mediaType?: string;
 }
 
-interface OnboardingMessage {
-  id: number;
-  step: string;
-  title: string;
-  content: string;
-  isActive: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export function AdminPage() {
   const { toast } = useToast();
