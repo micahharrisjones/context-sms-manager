@@ -12,6 +12,7 @@ import { tmdbService } from "./tmdb-service";
 import { openGraphService } from "./og-service";
 import aiService from "./ai-service";
 import { OnboardingService } from "./onboarding-service";
+import mixpanelService from "./mixpanel-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -272,6 +273,9 @@ const processSMSWebhook = async (body: unknown) => {
       });
       isNewUser = true;
       log(`🆕 NEW USER CREATED: Account created for phone ${senderId} - User ID: ${user.id}`);
+      
+      // Track SMS signup event
+      mixpanelService.trackSignup(user.id.toString(), senderId, 'sms');
       
       // IMMEDIATELY send welcome message to new users for fast response
       const digitsOnly = senderId.replace(/\D/g, '');
@@ -678,6 +682,9 @@ export async function registerRoutes(app: Express) {
         // Set session
         req.session.userId = result.user.id;
         
+        // Track login event
+        mixpanelService.trackLogin(result.user.id.toString(), result.user.phoneNumber);
+        
         // Preload affirmation for the user (fire and forget - don't wait)
         aiService.generateAffirmation(result.user.id).catch((error) => {
           log(`Background affirmation generation failed for user ${result.user.id}: ${error instanceof Error ? error.message : String(error)}`);
@@ -788,6 +795,9 @@ export async function registerRoutes(app: Express) {
           });
           
           log(`✅ User account created successfully for ${formattedNumber} - ID: ${user.id}`);
+        
+        // Track signup event
+        mixpanelService.trackSignup(user.id.toString(), formattedNumber, 'squarespace');
         } catch (createError) {
           log(`❌ User account creation failed for ${formattedNumber}:`, createError instanceof Error ? createError.message : String(createError));
           // Note: SMS was already sent successfully, so this is logged but not returned to user
@@ -1140,6 +1150,15 @@ export async function registerRoutes(app: Express) {
       // Create message in storage
       const created = await storage.createMessage(message);
       log(`Created UI message for user ${userId}:`, JSON.stringify(created, null, 2));
+      
+      // Track message sent event
+      mixpanelService.trackMessageSent(userId.toString(), {
+        hasHashtags: created.tags.length > 0,
+        hashtagCount: created.tags.length,
+        hasUrl: /https?:\/\/[^\s]+/.test(created.content),
+        messageLength: created.content.length,
+        source: 'ui'
+      });
 
       // Immediately respond to user while background tasks run
       res.status(201).json(created);
@@ -2058,6 +2077,17 @@ export async function registerRoutes(app: Express) {
       log("Creating message in storage");
       const created = await storage.createMessage(message);
       log("Message creation complete");
+      
+      // Track message sent event (for non-new users)
+      if (!isNewUser && created.userId) {
+        mixpanelService.trackMessageSent(created.userId.toString(), {
+          hasHashtags: created.tags.length > 0,
+          hashtagCount: created.tags.length,
+          hasUrl: /https?:\/\/[^\s]+/.test(created.content),
+          messageLength: created.content.length,
+          source: 'sms'
+        });
+      }
 
       // Handle onboarding flow for existing users (new users already got welcome message above)
       if (smsData.userId && !isNewUser) {
