@@ -411,25 +411,33 @@ export class DatabaseStorage implements IStorage {
 
       log(`Found ${recentMessages.length} recent messages from sender`);
 
-      // If we found a recent message, merge the content and tags
+      // If we found a recent message, only merge if they have the same tags (same intent)
       if (recentMessages.length > 0) {
         const existingMessage = recentMessages[0];
-        log("Merging with existing message:", JSON.stringify(existingMessage, null, 2));
+        log("Found recent message, checking if merge is appropriate:", JSON.stringify(existingMessage, null, 2));
 
-        const uniqueTags = Array.from(new Set([...existingMessage.tags, ...insertMessage.tags]));
+        // Only merge if both messages have the same hashtags (indicates same conversation context)
+        const existingTagsSet = new Set(existingMessage.tags);
+        const newTagsSet = new Set(insertMessage.tags);
+        const tagsMatch = existingTagsSet.size === newTagsSet.size && 
+                         Array.from(existingTagsSet).every(tag => newTagsSet.has(tag));
 
-        const updatedMessage = await db
-          .update(messages)
-          .set({
-            content: `${existingMessage.content} ${insertMessage.content}`.trim(),
-            tags: uniqueTags,
-          })
-          .where(eq(messages.id, existingMessage.id))
-          .returning()
-          .then(rows => rows[0]);
+        if (tagsMatch) {
+          log("Tags match, merging messages");
+          const updatedMessage = await db
+            .update(messages)
+            .set({
+              content: `${existingMessage.content} ${insertMessage.content}`.trim(),
+            })
+            .where(eq(messages.id, existingMessage.id))
+            .returning()
+            .then(rows => rows[0]);
 
-        log("Successfully updated existing message:", JSON.stringify(updatedMessage, null, 2));
-        return updatedMessage;
+          log("Successfully merged message:", JSON.stringify(updatedMessage, null, 2));
+          return updatedMessage;
+        } else {
+          log("Tags don't match, creating separate message instead of merging");
+        }
       }
 
       // Otherwise create a new message

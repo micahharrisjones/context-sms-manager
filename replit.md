@@ -13,6 +13,11 @@ Context is a robust SMS management platform designed to enable persistent messag
 ### System Architecture
 The system employs a modern web architecture with a TypeScript React frontend (Vite) and a Node.js Express backend. Data persistence is managed by a PostgreSQL database utilizing Drizzle ORM. Real-time features are powered by WebSocket connections. The platform integrates with Twilio for SMS processing, supporting incoming messages via webhooks and outgoing notifications. A key architectural decision is the "SMS-first" onboarding flow and a content-aware conversational AI that analyzes saved messages for personalized responses. UI/UX design emphasizes a clean, mobile-optimized experience with a warm color scheme (#fff3ea background, #e3cac0 borders) and consistent branding using the Context sunburst logo. Key features include multi-user authentication with phone number verification, user-scoped message storage, smart hashtag inheritance for message organization, comprehensive social media and general URL link previews (Instagram, Pinterest, X/Twitter, Reddit, Facebook, YouTube, TikTok, IMDB), shared board functionality with real-time notifications, and message editing/renaming. The system also includes an admin dashboard for authorized users with management capabilities, and a Squarespace integration API endpoint (/api/signup) that enables professional website signups with instant SMS welcome messages for seamless user acquisition. AI integration includes DeepSeek for hybrid categorization and daily affirmations.
 
+### Recent Changes
+- **Fixed hashtag cross-contamination bug**: Messages with different hashtags sent quickly (within 5 seconds) no longer incorrectly merge tags - preserves proper message organization (#simpsons and #tuts stay separate)
+- **Fixed admin panel type imports**: Updated AdminPage.tsx to use proper OnboardingMessage types from shared schema instead of local interface definitions
+- **Resolved onboarding message field mismatches**: Fixed OnboardingService to use correct database field names (isActive/content vs enabled/message)
+
 ### External Dependencies
 - **Twilio**: For SMS integration, handling incoming webhooks and sending outgoing messages.
 - **PostgreSQL**: Primary database for persistent storage.
