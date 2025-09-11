@@ -63,8 +63,6 @@
     "lucide-react": "^0.453.0",
     "memoizee": "^0.4.17",
     "memorystore": "^1.6.7",
-    "mixpanel": "^0.18.1",
-    "mixpanel-browser": "^2.70.0",
     "openai": "^5.13.1",
     "openid-client": "^6.7.1",
     "passport": "^0.7.0",

@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
-import analytics from '@/lib/mixpanel';
 
 interface AddMessageModalProps {
   isOpen: boolean;
@@ -42,15 +41,6 @@ export function AddMessageModal({ isOpen, onClose }: AddMessageModalProps) {
       return response.json();
     },
     onSuccess: (data) => {
-      // Track message creation success
-      analytics.track('Message Created', {
-        message_source: 'ui',
-        has_hashtags: hashtags.trim().length > 0,
-        hashtag_count: hashtags.trim() ? hashtags.split(',').length : 0,
-        has_url: /https?:\/\/[^\s]+/.test(content),
-        message_length: content.length,
-        platform: 'web'
-      });
       
       toast({
         title: "Message added",
