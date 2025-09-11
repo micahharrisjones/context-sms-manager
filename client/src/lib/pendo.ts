@@ -40,9 +40,9 @@ declare global {
   }
 }
 
-const MAX_RETRY_ATTEMPTS = 10;
+const MAX_RETRY_ATTEMPTS = 100; // Increased to match 10-second timeout
 const RETRY_DELAY_MS = 100;
-const MAX_WAIT_TIME_MS = 5000;
+const MAX_WAIT_TIME_MS = 10000;
 
 class PendoService {
   private static instance: PendoService;
@@ -69,8 +69,8 @@ class PendoService {
       const checkPendo = () => {
         attempts++;
         
-        // Check if max time elapsed (increased to 10 seconds)
-        if (Date.now() - startTime > 10000) {
+        // Check if max time elapsed
+        if (Date.now() - startTime > MAX_WAIT_TIME_MS) {
           console.warn('Pendo failed to load within timeout period');
           resolve(false);
           return;
