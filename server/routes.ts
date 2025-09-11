@@ -1652,6 +1652,55 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Get shared boards with message counts for dashboard
+  app.get("/api/shared-boards-with-counts", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      log(`Fetching shared boards with counts for user ${userId}`);
+      
+      // Get boards created by user and boards user is a member of
+      const [createdBoards, membershipBoards] = await Promise.all([
+        storage.getSharedBoards(userId),
+        storage.getUserBoardMemberships(userId)
+      ]);
+      
+      // Combine and deduplicate
+      const allBoardNames = new Set();
+      const allBoards = [];
+      
+      for (const board of createdBoards) {
+        if (!allBoardNames.has(board.name)) {
+          allBoardNames.add(board.name);
+          allBoards.push({ ...board, role: "owner" });
+        }
+      }
+      
+      for (const membership of membershipBoards) {
+        if (!allBoardNames.has(membership.board.name)) {
+          allBoardNames.add(membership.board.name);
+          allBoards.push({ ...membership.board, role: membership.role });
+        }
+      }
+      
+      // Get message counts for each shared board
+      const boardsWithCounts = await Promise.all(
+        allBoards.map(async (board) => {
+          const messages = await storage.getSharedMessages(userId, board.name);
+          return { 
+            ...board, 
+            count: messages.length 
+          };
+        })
+      );
+      
+      log(`Retrieved ${boardsWithCounts.length} shared boards with counts for user ${userId}`);
+      res.json(boardsWithCounts);
+    } catch (error) {
+      log(`Error retrieving shared boards with counts: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to retrieve shared boards with counts" });
+    }
+  });
+
   // Get messages for a shared board
   app.get("/api/shared-boards/:boardName/messages", requireAuth, async (req, res) => {
     try {

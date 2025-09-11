@@ -14,6 +14,7 @@ interface SharedBoard {
   createdBy: number;
   createdAt: string;
   role: "owner" | "member";
+  count: number;
 }
 
 interface BoardsData {
@@ -33,9 +34,9 @@ export default function Dashboard() {
     retry: false,
   });
 
-  // Get shared boards
+  // Get shared boards with counts
   const { data: sharedBoards, isLoading: sharedLoading, error: sharedError } = useQuery<SharedBoard[]>({
-    queryKey: ["/api/shared-boards"],
+    queryKey: ["/api/shared-boards-with-counts"],
     retry: false,
   });
 
@@ -68,7 +69,7 @@ export default function Dashboard() {
       type: 'shared' as const, 
       href: `/shared/${board.name}`,
       role: board.role,
-      count: 0 // TODO: Add shared board counts if needed
+      count: board.count
     })) || [])
   ];
 
