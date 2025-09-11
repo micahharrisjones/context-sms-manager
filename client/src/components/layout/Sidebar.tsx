@@ -42,11 +42,15 @@ export function Sidebar({ onClose }: SidebarProps) {
   const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
   
   const { data: tags } = useQuery<string[]>({ 
-    queryKey: ["/api/tags"]
+    queryKey: ["/api/tags"],
+    staleTime: 1000, // Consider data stale after 1 second for faster updates
+    refetchInterval: 3000 // Fast fallback polling for tags
   });
 
   const { data: sharedBoards } = useQuery<(SharedBoard & { role: string })[]>({ 
-    queryKey: ["/api/shared-boards"]
+    queryKey: ["/api/shared-boards"],
+    staleTime: 1000, // Consider data stale after 1 second for faster updates
+    refetchInterval: 3000 // Fast fallback polling for shared boards
   });
 
   const handleDeleteTag = (tag: string, e: React.MouseEvent) => {

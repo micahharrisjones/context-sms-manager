@@ -33,8 +33,9 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
   const { data: fetchedMessages, isLoading: fetchIsLoading } = useQuery<Message[]>({
     queryKey: getQueryKey(),
     enabled: !propMessages, // Only fetch if no messages provided as props
-    refetchInterval: 30000, // Faster polling for better real-time feel
+    refetchInterval: 2000, // Very fast polling for immediate updates (2 seconds)
     refetchIntervalInBackground: false, // Disable background polling to reduce load
+    staleTime: 1000, // Consider data stale after 1 second for faster updates
   });
 
   // Use prop messages if provided, otherwise use fetched messages
@@ -102,7 +103,8 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
             queriesToInvalidate.map(queryKey => 
               queryClient.invalidateQueries({ 
                 queryKey,
-                refetchType: 'active'
+                refetchType: 'active',
+                exact: false // Allow broader invalidation for faster updates
               })
             )
           ).then(() => {
