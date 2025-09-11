@@ -69,8 +69,8 @@ class PendoService {
       const checkPendo = () => {
         attempts++;
         
-        // Check if max time elapsed
-        if (Date.now() - startTime > MAX_WAIT_TIME_MS) {
+        // Check if max time elapsed (increased to 10 seconds)
+        if (Date.now() - startTime > 10000) {
           console.warn('Pendo failed to load within timeout period');
           resolve(false);
           return;
@@ -83,17 +83,10 @@ class PendoService {
           return;
         }
         
-        // Check if Pendo is available and ready
+        // Check if Pendo is available - REMOVED isReady() check to fix deadlock
         if (window.pendo && typeof window.pendo.initialize === 'function') {
-          try {
-            // Additional check to see if agent is ready
-            if (window.pendo.isReady && window.pendo.isReady()) {
-              resolve(true);
-              return;
-            }
-          } catch (error) {
-            console.warn('Error checking Pendo readiness:', error);
-          }
+          resolve(true);
+          return;
         }
         
         // Retry after delay
@@ -104,7 +97,22 @@ class PendoService {
     });
   }
 
-  private createPendoOptions(user: any): PendoOptions {
+  private createPendoOptions(user?: any): PendoOptions {
+    if (!user) {
+      // Anonymous visitor for initial initialization
+      return {
+        visitor: {
+          id: 'anonymous-' + Date.now(),
+        },
+        account: {
+          id: 'context-app',
+          accountName: 'Context SMS Platform',
+          payingStatus: 'trial',
+          planType: 'anonymous',
+        }
+      };
+    }
+
     return {
       visitor: {
         id: user.id.toString(),
@@ -126,14 +134,14 @@ class PendoService {
     };
   }
 
-  public async initialize(user: any): Promise<boolean> {
+  public async initialize(user?: any): Promise<boolean> {
     // Prevent multiple simultaneous initializations
     if (this.initializationPromise) {
       return this.initializationPromise.then(() => this.initialized);
     }
     
     // If already initialized with same user, just identify
-    if (this.initialized && this.currentUser?.id === user.id) {
+    if (this.initialized && user && this.currentUser?.id === user.id) {
       return this.identifyUser(user);
     }
     
@@ -141,7 +149,7 @@ class PendoService {
     return this.initializationPromise.then(() => this.initialized);
   }
   
-  private async performInitialization(user: any): Promise<void> {
+  private async performInitialization(user?: any): Promise<void> {
     try {
       const pendoReady = await this.waitForPendo();
       
@@ -155,12 +163,12 @@ class PendoService {
       if (this.initialized) {
         // If already initialized but with different user, identify the new user
         window.pendo.identify(pendoOptions);
-        console.log('Pendo user switched to:', user.id);
+        console.log('Pendo user switched to:', user ? user.id : 'anonymous');
       } else {
         // First time initialization
         window.pendo.initialize(pendoOptions);
         this.initialized = true;
-        console.log('Pendo initialized for user:', user.id);
+        console.log('Pendo initialized for user:', user ? user.id : 'anonymous');
       }
       
       this.currentUser = user;

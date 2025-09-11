@@ -76,6 +76,15 @@ function AuthenticatedApp() {
 }
 
 function App() {
+  // Initialize Pendo anonymously on app startup to fix connection verification
+  useEffect(() => {
+    // Initialize Pendo immediately with anonymous visitor
+    // This creates a session even before authentication
+    pendo.initialize().catch((error) => {
+      console.warn('Failed to initialize Pendo anonymously:', error);
+    });
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthenticatedApp />
