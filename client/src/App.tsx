@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -14,8 +15,17 @@ import { LoginScreen } from "@/components/auth/LoginScreen";
 import { ProfileSetup } from "@/components/auth/ProfileSetup";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { pendo } from "@/lib/pendo";
 
 function Router() {
+  const [location] = useLocation();
+
+  // Track SPA page loads for Pendo
+  useEffect(() => {
+    // Track initial page load and route changes
+    pendo.pageLoad(window.location.href);
+  }, [location]); // Re-run when location changes
+
   return (
     <Layout>
       <Switch>

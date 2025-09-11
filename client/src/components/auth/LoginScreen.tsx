@@ -7,9 +7,10 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { Logo } from '@/components/layout/Logo';
 import { MessageSquare } from 'lucide-react';
+import { pendo } from '@/lib/pendo';
 
 interface LoginScreenProps {
-  onLogin: (user: any) => void;
+  onLogin: (user: any) => Promise<void>;
 }
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
@@ -30,6 +31,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     e.preventDefault();
     setIsLoading(true);
 
+    // Track login attempt
+    await pendo.track('Login Attempt', {
+      login_method: 'sms_verification',
+      platform: 'web',
+      phone_number_provided: !!phoneNumber.trim()
+    });
+
     try {
       console.log('Requesting verification code for phone number:', phoneNumber);
       const response = await apiRequest('/api/auth/login', {
@@ -44,6 +52,13 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         console.log('Login response:', data);
         
         if (data.requiresVerification) {
+          // Track verification code sent
+          await pendo.track('Verification Code Sent', {
+            login_method: 'sms_verification',
+            platform: 'web',
+            phone_number: phoneNumber
+          });
+          
           setShowVerification(true);
           toast({
             title: "Verification code sent",
@@ -51,11 +66,27 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           });
         } else {
           // Fallback for existing users without verification
-          onLogin(data.user);
+          await onLogin(data.user);
+          
+          // Track successful login (after onLogin completes)
+          await pendo.track('User Login Success', {
+            login_method: 'legacy_fallback',
+            platform: 'web',
+            user_id: data.user.id.toString()
+          });
         }
       } else {
         const error = await response.json();
         console.error('API error response:', error);
+        
+        // Track login failure
+        await pendo.track('Login Failed', {
+          login_method: 'sms_verification',
+          platform: 'web',
+          error_type: 'api_error',
+          error_message: error.error || 'Failed to send verification code'
+        });
+        
         toast({
           title: "Error",
           description: error.error || "Failed to send verification code",
@@ -64,6 +95,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       }
     } catch (error) {
       console.error('Login error:', error);
+      
+      // Track network error
+      await pendo.track('Login Failed', {
+        login_method: 'sms_verification',
+        platform: 'web',
+        error_type: 'network_error',
+        error_message: error instanceof Error ? error.message : 'Network error'
+      });
+      
       toast({
         title: "Error", 
         description: `Network error: ${error instanceof Error ? error.message : 'Please try again.'}`,
@@ -78,6 +118,14 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     e.preventDefault();
     setIsLoading(true);
 
+    // Track verification attempt
+    await pendo.track('Verification Attempt', {
+      login_method: 'sms_verification',
+      platform: 'web',
+      phone_number: phoneNumber,
+      code_length: verificationCode.length
+    });
+
     try {
       console.log('Verifying code for phone number:', phoneNumber);
       const response = await apiRequest('/api/auth/verify', {
@@ -90,13 +138,31 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         console.log('Verification response:', data);
         
         if (data.success) {
-          
           toast({
             title: "Login successful",
             description: "Welcome to Context!",
           });
-          onLogin(data.user);
+          
+          // Call onLogin first (this initializes Pendo)
+          await onLogin(data.user);
+          
+          // Track successful login AFTER onLogin completes (and Pendo is initialized)
+          await pendo.track('User Login Success', {
+            login_method: 'sms_verification',
+            platform: 'web',
+            user_id: data.user.id.toString(),
+            verification_completed: true
+          });
         } else {
+          // Track verification failure
+          await pendo.track('Verification Failed', {
+            login_method: 'sms_verification',
+            platform: 'web',
+            phone_number: phoneNumber,
+            error_type: 'verification_failed',
+            error_message: data.message || 'Verification failed'
+          });
+          
           toast({
             title: "Error",
             description: data.message || "Verification failed",
@@ -106,6 +172,16 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       } else {
         const error = await response.json();
         console.error('Verification error response:', error);
+        
+        // Track verification API error
+        await pendo.track('Verification Failed', {
+          login_method: 'sms_verification',
+          platform: 'web',
+          phone_number: phoneNumber,
+          error_type: 'api_error',
+          error_message: error.message || 'Invalid verification code'
+        });
+        
         toast({
           title: "Error",
           description: error.message || "Invalid verification code",
@@ -114,6 +190,16 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       }
     } catch (error) {
       console.error('Verification error:', error);
+      
+      // Track verification network error
+      await pendo.track('Verification Failed', {
+        login_method: 'sms_verification',
+        platform: 'web',
+        phone_number: phoneNumber,
+        error_type: 'network_error',
+        error_message: error instanceof Error ? error.message : 'Network error'
+      });
+      
       toast({
         title: "Error",
         description: `Network error: ${error instanceof Error ? error.message : 'Please try again.'}`,

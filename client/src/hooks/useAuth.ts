@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiRequest } from '@/lib/queryClient';
+import { pendo } from '@/lib/pendo';
 
 interface User {
   id: number;
@@ -36,6 +37,15 @@ export function useAuth() {
           const profileResponse = await apiRequest('/api/profile');
           if (profileResponse.ok) {
             const user = await profileResponse.json();
+            
+            // Initialize Pendo with user data (async)
+            try {
+              await pendo.initialize(user);
+              console.log('Pendo initialized during session check for user:', user.id);
+            } catch (pendoError) {
+              console.warn('Pendo initialization failed during session check:', pendoError);
+            }
+            
             setAuthState({
               user,
               isLoading: false,
@@ -73,7 +83,7 @@ export function useAuth() {
     }
   };
 
-  const login = (user: User) => {
+  const login = async (user: User) => {
     // Reset scroll position and viewport for mobile after login
     setTimeout(() => {
       window.scrollTo(0, 0);
@@ -85,6 +95,14 @@ export function useAuth() {
       document.body.style.minHeight = '100dvh';
     }, 50);
     
+    // Initialize Pendo with user data (async)
+    try {
+      await pendo.initialize(user);
+      console.log('Pendo initialized during login for user:', user.id);
+    } catch (pendoError) {
+      console.warn('Pendo initialization failed during login:', pendoError);
+    }
+    
     setAuthState({
       user,
       isLoading: false,
@@ -95,6 +113,16 @@ export function useAuth() {
   const logout = async () => {
     try {
       console.log('Attempting logout...');
+      
+      // Clear Pendo visitor data first
+      try {
+        await pendo.clearVisitor();
+        console.log('Pendo visitor cleared during logout');
+      } catch (pendoError) {
+        console.warn('Pendo visitor clear failed during logout:', pendoError);
+      }
+      
+      // Then call logout API
       await apiRequest('/api/auth/logout', {
         method: 'POST',
       });
@@ -102,6 +130,13 @@ export function useAuth() {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      // Reset Pendo session completely
+      try {
+        pendo.reset();
+        console.log('Pendo session reset during logout');
+      } catch (pendoError) {
+        console.warn('Pendo reset failed during logout:', pendoError);
+      }
       
       // Clear auth state regardless of API call success
       setAuthState({
