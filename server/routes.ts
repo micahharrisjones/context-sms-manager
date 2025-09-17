@@ -287,10 +287,10 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
         twilioService.sendWelcomeMessage(senderId, onboardingService).then(async () => {
           // Mark onboarding as completed after successful welcome message
           try {
-            await storage.markOnboardingCompleted(user.id);
-            log(`✅ Onboarding marked as completed for new user ${user.id}`);
+            await storage.markOnboardingCompleted(user!.id);
+            log(`✅ Onboarding marked as completed for new user ${user!.id}`);
           } catch (error) {
-            log(`❌ Failed to mark onboarding complete for user ${user.id}:`, error instanceof Error ? error.message : String(error));
+            log(`❌ Failed to mark onboarding complete for user ${user!.id}:`, error instanceof Error ? error.message : String(error));
           }
         }).catch(error => {
           log(`Welcome message delivery failed for ${senderId}:`, error instanceof Error ? error.message : String(error));
