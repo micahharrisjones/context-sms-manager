@@ -51,16 +51,16 @@ export class OnboardingService {
     const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
     const dashboardUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
     
-    return `👋 Welcome to Context! This is your personal space to save anything by texting it here.
+    return `👋 Welcome to Context! This is your personal space to save anything from anywhere just by texting it here.
 
 📱 How it works:
-• Text me anything - quotes, links, reminders, ideas
-• Add hashtags like #movies or #recipes to organize your messages
+• Text me anything - quotes, links, lyrics, ideas, recipes, etc
+• Add a hashtag like #movies or #recipes to organize your messages into boards
 • Everything is saved and searchable in your dashboard
 
-🔗 Access your dashboard: ${dashboardUrl}
+🙋 Need help? Just text me a question like "What boards do I have?" and I'll do my best to answer. 
 
-Try it now - send me any message with a hashtag like "#test Hello World!" and see the magic happen.`;
+🔗 Access your dashboard: ${dashboardUrl}`;
   }
 
   private isValidPhoneNumber(phoneNumber: string): boolean {
