@@ -284,7 +284,15 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       if (!isProblematic) {
         log(`🚀 SENDING IMMEDIATE WELCOME MESSAGE to new user ${senderId}`);
         // Send welcome message immediately using async fire-and-forget
-        twilioService.sendWelcomeMessage(senderId, onboardingService).catch(error => {
+        twilioService.sendWelcomeMessage(senderId, onboardingService).then(async () => {
+          // Mark onboarding as completed after successful welcome message
+          try {
+            await storage.markOnboardingCompleted(user.id);
+            log(`✅ Onboarding marked as completed for new user ${user.id}`);
+          } catch (error) {
+            log(`❌ Failed to mark onboarding complete for user ${user.id}:`, error instanceof Error ? error.message : String(error));
+          }
+        }).catch(error => {
           log(`Welcome message delivery failed for ${senderId}:`, error instanceof Error ? error.message : String(error));
         });
         
@@ -840,6 +848,14 @@ export async function registerRoutes(app: Express) {
           });
           
           log(`✅ User account created successfully for ${formattedNumber} - ID: ${user.id}`);
+          
+          // Mark onboarding as completed since welcome message was already sent
+          try {
+            await storage.markOnboardingCompleted(user.id);
+            log(`✅ Onboarding marked as completed for Squarespace signup user ${user.id}`);
+          } catch (error) {
+            log(`❌ Failed to mark onboarding complete for user ${user.id}:`, error instanceof Error ? error.message : String(error));
+          }
         
         } catch (createError) {
           log(`❌ User account creation failed for ${formattedNumber}:`, createError instanceof Error ? createError.message : String(createError));
