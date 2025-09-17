@@ -46,19 +46,21 @@ export class OnboardingService {
     this.storage = storage;
   }
 
-  // Get welcome message for new users
-  async getWelcomeMessage(): Promise<string> {
-    try {
-      const dbMessage = await this.storage.getOnboardingMessage("welcome");
-      if (dbMessage && dbMessage.isActive === "true") {
-        return dbMessage.content;
-      }
-      log("Welcome message not found in database or disabled, using fallback");
-      return ONBOARDING_MESSAGES.welcome;
-    } catch (error) {
-      log(`Error fetching welcome message from database: ${error instanceof Error ? error.message : String(error)}`);
-      return ONBOARDING_MESSAGES.welcome;
-    }
+  // Get welcome message for new users - simplified single message
+  async getWelcomeMessage(phoneNumber: string): Promise<string> {
+    const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
+    const dashboardUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
+    
+    return `👋 Welcome to Context! This is your personal space to save anything by texting it here.
+
+📱 How it works:
+• Text me anything - quotes, links, reminders, ideas
+• Add hashtags like #movies or #recipes to organize your messages
+• Everything is saved and searchable in your dashboard
+
+🔗 Access your dashboard: ${dashboardUrl}
+
+Try it now - send me any message with a hashtag like "#test Hello World!" and see the magic happen.`;
   }
 
   private isValidPhoneNumber(phoneNumber: string): boolean {
