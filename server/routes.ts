@@ -1490,10 +1490,15 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "userIds array is required" });
       }
 
-      // Validate all userIds are numbers
-      const validUserIds = userIds.filter(id => Number.isInteger(id) && id > 0);
+      // Validate all userIds are numbers (handle both numbers and numeric strings)
+      const validUserIds = userIds.map(id => {
+        const numId = typeof id === 'string' ? parseInt(id, 10) : id;
+        return Number.isInteger(numId) && numId > 0 ? numId : null;
+      }).filter(id => id !== null);
+      
       if (validUserIds.length !== userIds.length) {
-        return res.status(400).json({ error: "All userIds must be valid positive integers" });
+        log(`Bulk delete validation failed. Received: ${JSON.stringify(userIds)}, Valid: ${JSON.stringify(validUserIds)}`);
+        return res.status(400).json({ error: "Invalid user ID" });
       }
 
       const results = await storage.bulkDeleteUsers(validUserIds);
