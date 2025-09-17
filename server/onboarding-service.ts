@@ -81,174 +81,20 @@ export class OnboardingService {
         return false; // User not in onboarding or already completed
       }
 
-      log(`Processing onboarding step ${user.onboardingStep} for user ${userId}`);
+      log(`Processing simplified onboarding for user ${userId} - completing onboarding immediately`);
 
-      switch (user.onboardingStep) {
-        case "welcome_sent":
-          return await this.handleFirstText(userId, messageContent, user.phoneNumber);
-        
-        case "first_text":
-          return await this.handleFirstHashtag(userId, messageContent, tags, user.phoneNumber);
-        
-        case "first_hashtag":
-          return await this.handleFirstLink(userId, messageContent, user.phoneNumber);
-        
-        default:
-          return false; // Already completed or unknown step
-      }
+      // In the simplified flow, any message from a user in onboarding immediately completes it
+      await this.storage.updateUserOnboardingStep(userId, "completed");
+      await this.storage.markOnboardingCompleted(userId);
+      
+      log(`Completed simplified onboarding for user ${userId}`);
+      return true;
     } catch (error) {
       log(`Error in onboarding progress: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
   }
 
-  private async handleFirstText(userId: number, messageContent: string, phoneNumber: string): Promise<boolean> {
-    // Check if this is a problematic number before sending SMS
-    if (!this.isValidPhoneNumber(phoneNumber)) {
-      log(`Skipping onboarding SMS for potentially unreachable number: ${phoneNumber}`);
-      // Still update the step but don't send SMS
-      await this.storage.updateUserOnboardingStep(userId, "first_text");
-      return true;
-    }
-
-    // Fetch message from database with fallback
-    let message: string;
-    try {
-      const dbMessage = await this.storage.getOnboardingMessage("first_text");
-      if (dbMessage && dbMessage.isActive === "true") {
-        message = dbMessage.content;
-      } else {
-        log("First text message not found in database or disabled, using fallback");
-        message = ONBOARDING_MESSAGES.first_text;
-      }
-    } catch (error) {
-      log(`Error fetching first_text message from database: ${error instanceof Error ? error.message : String(error)}`);
-      message = ONBOARDING_MESSAGES.first_text;
-    }
-
-    await this.twilioService.sendSMS(phoneNumber, message);
-    await this.storage.updateUserOnboardingStep(userId, "first_text");
-    
-    log(`Sent step 2 onboarding message to user ${userId}`);
-    return true;
-  }
-
-  private async handleFirstHashtag(userId: number, messageContent: string, tags: string[], phoneNumber: string): Promise<boolean> {
-    if (tags.length === 0) {
-      return false; // Not a hashtag message, wait for one
-    }
-
-    // Check if this is a problematic number before sending SMS
-    if (!this.isValidPhoneNumber(phoneNumber)) {
-      log(`Skipping onboarding SMS for potentially unreachable number: ${phoneNumber}`);
-      await this.storage.updateUserOnboardingStep(userId, "first_hashtag");
-      return true;
-    }
-
-    // Fetch message from database with fallback and template replacement
-    let baseMessage: string;
-    try {
-      const dbMessage = await this.storage.getOnboardingMessage("first_hashtag");
-      if (dbMessage && dbMessage.isActive === "true") {
-        baseMessage = dbMessage.content;
-      } else {
-        log("First hashtag message not found in database or disabled, using fallback");
-        baseMessage = ONBOARDING_MESSAGES.first_hashtag;
-      }
-    } catch (error) {
-      log(`Error fetching first_hashtag message from database: ${error instanceof Error ? error.message : String(error)}`);
-      baseMessage = ONBOARDING_MESSAGES.first_hashtag;
-    }
-
-    // Replace placeholder for hashtag name
-    const firstTag = tags[0].charAt(0) === '#' ? tags[0].slice(1) : tags[0];
-    const personalizedMessage = baseMessage.replace(/\{firstTag\}/g, firstTag);
-
-    await this.twilioService.sendSMS(phoneNumber, personalizedMessage);
-    await this.storage.updateUserOnboardingStep(userId, "first_hashtag");
-    
-    log(`Sent step 3 onboarding message to user ${userId}`);
-    return true;
-  }
-
-  private async handleFirstLink(userId: number, messageContent: string, phoneNumber: string): Promise<boolean> {
-    // Check if message contains a URL
-    const urlRegex = /https?:\/\/[^\s]+/;
-    if (!urlRegex.test(messageContent)) {
-      return false; // Not a link, wait for one
-    }
-
-    // Check if this is a problematic number before sending SMS
-    if (!this.isValidPhoneNumber(phoneNumber)) {
-      log(`Skipping onboarding SMS for potentially unreachable number: ${phoneNumber}`);
-      await this.storage.updateUserOnboardingStep(userId, "first_link");
-      // Immediately complete onboarding for problematic numbers
-      await this.handleDashboardReveal(userId, phoneNumber);
-      return true;
-    }
-
-    // Fetch message from database with fallback and template replacement
-    let baseMessage: string;
-    try {
-      const dbMessage = await this.storage.getOnboardingMessage("first_link");
-      if (dbMessage && dbMessage.isActive === "true") {
-        baseMessage = dbMessage.content;
-      } else {
-        log("First link message not found in database or disabled, using fallback");
-        baseMessage = ONBOARDING_MESSAGES.first_link;
-      }
-    } catch (error) {
-      log(`Error fetching first_link message from database: ${error instanceof Error ? error.message : String(error)}`);
-      baseMessage = ONBOARDING_MESSAGES.first_link;
-    }
-
-    // Replace placeholder for dashboard URL
-    const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
-    const dashboardUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
-    const personalizedMessage = baseMessage.replace(/\{dashboardUrl\}/g, dashboardUrl);
-
-    await this.twilioService.sendSMS(phoneNumber, personalizedMessage);
-    await this.storage.updateUserOnboardingStep(userId, "first_link");
-    
-    log(`Sent step 4 onboarding message to user ${userId}`);
-    
-    // Immediately trigger completion after sending the dashboard link
-    await this.handleDashboardReveal(userId, phoneNumber);
-    
-    return true;
-  }
-
-  private async handleDashboardReveal(userId: number, phoneNumber: string): Promise<boolean> {
-    // Check if this is a problematic number before sending SMS
-    if (!this.isValidPhoneNumber(phoneNumber)) {
-      log(`Skipping onboarding SMS for potentially unreachable number: ${phoneNumber}`);
-      await this.storage.updateUserOnboardingStep(userId, "completed");
-      await this.storage.markOnboardingCompleted(userId);
-      return true;
-    }
-
-    // Fetch completion message from database with fallback
-    let message: string;
-    try {
-      const dbMessage = await this.storage.getOnboardingMessage("completion");
-      if (dbMessage && dbMessage.isActive === "true") {
-        message = dbMessage.content;
-      } else {
-        log("Completion message not found in database or disabled, using fallback");
-        message = ONBOARDING_MESSAGES.completion;
-      }
-    } catch (error) {
-      log(`Error fetching completion message from database: ${error instanceof Error ? error.message : String(error)}`);
-      message = ONBOARDING_MESSAGES.completion;
-    }
-
-    await this.twilioService.sendSMS(phoneNumber, message);
-    await this.storage.updateUserOnboardingStep(userId, "completed");
-    await this.storage.markOnboardingCompleted(userId);
-    
-    log(`Completed onboarding for user ${userId}`);
-    return true;
-  }
 
   // Send the shared boards follow-up after completion
   async sendSharedBoardsIntroduction(userId: number): Promise<void> {
