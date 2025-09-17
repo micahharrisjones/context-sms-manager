@@ -220,7 +220,7 @@ const clicksendWebhookSchema = z.object({
   path: ["from"],
 });
 
-const processSMSWebhook = async (body: unknown) => {
+const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
   log("Raw webhook payload:", JSON.stringify(body, null, 2));
 
   // Try Twilio format first
@@ -284,7 +284,7 @@ const processSMSWebhook = async (body: unknown) => {
       if (!isProblematic) {
         log(`🚀 SENDING IMMEDIATE WELCOME MESSAGE to new user ${senderId}`);
         // Send welcome message immediately using async fire-and-forget
-        twilioService.sendWelcomeMessage(senderId, storage).catch(error => {
+        twilioService.sendWelcomeMessage(senderId, onboardingService).catch(error => {
           log(`Welcome message delivery failed for ${senderId}:`, error instanceof Error ? error.message : String(error));
         });
         
@@ -818,7 +818,7 @@ export async function registerRoutes(app: Express) {
       // Send welcome SMS IMMEDIATELY
       log(`🚀 SENDING IMMEDIATE WELCOME SMS for signup: ${formattedNumber}`);
       try {
-        await twilioService.sendWelcomeMessage(formattedNumber, storage);
+        await twilioService.sendWelcomeMessage(formattedNumber, onboardingService);
         log(`✅ Welcome SMS sent successfully to ${formattedNumber}`);
       } catch (smsError) {
         log(`❌ Welcome SMS failed for ${formattedNumber}:`, smsError instanceof Error ? smsError.message : String(smsError));
@@ -2107,7 +2107,7 @@ export async function registerRoutes(app: Express) {
         log(`Processing new message - MessageSid: ${messageSid}`);
       }
 
-      const smsData = await processSMSWebhook(req.body);
+      const smsData = await processSMSWebhook(req.body, onboardingService);
       log("processSMSWebhook completed");
 
       // If smsData is null, this was a tag confirmation message we want to skip
@@ -2295,7 +2295,7 @@ export async function registerRoutes(app: Express) {
   app.post('/api/test-welcome', async (req, res) => {
     try {
       const { phoneNumber } = req.body as { phoneNumber: string };
-      await twilioService.sendWelcomeMessage(phoneNumber, storage);
+      await twilioService.sendWelcomeMessage(phoneNumber, onboardingService);
       res.json({ success: true, message: 'Welcome message sent' });
     } catch (error) {
       log('Error in test-welcome endpoint:', error instanceof Error ? error.message : String(error));
