@@ -1552,41 +1552,6 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Admin onboarding messages endpoints
-  app.get("/api/admin/onboarding-messages", requireAdmin, async (req, res) => {
-    try {
-      const messages = await storage.getOnboardingMessages();
-      res.json(messages);
-    } catch (error) {
-      log("Error fetching onboarding messages:", error instanceof Error ? error.message : String(error));
-      res.status(500).json({ message: "Failed to fetch onboarding messages" });
-    }
-  });
-
-  app.put("/api/admin/onboarding-messages/:step", requireAdmin, async (req, res) => {
-    try {
-      const { step } = req.params;
-      const { title, content, isActive } = req.body;
-
-      // Validate the request body
-      if (!title || !content || typeof isActive !== 'string') {
-        return res.status(400).json({ message: "Title, content, and isActive are required" });
-      }
-
-      const updated = await storage.updateOnboardingMessage(step, {
-        title,
-        content,
-        isActive
-      });
-
-      res.json(updated);
-    } catch (error) {
-      log("Error updating onboarding message:", error instanceof Error ? error.message : String(error));
-      res.status(500).json({ message: "Failed to update onboarding message" });
-    }
-  });
-
-  // Seed onboarding messages endpoint (for production deployment)
 
   // Shared boards endpoints
   // Get shared boards for the current user (boards they created + boards they're members of)
