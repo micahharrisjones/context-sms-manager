@@ -61,7 +61,7 @@ async function isUserAdmin(userId: number): Promise<boolean> {
     if (!user) return false;
     
     const adminPhoneNumbers = [
-      "6155848598", // Your current test number
+      "6155848598", // Main admin number
       "4582188508", // Official Context number without +1
       "+14582188508" // Official Context number with +1
     ];
@@ -1402,10 +1402,9 @@ export async function registerRoutes(app: Express) {
       
       // Define admin phone numbers (add your phone number here)
       const adminPhoneNumbers = [
-        "6155848598", // Your current test number
+        "6155848598", // Main admin number
         "4582188508", // Official Context number without +1
-        "+14582188508", // Official Context number with +1
-        "3182081034" // New admin user
+        "+14582188508" // Official Context number with +1
       ];
       
       // Check if user's phone number is in admin list
