@@ -79,8 +79,10 @@ async function isUserAdmin(userId: number): Promise<boolean> {
 
 // Helper function to extract hashtags from content
 function extractHashtags(content: string): string[] {
+  // Pre-strip URLs to prevent URL anchors from being detected as hashtags
+  const sanitized = content.replace(/https?:\/\/\S+/g, ' ');
   // Updated regex to support hyphenated hashtags
-  const tags = (content.match(/#[\w-]+/g) || [])
+  const tags = (sanitized.match(/#[\w-]+/g) || [])
     .map((tag: string) => createBoardSlug(tag.slice(1))); // Normalize to lowercase slug format
   return Array.from(new Set(tags)); // Remove duplicates
 }
@@ -296,13 +298,18 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           log(`Welcome message delivery failed for ${senderId}:`, error instanceof Error ? error.message : String(error));
         });
         
-        // For new users, just save their message and return quickly
-        // Skip all other processing to minimize response time
+        // For new users, extract hashtags but save message quickly
+        // Still minimize processing time while preserving hashtag data
+        let newUserTags = extractHashtags(content);
+        if (newUserTags.length === 0) {
+          newUserTags = ["untagged"]; // Default for new users with no hashtags
+        }
+        
         const basicMessage = {
           content,
           senderId,
           userId: user.id,
-          tags: [], // New users don't have complex tagging yet
+          tags: newUserTags, // Extract hashtags for new users too
           mediaUrl: null,
           mediaType: null,
           messageSid: (body as any).MessageSid || null
@@ -331,69 +338,83 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       log(`Found existing user account for phone ${senderId}: User ${user.id}`);
     }
 
-    // Check if this is a conversational help request first
-    const helpRequest = await aiService.handleHelpRequest(content);
+    // Check for hashtags FIRST - if present, skip conversational AI and proceed to message processing
+    const hasHashtags = extractHashtags(content).length > 0;
+    log(`🔍 Hashtag pre-screening: message contains hashtags: ${hasHashtags}`);
     
-    if (helpRequest.isRequest && helpRequest.response) {
-      log(`Detected help request, responding conversationally`);
-      // Send the AI-generated help response back to the user
-      try {
-        await twilioService.sendSMS(senderId, helpRequest.response);
-        log(`Sent help response to ${senderId}`);
-      } catch (error) {
-        log(`Error sending help response: ${error instanceof Error ? error.message : String(error)}`);
-      }
+    if (!hasHashtags) {
+      // Only check conversational AI if no hashtags are present
+      log("No hashtags detected, checking conversational AI...");
       
-      // Skip storing this message since it was a conversational request
-      return null;
-    }
-
-    // Check if this is a conversational board list request
-    const userBoards = await getUserBoards(user.id);
-    const boardListRequest = await aiService.handleBoardListRequest(
-      content,
-      userBoards.privateBoards,
-      userBoards.sharedBoards
-    );
-
-    if (boardListRequest.isRequest && boardListRequest.response) {
-      log(`Detected board list request, responding conversationally`);
-      // Send the AI-generated response back to the user
-      try {
-        await twilioService.sendSMS(senderId, boardListRequest.response);
-        log(`Sent board list response to ${senderId}`);
-      } catch (error) {
-        log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
-      }
+      // Check if this is a conversational help request first
+      const helpRequest = await aiService.handleHelpRequest(content);
       
-      // Skip storing this message since it was a conversational request
-      return null;
-    }
-
-    // Check if this is a general conversational query about Context
-    // BUT skip conversational AI if user is still in onboarding flow
-    const isOnboardingComplete = user.onboardingStep === 'completed' || !user.onboardingStep;
-    
-    if (isOnboardingComplete) {
-      const userStats = await getUserStats(user.id, user);
-      const conversationalRequest = await aiService.handleGeneralConversation(content, userStats, storage);
-
-      if (conversationalRequest.isConversational && conversationalRequest.response) {
-        log(`Detected conversational query, responding with personalized information`);
-        // Send the AI-generated personalized response back to the user
+      if (helpRequest.isRequest && helpRequest.response) {
+        log(`Detected help request, responding conversationally`);
+        // Send the AI-generated help response back to the user
         try {
-          await twilioService.sendSMS(senderId, conversationalRequest.response);
-          log(`Sent conversational response to ${senderId}`);
+          await twilioService.sendSMS(senderId, helpRequest.response);
+          log(`Sent help response to ${senderId}`);
         } catch (error) {
-          log(`Error sending conversational response: ${error instanceof Error ? error.message : String(error)}`);
+          log(`Error sending help response: ${error instanceof Error ? error.message : String(error)}`);
         }
         
         // Skip storing this message since it was a conversational request
         return null;
       }
+
+      // Check if this is a conversational board list request
+      const userBoards = await getUserBoards(user.id);
+      const boardListRequest = await aiService.handleBoardListRequest(
+        content,
+        userBoards.privateBoards,
+        userBoards.sharedBoards
+      );
+
+      if (boardListRequest.isRequest && boardListRequest.response) {
+        log(`Detected board list request, responding conversationally`);
+        // Send the AI-generated response back to the user
+        try {
+          await twilioService.sendSMS(senderId, boardListRequest.response);
+          log(`Sent board list response to ${senderId}`);
+        } catch (error) {
+          log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        
+        // Skip storing this message since it was a conversational request
+        return null;
+      }
+
+      // Check if this is a general conversational query about Context
+      // BUT skip conversational AI if user is still in onboarding flow
+      const isOnboardingComplete = user.onboardingStep === 'completed' || !user.onboardingStep;
+      
+      if (isOnboardingComplete) {
+        const userStats = await getUserStats(user.id, user);
+        const conversationalRequest = await aiService.handleGeneralConversation(content, userStats, storage);
+
+        if (conversationalRequest.isConversational && conversationalRequest.response) {
+          log(`🚨 CONVERSATIONAL AI INTERCEPTED MESSAGE: "${content}"`);
+          // Send the AI-generated personalized response back to the user
+          try {
+            await twilioService.sendSMS(senderId, conversationalRequest.response);
+            log(`Sent conversational response to ${senderId}`);
+          } catch (error) {
+            log(`Error sending conversational response: ${error instanceof Error ? error.message : String(error)}`);
+          }
+          
+          // Skip storing this message since it was a conversational request
+          return null;
+        }
+      } else {
+        log(`Skipping conversational AI for user ${user.id} - onboarding step: ${user.onboardingStep}`);
+      }
     } else {
-      log(`Skipping conversational AI for user ${user.id} - onboarding step: ${user.onboardingStep}`);
+      log(`✅ Message contains hashtags, skipping conversational AI and proceeding to message processing`);
     }
+
+    // Get user boards for later hashtag processing
+    const userBoards = await getUserBoards(user.id);
 
     // Extract hashtags from the message content
     let tags = extractHashtags(content);
@@ -488,27 +509,41 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
     log(`Found existing user account for phone ${senderId}: User ${user.id}`);
   }
 
-  // Check if this is a conversational board list request first
-  const userBoards = await getUserBoards(user.id);
-  const boardListRequest = await aiService.handleBoardListRequest(
-    content,
-    userBoards.privateBoards,
-    userBoards.sharedBoards
-  );
-
-  if (boardListRequest.isRequest && boardListRequest.response) {
-    log(`Detected board list request, responding conversationally`);
-    // Send the AI-generated response back to the user
-    try {
-      await twilioService.sendSMS(senderId, boardListRequest.response);
-      log(`Sent board list response to ${senderId}`);
-    } catch (error) {
-      log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
-    }
+  // Check for hashtags FIRST - if present, skip conversational AI and proceed to message processing
+  const hasHashtags = extractHashtags(content).length > 0;
+  log(`🔍 Hashtag pre-screening: message contains hashtags: ${hasHashtags}`);
+  
+  if (!hasHashtags) {
+    // Only check conversational AI if no hashtags are present
+    log("No hashtags detected, checking conversational AI...");
     
-    // Skip storing this message since it was a conversational request
-    return null;
+    // Check if this is a conversational board list request first
+    const userBoards = await getUserBoards(user.id);
+    const boardListRequest = await aiService.handleBoardListRequest(
+      content,
+      userBoards.privateBoards,
+      userBoards.sharedBoards
+    );
+
+    if (boardListRequest.isRequest && boardListRequest.response) {
+      log(`Detected board list request, responding conversationally`);
+      // Send the AI-generated response back to the user
+      try {
+        await twilioService.sendSMS(senderId, boardListRequest.response);
+        log(`Sent board list response to ${senderId}`);
+      } catch (error) {
+        log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      // Skip storing this message since it was a conversational request
+      return null;
+    }
+  } else {
+    log(`✅ Message contains hashtags, skipping conversational AI and proceeding to message processing`);
   }
+
+  // Get user boards for later hashtag processing
+  const userBoards = await getUserBoards(user.id);
 
   // Extract hashtags from the message content
   let tags = extractHashtags(content);
@@ -2325,12 +2360,7 @@ export async function registerRoutes(app: Express) {
 
   // Register single primary webhook endpoint for Twilio
   // CRITICAL FIX: Use only ONE webhook endpoint to prevent duplicate SMS notifications
-  app.post("/api/webhook/twilio", (req, res) => {
-    log("🔵 WEBHOOK HIT: Received request at /api/webhook/twilio");
-    log("🔵 Request headers:", JSON.stringify(req.headers, null, 2));
-    log("🔵 Request body:", JSON.stringify(req.body, null, 2));
-    handleWebhook(req, res);
-  }); // Primary Twilio webhook endpoint
+  app.post("/api/webhook/twilio", handleWebhook); // Primary Twilio webhook endpoint
 
   return httpServer;
 }
