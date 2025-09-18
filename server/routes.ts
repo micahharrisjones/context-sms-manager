@@ -2325,7 +2325,12 @@ export async function registerRoutes(app: Express) {
 
   // Register single primary webhook endpoint for Twilio
   // CRITICAL FIX: Use only ONE webhook endpoint to prevent duplicate SMS notifications
-  app.post("/api/webhook/twilio", handleWebhook); // Primary Twilio webhook endpoint
+  app.post("/api/webhook/twilio", (req, res) => {
+    log("🔵 WEBHOOK HIT: Received request at /api/webhook/twilio");
+    log("🔵 Request headers:", JSON.stringify(req.headers, null, 2));
+    log("🔵 Request body:", JSON.stringify(req.body, null, 2));
+    handleWebhook(req, res);
+  }); // Primary Twilio webhook endpoint
 
   return httpServer;
 }
