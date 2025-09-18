@@ -184,18 +184,15 @@ export function MessageCard({ message }: MessageCardProps) {
   const [twitterOgData, setTwitterOgData] = useState<OpenGraphData | null>(null);
   const [isLoadingTwitterOg, setIsLoadingTwitterOg] = useState(false);
 
-  // Extract hashtags and content separately
-  const words = message.content.split(" ");
-  const hashtags: string[] = [];
-  const contentWithoutHashtags: string[] = [];
+  // Use hashtags from database instead of re-extracting from content
+  // Format database tags back to hashtag display format (add # prefix)
+  const hashtags = (message.tags ?? []).map(tag => `#${tag}`);
   
-  words.forEach(word => {
-    if (word.startsWith("#") && /^#[\w-]+$/.test(word)) {
-      hashtags.push(word);
-    } else {
-      contentWithoutHashtags.push(word);
-    }
-  });
+  // Extract content without hashtags for display
+  const words = message.content.split(" ");
+  const contentWithoutHashtags = words.filter(word => 
+    !(word.startsWith("#") && /^#[\w-]+$/.test(word))
+  );
   
   const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
   // Pinterest removed - using Open Graph preview instead
