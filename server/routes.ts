@@ -205,22 +205,7 @@ async function fixUntaggedUrlMessage(messageId: number, userId: number, senderId
   }
 }
 
-// Support both ClickSend and Twilio webhook formats
-const clicksendWebhookSchema = z.object({
-  message: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
-  from: z.preprocess(val => typeof val === "undefined" ? "" : val, z.string().optional().default("")),
-  sms: z.string().optional(),
-  originalsenderid: z.string(),
-  to: z.string(),
-  body: z.string(),
-  media_url: z.string().optional().nullable(),
-  media_type: z.string().optional().nullable(),
-  originalmessage: z.string().optional(),
-  custom_string: z.string().optional(),
-}).refine((data) => data.from !== "" || data.originalsenderid, {
-  message: "Either 'from' or 'originalsenderid' must be provided",
-  path: ["from"],
-});
+// Support Twilio webhook format
 
 const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
   log("Raw webhook payload:", JSON.stringify(body, null, 2));
@@ -473,129 +458,9 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
     return processedData;
   }
 
-  // Try ClickSend format as fallback
-  log("Trying ClickSend webhook format");
-  const clicksendResult = clicksendWebhookSchema.safeParse(body);
-  if (!clicksendResult.success) {
-    log("Failed to parse as both Twilio and ClickSend format");
-    throw new Error("Invalid webhook format: " + JSON.stringify(clicksendResult.error.issues));
-  }
-  const validatedData = clicksendResult.data;
-
-  // Skip processing if this is a "Message saved with tags" notification
-  if (validatedData.originalmessage?.includes("Message saved with tags")) {
-    log("Skipping tag confirmation message");
-    return null;
-  }
-
-  // Use originalsenderid if from is not provided
-  const senderId = validatedData.from || validatedData.originalsenderid;
-  // Use message if available, otherwise use body
-  const content = validatedData.message || validatedData.body;
-
-  log(`ClickSend message from ${senderId}`);
-
-  // Get or create user based on phone number
-  let user = await storage.getUserByPhoneNumber(senderId);
-  let isNewUser = false;
-  if (!user) {
-    user = await storage.createUser({
-      phoneNumber: senderId,
-      displayName: `User ${senderId.slice(-4)}`
-    });
-    isNewUser = true;
-    log(`Created new user account for phone ${senderId}`);
-  } else {
-    log(`Found existing user account for phone ${senderId}: User ${user.id}`);
-  }
-
-  // Check for hashtags FIRST - if present, skip conversational AI and proceed to message processing
-  const hasHashtags = extractHashtags(content).length > 0;
-  log(`🔍 Hashtag pre-screening: message contains hashtags: ${hasHashtags}`);
-  
-  if (!hasHashtags) {
-    // Only check conversational AI if no hashtags are present
-    log("No hashtags detected, checking conversational AI...");
-    
-    // Check if this is a conversational board list request first
-    const userBoards = await getUserBoards(user.id);
-    const boardListRequest = await aiService.handleBoardListRequest(
-      content,
-      userBoards.privateBoards,
-      userBoards.sharedBoards
-    );
-
-    if (boardListRequest.isRequest && boardListRequest.response) {
-      log(`Detected board list request, responding conversationally`);
-      // Send the AI-generated response back to the user
-      try {
-        await twilioService.sendSMS(senderId, boardListRequest.response);
-        log(`Sent board list response to ${senderId}`);
-      } catch (error) {
-        log(`Error sending board list response: ${error instanceof Error ? error.message : String(error)}`);
-      }
-      
-      // Skip storing this message since it was a conversational request
-      return null;
-    }
-  } else {
-    log(`✅ Message contains hashtags, skipping conversational AI and proceeding to message processing`);
-  }
-
-  // Get user boards for later hashtag processing
-  const userBoards = await getUserBoards(user.id);
-
-  // Extract hashtags from the message content
-  let tags = extractHashtags(content);
-
-  // If no tags were found, try to inherit from recent message from same sender
-  if (tags.length === 0) {
-    const recentTags = await getRecentTagsFromSender(user.id, senderId);
-    if (recentTags.length > 0) {
-      tags = recentTags;
-      log(`Inherited tags [${tags.join(', ')}] from recent message by ${senderId}`);
-    } else {
-      // Try AI categorization if no hashtags and no recent tags
-      log("No hashtags or recent tags found, attempting AI categorization");
-      try {
-        const aiSuggestion = await aiService.categorizeMessage(
-          content,
-          userBoards.privateBoards,
-          userBoards.sharedBoards
-        );
-        
-        if (aiSuggestion && aiSuggestion.confidence > 0.6) {
-          tags.push(aiSuggestion.category);
-          log(`AI categorized message as: ${aiSuggestion.category} (confidence: ${aiSuggestion.confidence})`);
-          if (aiSuggestion.reasoning) {
-            log(`AI reasoning: ${aiSuggestion.reasoning}`);
-          }
-        } else {
-          tags.push("untagged");
-          log("AI categorization failed or low confidence, using untagged");
-        }
-      } catch (error) {
-        log("Error during AI categorization:", error instanceof Error ? error.message : String(error));
-        tags.push("untagged");
-      }
-    }
-  }
-
-  // Remove any duplicate tags
-  const uniqueTags = Array.from(new Set(tags));
-
-  const processedData = {
-    content,
-    senderId,
-    userId: user.id,
-    tags: uniqueTags,
-    mediaUrl: validatedData.media_url || null,
-    mediaType: validatedData.media_type || null,
-    isNewUser
-  };
-
-  log("Processed ClickSend webhook data:", JSON.stringify(processedData, null, 2));
-  return processedData;
+  // If Twilio parsing fails, throw error since we only support Twilio format
+  log("Twilio format validation failed - no other formats supported");
+  throw new Error("Invalid Twilio webhook format: " + JSON.stringify(twilioResult.error.issues));
 };
 
 export async function registerRoutes(app: Express) {
