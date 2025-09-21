@@ -385,19 +385,48 @@ export class DatabaseStorage implements IStorage {
     try {
       log("Creating new message:", JSON.stringify(insertMessage, null, 2));
 
-      // First, check for MessageSid-based deduplication if available
+      // BULLETPROOF DEDUPLICATION: Use upsert for MessageSid-based deduplication
       if (insertMessage.messageSid) {
-        const existingBySid = await db
-          .select()
-          .from(messages)
-          .where(eq(messages.messageSid, insertMessage.messageSid));
+        log(`Attempting upsert for MessageSid: ${insertMessage.messageSid}`);
         
-        if (existingBySid.length > 0) {
-          log(`Duplicate MessageSid detected: ${insertMessage.messageSid}, returning existing message`);
-          return existingBySid[0];
+        try {
+          // Try to insert the message; if MessageSid already exists, do nothing
+          const insertResult = await db
+            .insert(messages)
+            .values({
+              ...insertMessage,
+              timestamp: new Date(),
+            })
+            .onConflictDoNothing({ target: messages.messageSid })
+            .returning();
+
+          // If insert succeeded (returned a row), we have the new message
+          if (insertResult.length > 0) {
+            log("Successfully created new message via upsert:", JSON.stringify(insertResult[0], null, 2));
+            return insertResult[0];
+          } else {
+            // If no rows returned, the MessageSid already exists - fetch existing message
+            log(`MessageSid ${insertMessage.messageSid} already exists, fetching existing message`);
+            const existing = await db
+              .select()
+              .from(messages)
+              .where(eq(messages.messageSid, insertMessage.messageSid))
+              .limit(1);
+            
+            if (existing.length > 0) {
+              log("Returning existing message:", JSON.stringify(existing[0], null, 2));
+              return existing[0];
+            } else {
+              throw new Error(`Failed to find existing message with MessageSid: ${insertMessage.messageSid}`);
+            }
+          }
+        } catch (error) {
+          log("Error in upsert operation:", error instanceof Error ? error.message : String(error));
+          throw error;
         }
       }
 
+      // For messages without MessageSid, keep existing logic for content merging
       // Look for recent messages from the same sender (within 5 seconds) for content merging
       const fiveSecondsAgo = new Date(Date.now() - 5000);
       const recentMessages = await db
@@ -440,8 +469,8 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // Otherwise create a new message
-      log("Creating new message record");
+      // Otherwise create a new message (fallback for messages without MessageSid)
+      log("Creating new message record (no MessageSid provided)");
       const [message] = await db
         .insert(messages)
         .values({

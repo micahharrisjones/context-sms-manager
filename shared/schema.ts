@@ -37,7 +37,10 @@ export const messages = pgTable("messages", {
   mediaUrl: text("media_url"),
   mediaType: varchar("media_type", { length: 20 }),
   messageSid: text("message_sid"), // Twilio MessageSid for deduplication
-});
+}, (table) => ({
+  // Unique constraint on messageSid to prevent duplicate webhook processing
+  messageSidUnique: uniqueIndex("messages_message_sid_unique").on(table.messageSid).where(sql`${table.messageSid} IS NOT NULL`),
+}));
 
 // Shared boards table
 export const sharedBoards = pgTable("shared_boards", {
