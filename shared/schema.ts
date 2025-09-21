@@ -39,7 +39,8 @@ export const messages = pgTable("messages", {
   messageSid: text("message_sid"), // Twilio MessageSid for deduplication
 }, (table) => ({
   // Unique constraint on messageSid to prevent duplicate webhook processing
-  messageSidUnique: uniqueIndex("messages_message_sid_unique").on(table.messageSid).where(sql`${table.messageSid} IS NOT NULL`),
+  // Using plain unique index (allows multiple NULLs by default in PostgreSQL)
+  messageSidUnique: uniqueIndex("messages_message_sid_unique").on(table.messageSid),
 }));
 
 // Shared boards table
