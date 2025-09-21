@@ -15,6 +15,35 @@ class OpenGraphService {
   private cache = new Map<string, OpenGraphData>();
   private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
+  // Decode HTML entities in text content
+  private decodeHtmlEntities(text: string): string {
+    const entityMap: { [key: string]: string } = {
+      '&amp;': '&',
+      '&lt;': '<',
+      '&gt;': '>',
+      '&quot;': '"',
+      '&#x27;': "'",
+      '&#x2F;': '/',
+      '&#x60;': '`',
+      '&#x3D;': '=',
+      '&nbsp;': ' ',
+      '&copy;': '©',
+      '&reg;': '®',
+      '&trade;': '™',
+      '&mdash;': '—',
+      '&ndash;': '–',
+      '&ldquo;': '"',
+      '&rdquo;': '"',
+      '&lsquo;': "'",
+      '&rsquo;': "'",
+      '&hellip;': '…'
+    };
+    
+    return text.replace(/&[a-zA-Z0-9#]+;/g, (entity) => {
+      return entityMap[entity] || entity;
+    });
+  }
+
   // Extract Open Graph metadata from HTML
   private parseOpenGraph(html: string): OpenGraphData {
     const ogData: OpenGraphData = {};
@@ -34,10 +63,10 @@ class OpenGraphService {
       
       switch (property) {
         case 'title':
-          ogData.title = content;
+          ogData.title = this.decodeHtmlEntities(content);
           break;
         case 'description':
-          ogData.description = content;
+          ogData.description = this.decodeHtmlEntities(content);
           break;
         case 'image':
           ogData.image = content;
@@ -46,7 +75,7 @@ class OpenGraphService {
           ogData.url = content;
           break;
         case 'site_name':
-          ogData.site_name = content;
+          ogData.site_name = this.decodeHtmlEntities(content);
           break;
         case 'type':
           ogData.type = content;
@@ -62,10 +91,10 @@ class OpenGraphService {
         
         switch (property) {
           case 'title':
-            if (!ogData.title) ogData.title = content;
+            if (!ogData.title) ogData.title = this.decodeHtmlEntities(content);
             break;
           case 'description':
-            if (!ogData.description) ogData.description = content;
+            if (!ogData.description) ogData.description = this.decodeHtmlEntities(content);
             break;
           case 'image':
             if (!ogData.image) ogData.image = content;
@@ -78,14 +107,14 @@ class OpenGraphService {
     if (!ogData.title) {
       const titleMatch = html.match(titleRegex);
       if (titleMatch) {
-        ogData.title = titleMatch[1].trim();
+        ogData.title = this.decodeHtmlEntities(titleMatch[1].trim());
       }
     }
     
     if (!ogData.description) {
       const descMatch = html.match(descRegex);
       if (descMatch) {
-        ogData.description = descMatch[1].trim();
+        ogData.description = this.decodeHtmlEntities(descMatch[1].trim());
       }
     }
     
