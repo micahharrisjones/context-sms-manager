@@ -10,10 +10,20 @@ interface OpenGraphData {
   type?: string;
 }
 
+// Cache entry with metadata
+interface CacheEntry {
+  data: OpenGraphData | null;
+  timestamp: number;
+  isFailure: boolean;
+  retryCount?: number;
+}
+
 // Service for fetching Open Graph metadata from websites
 class OpenGraphService {
-  private cache = new Map<string, OpenGraphData>();
+  private cache = new Map<string, CacheEntry>();
   private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+  private readonly FAILURE_CACHE_TTL = 60 * 60 * 1000; // 1 hour for failures
+  private readonly MAX_RETRIES = 3;
 
   // Decode HTML entities in text content
   private decodeHtmlEntities(text: string): string {
@@ -143,29 +153,54 @@ class OpenGraphService {
     return `${baseUrlObj.protocol}//${baseUrlObj.host}${basePath}${url}`;
   }
 
+  // Sleep function for retry delays
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Check if cache entry is still valid
+  private isCacheValid(entry: CacheEntry): boolean {
+    const now = Date.now();
+    const ttl = entry.isFailure ? this.FAILURE_CACHE_TTL : this.CACHE_TTL;
+    return (now - entry.timestamp) < ttl;
+  }
+
   // Main function to fetch Open Graph data
   async fetchOpenGraph(url: string): Promise<OpenGraphData | null> {
     // Check cache first
     const cached = this.cache.get(url);
-    if (cached) {
-      return cached;
+    if (cached && this.isCacheValid(cached)) {
+      // For failures, check if we should retry
+      if (cached.isFailure && (cached.retryCount || 0) < this.MAX_RETRIES) {
+        // Allow retry for failed URLs after some time
+      } else {
+        return cached.data;
+      }
     }
 
+    // Attempt to fetch with retries
+    const retryCount = cached?.retryCount || 0;
+    return this.fetchWithRetry(url, retryCount);
+  }
+
+  // Fetch with retry logic and exponential backoff
+  private async fetchWithRetry(url: string, currentRetry: number = 0): Promise<OpenGraphData | null> {
     try {
-      log(`Fetching Open Graph data for: ${url}`);
+      log(`Fetching Open Graph data for: ${url} (attempt ${currentRetry + 1}/${this.MAX_RETRIES + 1})`);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout
 
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          // Updated to latest Chrome user agent
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
           'Accept-Language': 'en-US,en;q=0.9',
           'Accept-Encoding': 'gzip, deflate, br',
           'Cache-Control': 'no-cache',
           'Pragma': 'no-cache',
-          'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+          'Sec-Ch-Ua': '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
           'Sec-Ch-Ua-Mobile': '?0',
           'Sec-Ch-Ua-Platform': '"macOS"',
           'Sec-Fetch-Dest': 'document',
@@ -173,6 +208,7 @@ class OpenGraphService {
           'Sec-Fetch-Site': 'none',
           'Sec-Fetch-User': '?1',
           'Upgrade-Insecure-Requests': '1',
+          'DNT': '1', // Do Not Track
         },
         redirect: 'follow',
         signal: controller.signal,
@@ -181,13 +217,23 @@ class OpenGraphService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        // Check if it's worth retrying based on status code
+        const shouldRetry = this.shouldRetryStatus(response.status);
+        if (shouldRetry && currentRetry < this.MAX_RETRIES) {
+          log(`HTTP ${response.status} for ${url}, retrying...`);
+          await this.sleep(this.getRetryDelay(currentRetry));
+          return this.fetchWithRetry(url, currentRetry + 1);
+        }
+        
         log(`Failed to fetch ${url}: ${response.status} ${response.statusText}`);
+        this.cacheFailure(url, currentRetry);
         return null;
       }
 
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('text/html')) {
         log(`URL ${url} is not HTML content: ${contentType}`);
+        this.cacheFailure(url, currentRetry);
         return null;
       }
 
@@ -199,21 +245,88 @@ class OpenGraphService {
         ogData.image = this.makeAbsoluteUrl(ogData.image, url);
       }
 
-      // Cache the result
-      this.cache.set(url, ogData);
+      // Cache the successful result
+      this.cacheSuccess(url, ogData);
       
-      // Set up cache cleanup after TTL
-      setTimeout(() => {
-        this.cache.delete(url);
-      }, this.CACHE_TTL);
-
       log(`Successfully fetched Open Graph data for ${url}: ${JSON.stringify(ogData)}`);
       return ogData;
 
     } catch (error) {
-      log(`Error fetching Open Graph data for ${url}:`, error instanceof Error ? error.message : String(error));
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      log(`Error fetching Open Graph data for ${url}:`, errorMessage);
+      
+      // Retry on network errors if we haven't exceeded max retries
+      if (this.shouldRetryError(error) && currentRetry < this.MAX_RETRIES) {
+        log(`Network error for ${url}, retrying...`);
+        await this.sleep(this.getRetryDelay(currentRetry));
+        return this.fetchWithRetry(url, currentRetry + 1);
+      }
+      
+      this.cacheFailure(url, currentRetry);
       return null;
     }
+  }
+
+  // Helper methods for retry logic
+  private shouldRetryStatus(status: number): boolean {
+    // Retry on server errors and rate limits, not on client errors
+    return status >= 500 || status === 429 || status === 408; // Server errors, rate limit, timeout
+  }
+
+  private shouldRetryError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+    
+    // Retry on network errors but not on parsing errors
+    const retryableErrors = [
+      'ECONNRESET',
+      'ECONNREFUSED', 
+      'ETIMEDOUT',
+      'ENOTFOUND',
+      'EAI_AGAIN',
+      'AbortError'
+    ];
+    
+    return retryableErrors.some(code => error.message.includes(code));
+  }
+
+  private getRetryDelay(retryCount: number): number {
+    // Exponential backoff: 1s, 2s, 4s
+    return Math.min(1000 * Math.pow(2, retryCount), 10000);
+  }
+
+  private cacheSuccess(url: string, data: OpenGraphData): void {
+    const entry: CacheEntry = {
+      data,
+      timestamp: Date.now(),
+      isFailure: false
+    };
+    
+    this.cache.set(url, entry);
+    
+    // Set up cache cleanup after TTL
+    setTimeout(() => {
+      if (this.cache.get(url) === entry) {
+        this.cache.delete(url);
+      }
+    }, this.CACHE_TTL);
+  }
+
+  private cacheFailure(url: string, retryCount: number): void {
+    const entry: CacheEntry = {
+      data: null,
+      timestamp: Date.now(),
+      isFailure: true,
+      retryCount
+    };
+    
+    this.cache.set(url, entry);
+    
+    // Set up cache cleanup after shorter TTL for failures
+    setTimeout(() => {
+      if (this.cache.get(url) === entry) {
+        this.cache.delete(url);
+      }
+    }, this.FAILURE_CACHE_TTL);
   }
 
   // Check if a URL should have Open Graph data fetched
