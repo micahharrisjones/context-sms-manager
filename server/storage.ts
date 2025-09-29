@@ -6,6 +6,8 @@ import {
   type UpdateProfile,
   type AuthSession, 
   type InsertAuthSession,
+  type MagicLinkToken,
+  type InsertMagicLinkToken,
   type SharedBoard,
   type InsertSharedBoard,
   type BoardMembership,
@@ -18,13 +20,14 @@ import {
   messages, 
   users, 
   authSessions,
+  magicLinkTokens,
   sharedBoards,
   boardMemberships,
   notificationPreferences,
   onboardingMessages
 } from "@shared/schema";
 import { db } from "./db";
-import { desc, eq, sql, gte, and, inArray, or, like, count, asc } from "drizzle-orm";
+import { desc, eq, sql, gte, lt, and, inArray, or, like, count, asc } from "drizzle-orm";
 import { log } from "./vite";
 
 export interface IStorage {
@@ -40,6 +43,12 @@ export interface IStorage {
   createAuthSession(session: InsertAuthSession): Promise<AuthSession>;
   getValidAuthSession(phoneNumber: string, code: string): Promise<AuthSession | undefined>;
   markSessionAsVerified(sessionId: number): Promise<void>;
+  
+  // Magic link token management
+  createMagicLinkToken(token: InsertMagicLinkToken): Promise<MagicLinkToken>;
+  getValidMagicLinkToken(token: string): Promise<MagicLinkToken | undefined>;
+  markTokenAsUsed(tokenId: number): Promise<void>;
+  cleanupExpiredTokens(): Promise<void>;
   
   // Message management (now user-scoped)
   getMessages(userId: number): Promise<Message[]>;
@@ -257,6 +266,66 @@ export class DatabaseStorage implements IStorage {
         .where(eq(authSessions.id, sessionId));
     } catch (error) {
       log("Error marking session as verified:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  // Magic link token management methods
+  async createMagicLinkToken(insertToken: InsertMagicLinkToken): Promise<MagicLinkToken> {
+    try {
+      log(`Creating magic link token for user: ${insertToken.userId}`);
+      const [token] = await db
+        .insert(magicLinkTokens)
+        .values(insertToken)
+        .returning();
+      return token;
+    } catch (error) {
+      log("Error creating magic link token:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getValidMagicLinkToken(token: string): Promise<MagicLinkToken | undefined> {
+    try {
+      const [magicToken] = await db
+        .select()
+        .from(magicLinkTokens)
+        .where(and(
+          eq(magicLinkTokens.token, token),
+          gte(magicLinkTokens.expiresAt, new Date()),
+          eq(magicLinkTokens.used, "false")
+        ))
+        .orderBy(desc(magicLinkTokens.createdAt));
+      return magicToken || undefined;
+    } catch (error) {
+      log("Error fetching valid magic link token:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async markTokenAsUsed(tokenId: number): Promise<void> {
+    try {
+      await db
+        .update(magicLinkTokens)
+        .set({ used: "true" })
+        .where(eq(magicLinkTokens.id, tokenId));
+    } catch (error) {
+      log("Error marking token as used:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async cleanupExpiredTokens(): Promise<void> {
+    try {
+      const result = await db
+        .delete(magicLinkTokens)
+        .where(or(
+          lt(magicLinkTokens.expiresAt, new Date()),
+          eq(magicLinkTokens.used, "true")
+        ));
+      log("Cleaned up expired/used magic link tokens");
+    } catch (error) {
+      log("Error cleaning up expired tokens:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
