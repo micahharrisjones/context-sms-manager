@@ -9,6 +9,8 @@ import { log } from "./vite";
 export class MagicLinkService {
   private static readonly TOKEN_EXPIRY_MINUTES = 30;
   private static readonly TOKEN_LENGTH = 32; // 32 bytes = 64 hex characters
+  private static readonly MAX_TOKENS_PER_HOUR = 5; // Rate limit: max 5 tokens per user per hour
+  private static readonly RATE_LIMIT_WINDOW_MINUTES = 60;
 
   /**
    * Generate a cryptographically secure random token
@@ -21,9 +23,18 @@ export class MagicLinkService {
    * Create a magic link for a user
    * @param userId - The user ID to create the magic link for
    * @returns The full magic link URL and the token
+   * @throws Error if rate limit exceeded
    */
   static async createMagicLink(userId: number): Promise<{ url: string; token: string }> {
     try {
+      // Rate limiting: Check if user has exceeded token generation limit
+      const recentTokenCount = await storage.getRecentTokenCount(userId, this.RATE_LIMIT_WINDOW_MINUTES);
+      
+      if (recentTokenCount >= this.MAX_TOKENS_PER_HOUR) {
+        log(`Rate limit exceeded for user ${userId}: ${recentTokenCount} tokens in last hour`);
+        throw new Error("Too many magic links generated. Please try again later.");
+      }
+      
       // Generate secure token
       const token = this.generateSecureToken();
       

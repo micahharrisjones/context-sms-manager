@@ -49,6 +49,7 @@ export interface IStorage {
   getValidMagicLinkToken(token: string): Promise<MagicLinkToken | undefined>;
   markTokenAsUsed(tokenId: number): Promise<void>;
   cleanupExpiredTokens(): Promise<void>;
+  getRecentTokenCount(userId: number, sinceMinutes: number): Promise<number>;
   
   // Message management (now user-scoped)
   getMessages(userId: number): Promise<Message[]>;
@@ -326,6 +327,24 @@ export class DatabaseStorage implements IStorage {
       log("Cleaned up expired/used magic link tokens");
     } catch (error) {
       log("Error cleaning up expired tokens:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getRecentTokenCount(userId: number, sinceMinutes: number): Promise<number> {
+    try {
+      const since = new Date(Date.now() - sinceMinutes * 60 * 1000);
+      const result = await db
+        .select({ count: count() })
+        .from(magicLinkTokens)
+        .where(and(
+          eq(magicLinkTokens.userId, userId),
+          gte(magicLinkTokens.createdAt, since)
+        ));
+      
+      return result[0]?.count || 0;
+    } catch (error) {
+      log("Error counting recent tokens:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
