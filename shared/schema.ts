@@ -27,6 +27,16 @@ export const authSessions = pgTable("auth_sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Magic link tokens for secure auto-login (replaces insecure phone-based auto-login)
+export const magicLinkTokens = pgTable("magic_link_tokens", {
+  id: serial("id").primaryKey(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  used: text("used").default("false").notNull(), // "true" or "false"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
@@ -158,6 +168,11 @@ export const insertAuthSessionSchema = createInsertSchema(authSessions).omit({
   createdAt: true,
 });
 
+export const insertMagicLinkTokenSchema = createInsertSchema(magicLinkTokens).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   timestamp: true,
@@ -203,6 +218,8 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 export type AuthSession = typeof authSessions.$inferSelect;
 export type InsertAuthSession = z.infer<typeof insertAuthSessionSchema>;
+export type MagicLinkToken = typeof magicLinkTokens.$inferSelect;
+export type InsertMagicLinkToken = z.infer<typeof insertMagicLinkTokenSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Message = typeof messages.$inferSelect & {
   // Optional sender information for shared board display
