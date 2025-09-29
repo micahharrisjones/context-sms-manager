@@ -1,4 +1,5 @@
 import { log } from "./vite";
+import { MagicLinkService } from "./magic-link-service";
 
 // Onboarding steps - matches the schema enum
 export type OnboardingStep = 
@@ -49,7 +50,25 @@ export class OnboardingService {
   // Get welcome message for new users - simplified single message
   async getWelcomeMessage(phoneNumber: string): Promise<string> {
     const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
-    const dashboardUrl = `https://contxt.life/auto-login/${cleanPhoneNumber}`;
+    
+    // Get user by phone number to create magic link
+    const user = await this.storage.getUserByPhoneNumber(cleanPhoneNumber);
+    
+    let dashboardUrl = 'https://contxt.life'; // Fallback URL
+    
+    if (user) {
+      try {
+        // Generate secure magic link token (30 min expiry, one-time use)
+        const { url } = await MagicLinkService.createMagicLink(user.id);
+        dashboardUrl = url;
+        log(`Generated secure magic link for user ${user.id}`);
+      } catch (error) {
+        log(`Failed to generate magic link for user ${user.id}:`, error instanceof Error ? error.message : String(error));
+        // Fallback to base URL if magic link generation fails
+      }
+    } else {
+      log(`Warning: Could not find user for phone ${cleanPhoneNumber} when generating welcome message`);
+    }
     
     return `👋 Welcome to Context! This is your personal space to save anything from anywhere just by texting it here.
 
@@ -60,7 +79,9 @@ export class OnboardingService {
 
 🙋 Need help? Just text me a question like "What boards do I have?" and I'll do my best to answer. 
 
-🔗 Access your dashboard: ${dashboardUrl}`;
+🔗 Access your dashboard: ${dashboardUrl}
+
+(Link expires in 30 minutes for security)`;
   }
 
   private isValidPhoneNumber(phoneNumber: string): boolean {
