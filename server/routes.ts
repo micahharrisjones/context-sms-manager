@@ -12,6 +12,7 @@ import { tmdbService } from "./tmdb-service";
 import { openGraphService } from "./og-service";
 import aiService from "./ai-service";
 import { OnboardingService } from "./onboarding-service";
+import { MagicLinkService } from "./magic-link-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -500,29 +501,38 @@ export async function registerRoutes(app: Express) {
     }
   });
 
-  // Auto-login endpoint for new users (from welcome SMS)
-  app.get("/auto-login/:phoneNumber", async (req, res) => {
+  // Secure magic link authentication endpoint (replaces insecure auto-login)
+  app.get("/auth/:token", async (req, res) => {
     try {
-      const phoneNumber = req.params.phoneNumber;
+      const { token } = req.params;
       
-      if (!phoneNumber) {
-        return res.redirect("/?error=missing_phone");
+      if (!token) {
+        log("Magic link authentication failed: No token provided");
+        return res.redirect("/?error=invalid_link");
       }
       
-      // Clean phone number (remove any formatting)
-      const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
+      // Validate and consume the token (one-time use, expiry-checked)
+      const userId = await MagicLinkService.validateAndConsumeToken(token);
       
-      // Only allow auto-login for existing users (security measure)
-      const user = await storage.getUserByPhoneNumber(cleanPhoneNumber);
+      if (!userId) {
+        log(`Magic link authentication failed: Invalid/expired/used token ${token.substring(0, 10)}...`);
+        return res.redirect("/?error=link_expired");
+      }
+      
+      // Get user to update last login
+      const user = await storage.getUserById(userId);
       if (!user) {
-        log(`Auto-login attempted for non-existent user: ${cleanPhoneNumber}`);
+        log(`Magic link authentication failed: User ${userId} not found`);
         return res.redirect("/?error=user_not_found");
       }
       
-      log(`Auto-login successful for user ${user.id} (${cleanPhoneNumber})`);
+      log(`✅ Secure magic link authentication successful for user ${userId}`);
+      
+      // Update last login time
+      await storage.updateUserLastLogin(userId);
       
       // Store user in session
-      req.session.userId = user.id;
+      req.session.userId = userId;
       await new Promise<void>((resolve, reject) => {
         req.session.save((err) => {
           if (err) reject(err);
@@ -533,7 +543,7 @@ export async function registerRoutes(app: Express) {
       // Redirect to main dashboard
       res.redirect("/");
     } catch (error) {
-      log("Error in auto-login:", error instanceof Error ? error.message : String(error));
+      log("Error in magic link authentication:", error instanceof Error ? error.message : String(error));
       res.redirect("/?error=login_failed");
     }
   });
