@@ -7,7 +7,7 @@ interface LogoProps {
 export function Logo({ className }: LogoProps) {
   return (
     <img 
-      src="/aside-logo-dashboard.png" 
+      src="/aside-logo-horizontal.png" 
       alt="Aside" 
       className={cn("w-auto h-8", className)}
     />
