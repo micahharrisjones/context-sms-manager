@@ -58,7 +58,7 @@ function AuthenticatedApp() {
               className="w-full h-full object-contain"
             />
           </div>
-          <p className="text-gray-600">Loading Context...</p>
+          <p className="text-[#263d57]/70">Loading Context...</p>
         </div>
       </div>
     );

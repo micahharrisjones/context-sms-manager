@@ -83,7 +83,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Mobile overlay backdrop */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/20 lg:hidden z-30"
+          className="fixed inset-0 bg-[#263d57]/20 lg:hidden z-30"
           onClick={() => setSidebarOpen(false)}
         />
       )}
