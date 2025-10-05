@@ -64,10 +64,8 @@ export function Sidebar({ onClose }: SidebarProps) {
     <div className="w-full lg:w-64 h-full lg:h-screen bg-[#fff2ea] border-r border-[#e3cac0] flex flex-col lg:overflow-hidden">
       {/* Logo Section */}
       <div className="p-6 border-b border-[#e3cac0] flex justify-between items-center flex-shrink-0">
-        <Link href="/">
-          <div className="flex items-center gap-2">
-            <Logo className="w-auto h-8 lg:h-10" />
-          </div>
+        <Link href="/" className="flex-1 flex justify-center lg:justify-start">
+          <Logo className="w-auto h-10 lg:h-14" />
         </Link>
         {onClose && (
           <Button
