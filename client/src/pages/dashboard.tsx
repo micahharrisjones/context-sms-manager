@@ -23,7 +23,7 @@ interface BoardsData {
 }
 
 // Consistent styling for all board cards
-const boardCardStyle = "bg-[#fff2ea] border border-[#263d57] hover:bg-[#e3cac0] transition-colors duration-200";
+const boardCardStyle = "bg-[#fff2ea] shadow-md hover:shadow-lg hover:bg-[#e3cac0] transition-all duration-200";
 
 export default function Dashboard() {
   const { profile } = useProfile();
