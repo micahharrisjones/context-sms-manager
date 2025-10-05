@@ -196,7 +196,7 @@ export function AdminPage() {
               <Settings className="h-12 w-12 mx-auto mb-2" />
             </div>
             <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
-            <p className="text-gray-600">
+            <p className="text-[#263d57]/70">
               You don't have permission to access the admin dashboard.
             </p>
           </div>
@@ -209,13 +209,13 @@ export function AdminPage() {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-48 mb-6"></div>
+          <div className="h-8 bg-[#263d57]/10 rounded w-48 mb-6"></div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              <div key={i} className="h-32 bg-[#263d57]/10 rounded"></div>
             ))}
           </div>
-          <div className="h-64 bg-gray-200 rounded"></div>
+          <div className="h-64 bg-[#263d57]/10 rounded"></div>
         </div>
       </div>
     );
@@ -329,7 +329,7 @@ export function AdminPage() {
                     maxLength={1600}
                     className="resize-none border-[#e3cac0] focus:border-[#b95827] focus:ring-[#b95827]"
                   />
-                  <div className="text-sm text-gray-500 text-right">
+                  <div className="text-sm text-[#263d57]/70 text-right">
                     {bulkSmsMessage.length}/1600 characters
                   </div>
                 </div>
@@ -408,7 +408,7 @@ export function AdminPage() {
                           type="checkbox"
                           checked={selectedUsers.includes(user.id)}
                           onChange={() => toggleUserSelection(user.id)}
-                          className="h-4 w-4 rounded border-gray-300"
+                          className="h-4 w-4 rounded border-[#263d57]"
                         />
                       </TableCell>
                       <TableCell className="font-mono text-xs">{user.id}</TableCell>
@@ -494,12 +494,12 @@ export function AdminPage() {
           {feedbackLoading ? (
             <div className="animate-pulse space-y-4">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                <div key={i} className="h-16 bg-[#263d57]/10 rounded"></div>
               ))}
             </div>
           ) : feedbackError ? (
             <div className="text-center text-muted-foreground py-8">
-              <MessageCircle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <MessageCircle className="h-12 w-12 mx-auto mb-2 text-[#263d57]/50" />
               <p>Failed to load feedback messages</p>
             </div>
           ) : feedbackMessages && feedbackMessages.length > 0 ? (
@@ -537,7 +537,7 @@ export function AdminPage() {
             </div>
           ) : (
             <div className="text-center text-muted-foreground py-8">
-              <MessageCircle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+              <MessageCircle className="h-12 w-12 mx-auto mb-2 text-[#263d57]/50" />
               <p>No feedback messages yet</p>
               <p className="text-xs mt-1">Users can send feedback using #feedback in their messages</p>
             </div>

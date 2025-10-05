@@ -23,7 +23,7 @@ interface BoardsData {
 }
 
 // Consistent styling for all board cards
-const boardCardStyle = "bg-[#fff2ea] border border-black hover:bg-[#e3cac0] transition-colors duration-200";
+const boardCardStyle = "bg-[#fff2ea] border border-[#263d57] hover:bg-[#e3cac0] transition-colors duration-200";
 
 export default function Dashboard() {
   const { profile } = useProfile();
@@ -76,11 +76,11 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="h-12 bg-gray-200 rounded animate-pulse"></div>
+        <div className="h-12 bg-[#263d57]/10 rounded animate-pulse"></div>
         <div className="h-px bg-[#e3cac0]"></div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-24 bg-gray-200 rounded-lg animate-pulse"></div>
+            <div key={i} className="h-24 bg-[#263d57]/10 rounded-lg animate-pulse"></div>
           ))}
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function Dashboard() {
     <div className="space-y-8">
       {/* Welcome Message */}
       <div className="text-left py-8">
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-gray-800">
+        <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-[#263d57]">
           {firstName ? (
             <>
               Hi {firstName}, {affirmation?.text || "welcome to your Context boards."}
@@ -113,11 +113,11 @@ export default function Dashboard() {
               <Card className={`cursor-pointer ${boardCardStyle}`}>
                 <CardContent className="p-6 relative flex items-center">
                   <div className="flex-1 space-y-2">
-                    <h3 className="font-medium text-gray-800 text-lg">
+                    <h3 className="font-medium text-[#263d57] text-lg">
                       {board.type === 'private' ? `#${board.name}` : board.name}
                     </h3>
                     <div>
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-[#263d57]/70">
                         {board.type === 'private' ? 'Private Board' : 
                          board.type === 'shared' ? 
                            (board.role === 'owner' ? 'Shared Board (Owner)' : 'Shared Board') : ''}
@@ -126,7 +126,7 @@ export default function Dashboard() {
                   </div>
                   {/* Large count number - vertically centered, right-aligned */}
                   <div className="ml-4">
-                    <span className="text-6xl font-thin text-gray-700">
+                    <span className="text-6xl font-thin text-[#263d57]">
                       {'count' in board ? board.count : 0}
                     </span>
                   </div>
@@ -137,8 +137,8 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No boards yet. Start by sending a message with a hashtag!</p>
-          <p className="text-gray-400 text-sm mt-2">Text +1 (458) 218-8508 with #example to create your first board.</p>
+          <p className="text-[#263d57]/70 text-lg">No boards yet. Start by sending a message with a hashtag!</p>
+          <p className="text-[#263d57]/50 text-sm mt-2">Text +1 (458) 218-8508 with #example to create your first board.</p>
         </div>
       )}
     </div>

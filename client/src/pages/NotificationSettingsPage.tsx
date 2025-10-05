@@ -77,10 +77,10 @@ export function NotificationSettingsPage() {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-8 bg-[#263d57]/10 rounded w-1/3"></div>
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+              <div key={i} className="h-16 bg-[#263d57]/10 rounded"></div>
             ))}
           </div>
         </div>
@@ -100,8 +100,8 @@ export function NotificationSettingsPage() {
       
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Notification Settings</h1>
-        <p className="text-gray-600">Manage SMS notifications for your shared boards</p>
+        <h1 className="text-2xl font-bold text-[#263d57]">Notification Settings</h1>
+        <p className="text-[#263d57]/70">Manage SMS notifications for your shared boards</p>
       </div>
 
       {/* Overall Status */}
@@ -111,7 +111,7 @@ export function NotificationSettingsPage() {
             <Bell className="h-5 w-5 text-[#b95827]" />
             <div>
               <p className="font-medium">SMS Notifications</p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[#263d57]/70">
                 You'll receive SMS notifications when someone adds content to shared boards where notifications are enabled.
                 You can still receive notifications from Context updates by texting the main number.
               </p>
@@ -130,7 +130,7 @@ export function NotificationSettingsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {boardsWithNotifications.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-[#263d57]/70">
               <BellOff className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>You're not a member of any shared boards yet.</p>
               <p className="text-sm mt-1">Join or create a shared board to manage notifications.</p>
@@ -140,12 +140,12 @@ export function NotificationSettingsPage() {
               <div key={board.id} className="flex items-center justify-between p-4 border border-[#e3cac0] rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-medium text-gray-900">#{board.name}</h3>
+                    <h3 className="font-medium text-[#263d57]">#{board.name}</h3>
                     <Badge variant={board.role === "owner" ? "default" : "secondary"} className="text-xs">
                       {board.role}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-[#263d57]/70 mt-1">
                     {board.smsEnabled 
                       ? "You'll receive SMS notifications when new content is added" 
                       : "SMS notifications are disabled for this board"
@@ -172,7 +172,7 @@ export function NotificationSettingsPage() {
       {/* Help Text */}
       <Card className="border-[#e3cac0] bg-[#fff2ea]">
         <CardContent className="pt-6">
-          <div className="text-sm text-gray-700 space-y-2">
+          <div className="text-sm text-[#263d57] space-y-2">
             <p><strong>How it works:</strong></p>
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li>When someone adds content to a shared board, all members with notifications enabled receive an SMS</li>
