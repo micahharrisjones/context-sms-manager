@@ -98,7 +98,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   "w-full justify-start m-1",
                   location === "/all-texts" 
                     ? "bg-transparent text-primary font-medium hover:bg-transparent" 
-                    : "hover:bg-[#e3cac0]/30"
+                    : "hover:bg-[#e3cac0]/30 text-[#263d57]"
                 )}
                 size="lg"
                 onClick={onClose}
