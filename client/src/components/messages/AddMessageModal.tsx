@@ -122,7 +122,7 @@ export function AddMessageModal({ isOpen, onClose }: AddMessageModalProps) {
               onChange={(e) => setHashtags(e.target.value)}
               disabled={addMessageMutation.isPending}
             />
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#263d57]/70">
               Separate multiple tags with commas. The # symbol will be added automatically.
             </p>
           </div>

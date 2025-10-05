@@ -381,7 +381,7 @@ export function MessageCard({ message }: MessageCardProps) {
                 className="block"
               >
                 {ogData.image && (
-                  <div className="aspect-video w-full bg-gray-100 overflow-hidden">
+                  <div className="aspect-video w-full bg-[#263d57]/10 overflow-hidden">
                     <img
                       src={ogData.image}
                       alt={ogData.title}
@@ -408,11 +408,11 @@ export function MessageCard({ message }: MessageCardProps) {
                         <ExternalLink className="w-4 h-4 text-red-500 flex-shrink-0" />
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-900 text-lg mb-1">
+                        <h3 className="font-bold text-[#263d57] text-lg mb-1">
                           {ogData.title}
                         </h3>
                         {ogData.description && (
-                          <p className="text-gray-600 text-sm">
+                          <p className="text-[#263d57]/70 text-sm">
                             {ogData.description}
                           </p>
                         )}
@@ -421,21 +421,21 @@ export function MessageCard({ message }: MessageCardProps) {
                   ) : (
                     <div className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm">
+                        <h3 className="font-semibold text-[#263d57] line-clamp-2 text-sm">
                           {ogData.title}
                         </h3>
                         {ogData.description && (
-                          <p className="text-gray-600 text-sm mt-1 line-clamp-2">
+                          <p className="text-[#263d57]/70 text-sm mt-1 line-clamp-2">
                             {ogData.description}
                           </p>
                         )}
                         {ogData.site_name && (
-                          <p className="text-gray-500 text-xs mt-2 uppercase tracking-wide">
+                          <p className="text-[#263d57]/70 text-xs mt-2 uppercase tracking-wide">
                             {ogData.site_name}
                           </p>
                         )}
                       </div>
-                      <ExternalLink className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <ExternalLink className="w-4 h-4 text-[#263d57]/50 flex-shrink-0 mt-0.5" />
                     </div>
                   )}
                 </div>
@@ -467,10 +467,10 @@ export function MessageCard({ message }: MessageCardProps) {
                     <ExternalLink className="w-4 h-4 text-red-500 flex-shrink-0" />
                   </div>
                   <div className="mt-3">
-                    <h3 className="font-bold text-gray-900 text-lg mb-1">
+                    <h3 className="font-bold text-[#263d57] text-lg mb-1">
                       View Pin on Pinterest
                     </h3>
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-[#263d57]/70 text-sm">
                       Click to open and view this pin on Pinterest
                     </p>
                   </div>
@@ -481,7 +481,7 @@ export function MessageCard({ message }: MessageCardProps) {
                 href={previewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline text-sm break-all block p-3 border border-[#e3cac0] rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                className="text-primary hover:underline text-sm break-all block p-3 border border-[#e3cac0] rounded-lg bg-[#263d57]/5 hover:bg-[#263d57]/10 transition-colors"
               >
                 {previewUrl}
               </a>
@@ -518,34 +518,34 @@ export function MessageCard({ message }: MessageCardProps) {
                     </svg>
                   </div>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-medium text-gray-900 text-sm">X Post</span>
+                    <span className="font-medium text-[#263d57] text-sm">X Post</span>
                     <div className="w-1.5 h-1.5 bg-sky-400 rounded-full flex-shrink-0"></div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <ExternalLink className="h-4 w-4 text-gray-400" />
+                  <ExternalLink className="h-4 w-4 text-[#263d57]/50" />
                 </div>
               </div>
               
               {/* Show post title if available from Open Graph, otherwise extract from URL */}
               {twitterOgData?.title ? (
-                <h3 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2">
+                <h3 className="font-medium text-[#263d57] text-sm mb-2 line-clamp-2">
                   {twitterOgData.title}
                 </h3>
               ) : (
-                <h3 className="font-medium text-gray-900 text-sm mb-2">
+                <h3 className="font-medium text-[#263d57] text-sm mb-2">
                   Post by @{urls.find(url => getTwitterPostId(url))?.match(/\/(\w+)\/status/)?.[1] || 'User'}
                 </h3>
               )}
               
               {/* Show description if available */}
               {twitterOgData?.description && (
-                <p className="text-gray-700 text-sm mb-3 line-clamp-3">
+                <p className="text-[#263d57]/80 text-sm mb-3 line-clamp-3">
                   {twitterOgData.description}
                 </p>
               )}
               
-              <p className="text-gray-600 text-sm">
+              <p className="text-[#263d57]/70 text-sm">
                 x.com
               </p>
             </a>
@@ -571,10 +571,10 @@ export function MessageCard({ message }: MessageCardProps) {
                 <ExternalLink className="w-4 h-4 text-orange-500 flex-shrink-0" />
               </div>
               <div className="mt-3">
-                <h3 className="font-bold text-gray-900 text-lg mb-1">
+                <h3 className="font-bold text-[#263d57] text-lg mb-1">
                   r/{redditPostInfo.subreddit}
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-[#263d57]/70 text-sm">
                   View full discussion and comments on Reddit
                 </p>
               </div>
@@ -642,20 +642,20 @@ export function MessageCard({ message }: MessageCardProps) {
               />
             ) : (
               /* For short URLs (vm.tiktok.com, tiktok.com/t/), show a styled link */
-              <div className="w-full rounded-md border bg-gradient-to-br from-black to-gray-800 p-6">
+              <div className="w-full rounded-md border bg-gradient-to-br from-[#263d57] to-[#263d57] p-6">
                 <div className="flex items-center justify-center">
                   <a 
                     href={urls.find(url => url.includes('tiktok.com')) || '#'}
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-white hover:text-gray-200 transition-colors flex items-center gap-3 text-lg font-medium hover:underline"
+                    className="text-white hover:text-[#263d57]/70 transition-colors flex items-center gap-3 text-lg font-medium hover:underline"
                   >
                     <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                     </svg>
                     <div className="text-left">
                       <div className="font-semibold">View on TikTok</div>
-                      <div className="text-sm font-normal text-gray-300 mt-1">Click to open in new tab</div>
+                      <div className="text-sm font-normal text-[#263d57]/60 mt-1">Click to open in new tab</div>
                     </div>
                   </a>
                 </div>
@@ -684,25 +684,25 @@ export function MessageCard({ message }: MessageCardProps) {
                 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-gray-900 text-lg leading-tight">
+                    <h3 className="font-bold text-[#263d57] text-lg leading-tight">
                       {movieData.title}
-                      {movieData.year && <span className="text-gray-600 font-normal"> ({movieData.year})</span>}
+                      {movieData.year && <span className="text-[#263d57]/70 font-normal"> ({movieData.year})</span>}
                     </h3>
                     {movieData.rating && (
                       <div className="flex items-center gap-1">
                         <span className="text-yellow-500">⭐</span>
-                        <span className="font-bold text-gray-800">{movieData.rating.toFixed(1)}</span>
+                        <span className="font-bold text-[#263d57]">{movieData.rating.toFixed(1)}</span>
                       </div>
                     )}
                   </div>
                   
                   {movieData.genres && movieData.genres.length > 0 && (
-                    <p className="text-gray-600 text-sm">
+                    <p className="text-[#263d57]/70 text-sm">
                       {movieData.genres.join(', ')}
                     </p>
                   )}
                   
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-[#263d57]/70 text-sm">
                     imdb.com
                   </p>
                 </div>
@@ -717,9 +717,9 @@ export function MessageCard({ message }: MessageCardProps) {
           <div className="w-full">
             <div className="border border-[#e3cac0] rounded-lg bg-white p-4">
               <div className="animate-pulse">
-                <div className="w-full h-48 bg-gray-200 rounded mb-3"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                <div className="w-full h-48 bg-[#263d57]/10 rounded mb-3"></div>
+                <div className="h-4 bg-[#263d57]/10 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-[#263d57]/10 rounded w-1/2"></div>
               </div>
             </div>
           </div>

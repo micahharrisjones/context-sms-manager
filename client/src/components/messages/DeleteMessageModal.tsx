@@ -87,7 +87,7 @@ export function DeleteMessageModal({
           <AlertDialogDescription className="space-y-2">
             <span>Are you sure you want to delete this message? This action cannot be undone.</span>
             <div className="p-3 bg-[#fff2ea] rounded-md border-l-4 border-[#e3cac0]">
-              <p className="text-sm text-gray-700 italic">"{truncatedPreview}"</p>
+              <p className="text-sm text-[#263d57]/80 italic">"{truncatedPreview}"</p>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>

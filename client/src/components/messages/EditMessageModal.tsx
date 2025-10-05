@@ -130,7 +130,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
           </div>
           
           <div className="bg-white p-3 rounded-md border border-[#e3cac0]">
-            <Label className="text-sm font-medium text-gray-700">
+            <Label className="text-sm font-medium text-[#263d57]/80">
               Current Boards:
             </Label>
             <div className="mt-1 flex flex-wrap gap-2">
@@ -144,14 +144,14 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
                   </span>
                 ))
               ) : (
-                <span className="inline-block bg-[#e3cac0] text-gray-600 px-2 py-1 rounded-md text-sm">
+                <span className="inline-block bg-[#e3cac0] text-[#263d57]/70 px-2 py-1 rounded-md text-sm">
                   #uncategorized
                 </span>
               )}
             </div>
           </div>
           
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-[#263d57]/70">
             <p className="mb-2"><strong>Tip:</strong> Add hashtags to organize your message into boards:</p>
             <ul className="list-disc pl-4 space-y-1">
               <li>Use #movies to add to the movies board</li>
