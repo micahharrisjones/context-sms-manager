@@ -140,7 +140,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         if (data.success) {
           toast({
             title: "Login successful",
-            description: "Welcome to Context!",
+            description: "Welcome to Aside!",
           });
           
           // Call onLogin first (this initializes Pendo)
@@ -214,15 +214,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff3ea] px-4 py-8 safe-area-inset" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
       <Card className="w-full max-w-md my-auto">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-2">
+          <div className="mx-auto mb-4">
             <img 
-              src="/context-avatar.png" 
-              alt="Context" 
-              className="w-16 h-16 mx-auto"
+              src="/aside-logo-login.png" 
+              alt="Aside" 
+              className="w-48 mx-auto"
             />
           </div>
           <div className="space-y-1">
-            <h1 className="text-xl font-bold text-[#ed2024] leading-tight">
+            <h1 className="text-xl font-bold text-[#263d57] leading-tight">
               Text it, tag it, find it later.
             </h1>
             <p className="text-gray-600 text-sm leading-tight">
@@ -249,7 +249,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
               <Button 
                 type="submit" 
-                className="w-full bg-[#ed2024] hover:bg-[#d61e21]"
+                className="w-full bg-[#b95827] hover:bg-[#a04d1f]"
                 disabled={isLoading || !phoneNumber.trim()}
               >
                 {isLoading ? "Sending code..." : "Send verification code"}
@@ -258,7 +258,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           ) : (
             <div className="space-y-4">
               <div className="text-center space-y-2">
-                <MessageSquare className="h-8 w-8 mx-auto text-[#ed2024]" />
+                <MessageSquare className="h-8 w-8 mx-auto text-[#b95827]" />
                 <h3 className="font-semibold text-gray-900">Check your phone</h3>
                 <p className="text-sm text-gray-600">
                   We sent a verification code to<br />
@@ -285,7 +285,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 <div className="space-y-2">
                   <Button 
                     type="submit" 
-                    className="w-full bg-[#ed2024] hover:bg-[#d61e21]"
+                    className="w-full bg-[#b95827] hover:bg-[#a04d1f]"
                     disabled={isLoading || verificationCode.length !== 6}
                   >
                     {isLoading ? "Verifying..." : "Verify and login"}
