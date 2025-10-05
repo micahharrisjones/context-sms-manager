@@ -72,10 +72,10 @@ export function DeleteSharedBoardModal({
               <AlertTriangle className="w-5 h-5 text-red-600" />
             </div>
             <div>
-              <DialogTitle className="text-lg font-semibold text-gray-900">
+              <DialogTitle className="text-lg font-semibold text-[#263d57]">
                 Delete Shared Board
               </DialogTitle>
-              <DialogDescription className="text-sm text-gray-500 mt-1">
+              <DialogDescription className="text-sm text-[#263d57]/70 mt-1">
                 This action cannot be undone
               </DialogDescription>
             </div>
@@ -84,10 +84,10 @@ export function DeleteSharedBoardModal({
         
         <div className="py-4">
           <div className="bg-red-50 border border-[#e3cac0] rounded-lg p-4">
-            <p className="text-sm text-gray-700 mb-3">
+            <p className="text-sm text-[#263d57] mb-3">
               Are you sure you want to delete the shared board <strong>#{boardName}</strong>?
             </p>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-[#263d57]/70">
               <p className="mb-2"><strong>This will:</strong></p>
               <ul className="list-disc pl-4 space-y-1">
                 <li>Permanently remove the shared board</li>

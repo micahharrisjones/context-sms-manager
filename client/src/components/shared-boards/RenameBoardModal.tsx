@@ -109,7 +109,7 @@ export function RenameBoardModal({
               id="currentName"
               value={`#${currentName}`}
               disabled
-              className="bg-gray-100"
+              className="bg-[#263d57]/10"
             />
           </div>
           <div className="space-y-2">
