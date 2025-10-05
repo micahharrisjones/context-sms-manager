@@ -1,4 +1,4 @@
-# Context - Personal Information Management System
+# Aside - Personal Information Management System
 
 A robust SMS and social media content management platform that enables intelligent message categorization, rich media preview, and seamless cross-platform communication with real-time collaboration features.
 
@@ -9,7 +9,7 @@ A robust SMS and social media content management platform that enables intellige
 - **Smart Categorization**: Automatic hashtag extraction and message organization
 - **Rich Social Media Previews**: Embedded content from Instagram, Pinterest, X/Twitter, Reddit, Facebook, YouTube, TikTok, and IMDB
 - **Real-time Updates**: WebSocket-powered live message updates
-- **Multi-user Authentication**: Phone number-based user verification
+- **Multi-user Authentication**: Phone number-based user verification with secure magic link tokens
 
 ### Collaboration Features
 - **Shared Boards**: Create collaborative message boards organized by hashtags
@@ -23,6 +23,10 @@ A robust SMS and social media content management platform that enables intellige
 - **Tag Management**: Delete tags with bulk message removal
 - **Link Preview Integration**: Social media URLs automatically inherit hashtags from recent messages
 
+### AI-Powered Features
+- **Hybrid Categorization**: DeepSeek AI assists with intelligent message organization
+- **Daily Affirmations**: Personalized AI-generated affirmations based on your saved content
+
 ## 🛠 Technology Stack
 
 - **Frontend**: TypeScript React with Vite, mobile-responsive design
@@ -30,8 +34,9 @@ A robust SMS and social media content management platform that enables intellige
 - **Database**: PostgreSQL with Drizzle ORM
 - **Real-time**: WebSocket connections
 - **SMS Integration**: Twilio webhook handling
+- **AI Integration**: DeepSeek for intelligent categorization and personalization
 - **UI Framework**: Tailwind CSS with shadcn/ui components
-- **Authentication**: Express sessions with phone number verification
+- **Authentication**: Express sessions with phone number verification and magic link tokens
 
 ## 🏗 Architecture
 
@@ -62,6 +67,7 @@ A robust SMS and social media content management platform that enables intellige
 - Node.js 18+
 - PostgreSQL database
 - Twilio account for SMS webhooks
+- DeepSeek API key (optional, for AI features)
 
 ### Environment Variables
 ```bash
@@ -69,13 +75,14 @@ DATABASE_URL=postgresql://username:password@hostname:port/database
 TWILIO_ACCOUNT_SID=your_twilio_account_sid
 TWILIO_AUTH_TOKEN=your_twilio_auth_token
 TWILIO_PHONE_NUMBER=your_twilio_phone_number
+DEEPSEEK_API_KEY=your_deepseek_api_key
 ```
 
 ### Installation
 
 ## 🌐 Live Demo
 
-Context is live at: **https://contxt.life**
+Aside is live at: **https://textaside.app**
 
 Try it out by sending SMS messages with hashtags to see the intelligent categorization and social media preview features in action.
 
@@ -83,8 +90,8 @@ Try it out by sending SMS messages with hashtags to see the intelligent categori
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/micahharrisjones/context-sms-manager.git
-cd context-sms-manager
+git clone https://github.com/micahharrisjones/aside-sms-manager.git
+cd aside-sms-manager
 ```
 
 2. Install dependencies:
@@ -128,11 +135,13 @@ Send SMS messages containing social media links and they'll automatically displa
 
 ## 🎨 Design
 
-Context features a clean, mobile-responsive design with:
-- **Primary Color**: #ed2024 (Context brand red)
+Aside features a clean, mobile-responsive design with:
+- **Primary Color**: #b95827 (warm orange)
+- **Secondary Color**: #263d57 (dark blue)
+- **Background**: #fff2ea (soft cream)
 - **Mobile-first**: Optimized for phone, tablet, and desktop
 - **Real-time UI**: Instant updates without page refreshes
-- **Hover Interactions**: Reveal actions and member details on hover
+- **Modern Aesthetic**: Subtle drop shadows instead of borders for a clean look
 
 ## 🔧 API Endpoints
 
@@ -158,7 +167,7 @@ Context features a clean, mobile-responsive design with:
 
 ## 🔄 Real-time Features
 
-Context uses WebSocket connections to provide:
+Aside uses WebSocket connections to provide:
 - Live message updates across all connected devices
 - Real-time shared board notifications
 - Instant UI updates for collaborative features
@@ -184,4 +193,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Context** - Making personal information management seamless and collaborative.
+**Aside** - Making personal information management seamless and collaborative.
