@@ -322,7 +322,7 @@ Respond with JSON in this exact format:
     }
   }
   /**
-   * Check if a message is asking for help/instructions on how to use Context
+   * Check if a message is asking for help/instructions on how to use Aside
    */
   async handleHelpRequest(messageContent: string): Promise<{ isRequest: boolean; response?: string }> {
     try {
@@ -330,7 +330,7 @@ Respond with JSON in this exact format:
 
       // First, check if this looks like a help request
       const detectionPrompt = `
-Analyze this message to determine if the user is asking for help, instructions, or guidance on how to use Context:
+Analyze this message to determine if the user is asking for help, instructions, or guidance on how to use Aside:
 
 Message: "${messageContent}"
 
@@ -342,12 +342,12 @@ Respond with JSON containing:
 
 Examples of help requests:
 - "How does this work?"
-- "What can I do with Context?"
+- "What can I do with Aside?"
 - "How do I use this?"
 - "Help"
 - "Instructions"
-- "What is Context?"
-- "How does Context work?"
+- "What is Aside?"
+- "How does Aside work?"
 - "Can you explain how to use this?"
 - "What are the features?"
 
@@ -383,18 +383,18 @@ Examples that are NOT help requests:
         return { isRequest: false };
       }
 
-      // Generate a helpful response about how to use Context
+      // Generate a helpful response about how to use Aside
       const responsePrompt = `
 User asked: "${messageContent}"
 
-Provide a helpful, concise response explaining how to use Context. Focus on practical examples.
+Provide a helpful, concise response explaining how to use Aside. Focus on practical examples.
 
-Key Context features to mention:
+Key Aside features to mention:
 - Text anything to save it automatically
 - Use #hashtags to organize messages 
 - AI categorizes messages without hashtags
 - Share boards with others using hashtags
-- Access dashboard at contxt.life
+- Access dashboard at textaside.app
 - Everything is searchable and organized
 
 Guidelines:
@@ -410,7 +410,7 @@ Guidelines:
         messages: [
           {
             role: "system",
-            content: "You are Context's helpful assistant. Provide clear, concise instructions on how to use Context effectively."
+            content: "You are Aside's helpful assistant. Provide clear, concise instructions on how to use Aside effectively."
           },
           {
             role: "user", 
@@ -426,7 +426,7 @@ Guidelines:
 
       return {
         isRequest: true,
-        response: response || "Context helps you save and organize anything via text! Use #hashtags to categorize messages, or let AI organize them for you. Visit contxt.life to see your organized content!"
+        response: response || "Aside helps you save and organize anything via text! Use #hashtags to categorize messages, or let AI organize them for you. Visit textaside.app to see your organized content!"
       };
 
     } catch (error) {
@@ -540,14 +540,14 @@ Respond with JSON containing:
 {
   "isConversational": true/false,
   "confidence": 0.0-1.0,
-  "queryType": "context_specific|general_question|personal_help|creative_help|information_request|compliment|feedback|casual_chat|none"
+  "queryType": "aside_specific|general_question|personal_help|creative_help|information_request|compliment|feedback|casual_chat|none"
 }
 
 Examples of appropriate conversational messages:
 - "What should I make for dinner?" (when they have saved recipes)
 - "Tell me about my politics stuff" (when they have saved political content)
-- "How many messages have I saved?" (Context-specific)
-- "What's my account status?" (Context-specific)
+- "How many messages have I saved?" (Aside-specific)
+- "What's my account status?" (Aside-specific)
 - "Thanks!" (brief acknowledgment)
 - "What's the recipe for that pasta?" (specific content question)
 
@@ -557,7 +557,7 @@ Examples that should NOT trigger conversational AI:
 - "How do I cook pasta?" (general how-to questions)
 - "What's 25 * 47?" (math questions)
 - "Can you help me write something?" (writing assistance)
-- Most questions that aren't about their saved Context content
+- Most questions that aren't about their saved Aside content
 
 Examples that are NOT conversational:
 - "Check out this recipe #cooking"
@@ -600,7 +600,7 @@ Examples that are NOT conversational:
 User asked: "${messageContent}"
 Query type: ${detection.queryType}
 
-User context (use only if relevant to Context-specific queries):
+User context (use only if relevant to Aside-specific queries):
 - Name: ${userInfo.displayName}
 - Messages saved: ${userInfo.messageCount || 0}
 - Private boards: ${userInfo.boardCount || 0}
@@ -615,12 +615,12 @@ ${userContent.messages.length > 0 ?
   ).join('\n') 
   : 'No relevant saved content found - provide general helpful answer'}
 
-You are Context's assistant. Only respond if you can use their saved content to be genuinely helpful:
+You are Aside's assistant. Only respond if you can use their saved content to be genuinely helpful:
 
 - ONLY answer if their saved content is relevant to the question
 - If they have saved recipes and ask about dinner: suggest specific dishes they saved
 - If they have saved articles and ask about a topic: reference what they've saved
-- For Context account questions: use their stats
+- For Aside account questions: use their stats
 - If NO relevant saved content: say "I don't see any saved content about that. Save some and I can help you find it later!"
 - Keep responses very short and natural - like texting a friend
 - Don't be overly helpful or chatty
@@ -643,7 +643,7 @@ Examples:
         messages: [
           {
             role: "system",
-            content: "You are Context's assistant. Only respond when you can use their saved content. Be super brief and casual - like texting a friend. If they don't have relevant saved content, say so briefly and suggest saving content."
+            content: "You are Aside's assistant. Only respond when you can use their saved content. Be super brief and casual - like texting a friend. If they don't have relevant saved content, say so briefly and suggest saving content."
           },
           {
             role: "user",
