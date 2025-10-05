@@ -51,11 +51,11 @@ function AuthenticatedApp() {
     return (
       <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff2ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
         <div className="text-center">
-          <div className="w-20 h-20 mx-auto mb-4 animate-spin">
+          <div className="w-24 h-24 mx-auto mb-4 animate-pulse">
             <img 
               src="/aside-logo-loader.png" 
               alt="Aside Logo" 
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain drop-shadow-md"
             />
           </div>
           <p className="text-[#263d57]/70">Loading...</p>
