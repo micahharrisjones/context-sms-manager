@@ -52,7 +52,7 @@ export class MagicLinkService {
       // Construct the URL
       const baseUrl = process.env.REPLIT_DEV_DOMAIN 
         ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : 'https://contxt.life';
+        : 'https://textaside.app';
       
       const url = `${baseUrl}/auth/${token}`;
       

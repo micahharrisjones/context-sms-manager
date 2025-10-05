@@ -173,7 +173,7 @@ Guidelines:
         messages: [
           {
             role: "system",
-            content: "You are Context, a helpful SMS assistant. Generate friendly, concise responses about user's boards."
+            content: "You are Aside, a helpful SMS assistant. Generate friendly, concise responses about user's boards."
           },
           {
             role: "user",
@@ -184,7 +184,7 @@ Guidelines:
         max_tokens: 200
       });
 
-      const response = responseGeneration.choices[0].message.content?.trim() || "Here are your boards! Check your dashboard at https://contxt.life";
+      const response = responseGeneration.choices[0].message.content?.trim() || "Here are your boards! Check your dashboard at https://textaside.app";
       this.log(`Generated board list response: ${response}`);
       
       return { isRequest: true, response };

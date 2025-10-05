@@ -12,7 +12,7 @@ export type OnboardingStep =
 
 // Built-in onboarding messages - no database seeding required
 const ONBOARDING_MESSAGES = {
-  welcome: `👋 Welcome to Context! This is your space to save any text by sending it here.
+  welcome: `👋 Welcome to Aside! This is your space to save any text by sending it here.
 
 Let's try it — send me a text right now, anything you want.`,
   
@@ -35,7 +35,7 @@ Now let's go see all your texts organized in one place.
 
 If you ever get stuck or have a question, just text #support followed by your question — I'll help you out.
 
-Welcome to Context — your texts, organized.`
+Welcome to Aside — your texts, organized.`
 } as const;
 
 export class OnboardingService {
@@ -54,7 +54,7 @@ export class OnboardingService {
     // Get user by phone number to create magic link
     const user = await this.storage.getUserByPhoneNumber(cleanPhoneNumber);
     
-    let dashboardUrl = 'https://contxt.life'; // Fallback URL
+    let dashboardUrl = 'https://textaside.app'; // Fallback URL
     
     if (user) {
       try {
@@ -70,7 +70,7 @@ export class OnboardingService {
       log(`Warning: Could not find user for phone ${cleanPhoneNumber} when generating welcome message`);
     }
     
-    return `👋 Welcome to Context! This is your personal space to save anything from anywhere just by texting it here.
+    return `👋 Welcome to Aside! This is your personal space to save anything from anywhere just by texting it here.
 
 📱 How it works:
 • Text me anything - quotes, links, lyrics, ideas, recipes, etc

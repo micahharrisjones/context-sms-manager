@@ -127,7 +127,7 @@ class TwilioService {
   }
 
   async sendWelcomeMessage(phoneNumber: string, onboardingService?: any): Promise<void> {
-    let welcomeMessage = `👋 Welcome to Context! This is your space to save any text by sending it here.
+    let welcomeMessage = `👋 Welcome to Aside! This is your space to save any text by sending it here.
 
 Let's try it — send me a text right now, anything you want.`;
 
@@ -159,7 +159,7 @@ Let's try it — send me a text right now, anything you want.`;
     boardName: string, 
     messagePreview: string
   ): Promise<void> {
-    const boardUrl = `https://contxt.life/board/${encodeURIComponent(boardName)}`;
+    const boardUrl = `https://textaside.app/board/${encodeURIComponent(boardName)}`;
     const notificationText = `🔔 Someone added to your shared board #${boardName}\n\n"${messagePreview.slice(0, 100)}${messagePreview.length > 100 ? '...' : ''}"\n\nView: ${boardUrl}\n\nReply STOP to unsubscribe`;
 
     const sendPromises = recipientPhoneNumbers.map(phoneNumber => 

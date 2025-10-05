@@ -1,11 +1,11 @@
 {
-  "name": "Context - Text it, tag it, find it later.",
-  "short_name": "Context",
+  "name": "Aside - Text it, tag it, find it later.",
+  "short_name": "Aside",
   "description": "A robust SMS management platform for organizing and sharing your messages with intelligent hashtag categorization and real-time collaboration.",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#ed2024",
-  "background_color": "#fff3ea",
+  "theme_color": "#b95827",
+  "background_color": "#fff2ea",
   "orientation": "portrait-primary",
   "categories": ["productivity", "social", "utilities"],
   "icons": [

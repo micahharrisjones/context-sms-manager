@@ -1071,7 +1071,7 @@ export async function registerRoutes(app: Express) {
       // Send SMS notification to the invited user
       await twilioService.sendSMS(
         inviteeUser.phoneNumber,
-        `You've been invited to the shared board #${boardName} on Context! Check your dashboard: https://contxt.life`
+        `You've been invited to the shared board #${boardName} on Aside! Check your dashboard: https://textaside.app`
       );
 
       log(`Successfully converted private board ${boardName} to shared board and invited user ${inviteeUser.phoneNumber}`);
@@ -2113,7 +2113,7 @@ export async function registerRoutes(app: Express) {
             // Format the admin notification message
             const senderUser = await storage.getUserById(created.userId);
             const senderPhone = senderUser?.phoneNumber || created.senderId;
-            const adminMessage = `🔔 New admin message received!\n\nFrom: ${senderPhone}\nTags: ${adminOnlyTags.map(tag => '#' + tag).join(', ')}\n\n"${created.content.slice(0, 200)}${created.content.length > 200 ? '...' : ''}"\n\nView: https://contxt.life/admin`;
+            const adminMessage = `🔔 New admin message received!\n\nFrom: ${senderPhone}\nTags: ${adminOnlyTags.map(tag => '#' + tag).join(', ')}\n\n"${created.content.slice(0, 200)}${created.content.length > 200 ? '...' : ''}"\n\nView: https://textaside.app/admin`;
             
             // Send SMS to all admin numbers
             for (const adminPhone of adminPhoneNumbers) {
