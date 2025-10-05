@@ -86,10 +86,10 @@ export function Sidebar({ onClose }: SidebarProps) {
         <div className="p-4 flex-shrink-0">
           {/* All Texts Button */}
           <div className={cn(
-            "border border-[#e3cac0] rounded-lg transition-colors",
+            "rounded-lg transition-all shadow-md",
             location === "/all-texts" 
-              ? "border-primary/20 bg-primary/5" 
-              : "border-[#e3cac0] bg-[#e3cac0]/10"
+              ? "bg-primary/5 shadow-lg" 
+              : "bg-[#e3cac0]/10"
           )}>
             <Link href="/all-texts">
               <Button 

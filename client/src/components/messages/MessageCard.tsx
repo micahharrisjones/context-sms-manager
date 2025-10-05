@@ -369,10 +369,10 @@ export function MessageCard({ message }: MessageCardProps) {
         {/* Open Graph Preview - Show first */}
         {ogData && ogData.title && (
           <div className="w-full">
-            <div className={`border rounded-lg overflow-hidden bg-white hover:shadow-md transition-shadow ${
+            <div className={`shadow-md rounded-lg overflow-hidden bg-white hover:shadow-lg transition-shadow ${
               isPinterestUrl 
-                ? 'border-red-200 bg-gradient-to-br from-red-50 to-pink-50' 
-                : 'border-[#e3cac0]'
+                ? 'bg-gradient-to-br from-red-50 to-pink-50' 
+                : ''
             }`}>
               <a 
                 href={previewUrl || ogData.url} 
@@ -448,7 +448,7 @@ export function MessageCard({ message }: MessageCardProps) {
         {previewUrl && !isLoadingOg && (!ogData || !ogData.title) && (
           <div className="w-full">
             {isPinterestUrl ? (
-              <div className="border border-red-200 rounded-lg overflow-hidden bg-gradient-to-br from-red-50 to-pink-50 hover:shadow-lg transition-shadow">
+              <div className="shadow-md rounded-lg overflow-hidden bg-gradient-to-br from-red-50 to-pink-50 hover:shadow-xl transition-shadow">
                 <a 
                   href={previewUrl} 
                   target="_blank" 
@@ -481,7 +481,7 @@ export function MessageCard({ message }: MessageCardProps) {
                 href={previewUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary hover:underline text-sm break-all block p-3 border border-[#e3cac0] rounded-lg bg-[#263d57]/5 hover:bg-[#263d57]/10 transition-colors"
+                className="text-primary hover:underline text-sm break-all block p-3 shadow-md rounded-lg bg-[#263d57]/5 hover:bg-[#263d57]/10 transition-colors"
               >
                 {previewUrl}
               </a>
@@ -508,7 +508,7 @@ export function MessageCard({ message }: MessageCardProps) {
               href={urls.find(url => getTwitterPostId(url)) || '#'}
               target="_blank" 
               rel="noopener noreferrer"
-              className="block rounded-lg border border-[#e3cac0] bg-gradient-to-br from-blue-50 to-sky-50 p-4 hover:shadow-lg transition-shadow"
+              className="block rounded-lg shadow-md bg-gradient-to-br from-blue-50 to-sky-50 p-4 hover:shadow-xl transition-shadow"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -557,7 +557,7 @@ export function MessageCard({ message }: MessageCardProps) {
               href={urls.find(url => url.includes('reddit.com')) || '#'}
               target="_blank" 
               rel="noopener noreferrer"
-              className="block rounded-lg border border-[#e3cac0] bg-gradient-to-br from-orange-50 to-red-50 p-4 hover:shadow-lg transition-shadow"
+              className="block rounded-lg shadow-md bg-gradient-to-br from-orange-50 to-red-50 p-4 hover:shadow-xl transition-shadow"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -609,7 +609,7 @@ export function MessageCard({ message }: MessageCardProps) {
           <div className="w-full">
             <iframe
               src={`https://www.facebook.com/plugins/post.php?href=https://www.facebook.com/permalink.php?story_fbid=${facebookPostId}&width=500&show_text=true&height=500`}
-              className="w-full h-[500px] rounded-md border border-[#e3cac0]"
+              className="w-full h-[500px] rounded-md shadow-md"
               loading="lazy"
               frameBorder="0"
               scrolling="no"
