@@ -81,7 +81,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
             <AlertTriangle className="h-5 w-5" />
             Delete Account
           </DialogTitle>
-          <DialogDescription className="text-gray-700">
+          <DialogDescription className="text-[#263d57]">
             This action cannot be undone. Your account and all associated data will be permanently deleted.
           </DialogDescription>
         </DialogHeader>
@@ -100,7 +100,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
             </div>
 
             <div className="grid gap-2">
-              <Label htmlFor="confirmation" className="text-gray-700">
+              <Label htmlFor="confirmation" className="text-[#263d57]">
                 Type <span className="font-mono font-bold">DELETE</span> to confirm:
               </Label>
               <Input

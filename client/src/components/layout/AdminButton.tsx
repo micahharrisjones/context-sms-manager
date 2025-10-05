@@ -30,7 +30,7 @@ export function AdminButton({ onClose, location }: AdminButtonProps) {
       <Button
         variant="ghost"
         className={cn(
-          "w-full justify-start text-gray-600 hover:text-blue-600 hover:bg-[#e3cac0]/20",
+          "w-full justify-start text-[#263d57]/70 hover:text-blue-600 hover:bg-[#e3cac0]/20",
           location === "/admin" && "bg-[#e3cac0]/30 text-blue-600"
         )}
         onClick={onClose}

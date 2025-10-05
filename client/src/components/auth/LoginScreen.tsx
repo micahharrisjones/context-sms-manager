@@ -225,7 +225,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <h1 className="text-xl font-bold text-[#263d57] leading-tight">
               Text it, tag it, find it later.
             </h1>
-            <p className="text-gray-600 text-sm leading-tight">
+            <p className="text-[#263d57]/70 text-sm leading-tight">
               Save anything from anywhere, with just a text.
             </p>
           </div>
@@ -259,8 +259,8 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <div className="space-y-4">
               <div className="text-center space-y-2">
                 <MessageSquare className="h-8 w-8 mx-auto text-[#b95827]" />
-                <h3 className="font-semibold text-gray-900">Check your phone</h3>
-                <p className="text-sm text-gray-600">
+                <h3 className="font-semibold text-[#263d57]">Check your phone</h3>
+                <p className="text-sm text-[#263d57]/70">
                   We sent a verification code to<br />
                   <span className="font-medium">{phoneNumber}</span>
                 </p>

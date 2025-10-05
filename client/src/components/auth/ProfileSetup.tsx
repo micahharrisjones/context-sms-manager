@@ -127,7 +127,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                   {form.formState.errors.avatarUrl.message}
                 </p>
               )}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[#263d57]/70">
                 You can use a photo from social media or any image hosting service
               </p>
             </div>

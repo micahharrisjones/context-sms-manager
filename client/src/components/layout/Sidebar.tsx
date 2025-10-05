@@ -323,7 +323,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         <Button
           variant="ghost"
           onClick={() => setDeleteAccountModalOpen(true)}
-          className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-red-50"
+          className="w-full justify-start text-[#263d57]/70 hover:text-red-600 hover:bg-red-50"
         >
           <Trash2 className="h-4 w-4 mr-2" />
           Delete Account
@@ -333,7 +333,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         <Link href="/profile">
           <Button
             variant="ghost"
-            className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-[#e3cac0]/20"
+            className="w-full justify-start text-[#263d57]/70 hover:text-[#263d57] hover:bg-[#e3cac0]/20"
             onClick={onClose}
           >
             <Settings className="h-4 w-4 mr-2" />
@@ -344,7 +344,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         <Link href="/notifications">
           <Button
             variant="ghost"
-            className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-[#e3cac0]/20"
+            className="w-full justify-start text-[#263d57]/70 hover:text-[#263d57] hover:bg-[#e3cac0]/20"
             onClick={onClose}
           >
             <Bell className="h-4 w-4 mr-2" />
@@ -355,7 +355,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         <Button
           variant="ghost"
           onClick={logout}
-          className="w-full justify-start text-gray-600 hover:text-red-600 hover:bg-[#e3cac0]/20"
+          className="w-full justify-start text-[#263d57]/70 hover:text-red-600 hover:bg-[#e3cac0]/20"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Logout
