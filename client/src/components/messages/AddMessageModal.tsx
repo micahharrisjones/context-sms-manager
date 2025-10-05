@@ -140,7 +140,7 @@ export function AddMessageModal({ isOpen, onClose }: AddMessageModalProps) {
             <Button
               type="submit"
               disabled={addMessageMutation.isPending || !content.trim()}
-              className="flex-1 bg-[#ed2024] hover:bg-[#d61e21]"
+              className="flex-1 bg-[#b95827] hover:bg-[#a04d1f]"
             >
               {addMessageMutation.isPending ? "Adding..." : "Add Message"}
             </Button>

@@ -112,7 +112,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-[#fff3ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-[600px] bg-[#fff2ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle>Edit Message</DialogTitle>
         </DialogHeader>
@@ -125,7 +125,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Edit your message content..."
-              className="min-h-[120px] mt-2 bg-white border-[#e3cac0] focus:border-[#ed2024]"
+              className="min-h-[120px] mt-2 bg-white border-[#e3cac0] focus:border-[#b95827]"
             />
           </div>
           
@@ -173,7 +173,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
           <Button
             onClick={handleSubmit}
             disabled={updateMessageMutation.isPending}
-            className="bg-[#ed2024] hover:bg-[#d61e21]"
+            className="bg-[#b95827] hover:bg-[#a04d1f]"
           >
             {updateMessageMutation.isPending ? "Updating..." : "Update Message"}
           </Button>

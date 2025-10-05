@@ -61,7 +61,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   };
 
   return (
-    <div className="w-full lg:w-64 h-full lg:h-screen bg-[#fff3ea] border-r border-[#e3cac0] flex flex-col lg:overflow-hidden">
+    <div className="w-full lg:w-64 h-full lg:h-screen bg-[#fff2ea] border-r border-[#e3cac0] flex flex-col lg:overflow-hidden">
       {/* Logo Section */}
       <div className="p-6 border-b border-[#e3cac0] flex justify-between items-center flex-shrink-0">
         <Link href="/">

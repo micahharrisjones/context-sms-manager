@@ -108,7 +108,7 @@ export function NotificationSettingsPage() {
       <Card className="border-[#e3cac0]">
         <CardContent className="pt-6">
           <div className="flex items-center gap-3">
-            <Bell className="h-5 w-5 text-[#ed2024]" />
+            <Bell className="h-5 w-5 text-[#b95827]" />
             <div>
               <p className="font-medium">SMS Notifications</p>
               <p className="text-sm text-gray-600">
@@ -170,7 +170,7 @@ export function NotificationSettingsPage() {
       </Card>
 
       {/* Help Text */}
-      <Card className="border-[#e3cac0] bg-[#fff3ea]">
+      <Card className="border-[#e3cac0] bg-[#fff2ea]">
         <CardContent className="pt-6">
           <div className="text-sm text-gray-700 space-y-2">
             <p><strong>How it works:</strong></p>

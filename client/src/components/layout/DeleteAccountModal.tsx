@@ -75,7 +75,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] bg-[#fff3ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-[425px] bg-[#fff2ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-red-600">
             <AlertTriangle className="h-5 w-5" />

@@ -114,7 +114,7 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff3ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle>Invite to #{boardName}</DialogTitle>
         </DialogHeader>
@@ -138,7 +138,7 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="Enter phone number (e.g., 6155551234)"
-                className="w-full border-[#e3cac0] focus:border-[#ed2024]"
+                className="w-full border-[#e3cac0] focus:border-[#b95827]"
                 disabled={inviteUserMutation.isPending}
               />
             ) : (
@@ -151,7 +151,7 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
                     if (selectedUser) setSelectedUser(null);
                   }}
                   placeholder="Search by name or phone number..."
-                  className="w-full pl-10 border-[#e3cac0] focus:border-[#ed2024]"
+                  className="w-full pl-10 border-[#e3cac0] focus:border-[#b95827]"
                   disabled={inviteUserMutation.isPending}
                 />
                 
@@ -163,11 +163,11 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
                         key={user.id}
                         type="button"
                         onClick={() => handleUserSelect(user)}
-                        className="w-full p-3 text-left hover:bg-[#fff3ea] flex items-center gap-3"
+                        className="w-full p-3 text-left hover:bg-[#fff2ea] flex items-center gap-3"
                       >
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={user.avatarUrl} alt={getDisplayName(user)} />
-                          <AvatarFallback className="bg-[#ed2024] text-white text-xs">
+                          <AvatarFallback className="bg-[#b95827] text-white text-xs">
                             {getInitials(user)}
                           </AvatarFallback>
                         </Avatar>
@@ -182,10 +182,10 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
                 
                 {/* Selected User Display */}
                 {selectedUser && (
-                  <div className="mt-2 p-3 bg-[#fff3ea] border border-[#e3cac0] rounded-md flex items-center gap-3">
+                  <div className="mt-2 p-3 bg-[#fff2ea] border border-[#e3cac0] rounded-md flex items-center gap-3">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={selectedUser.avatarUrl} alt={getDisplayName(selectedUser)} />
-                      <AvatarFallback className="bg-[#ed2024] text-white text-xs">
+                      <AvatarFallback className="bg-[#b95827] text-white text-xs">
                         {getInitials(selectedUser)}
                       </AvatarFallback>
                     </Avatar>
@@ -220,14 +220,14 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
               variant="outline" 
               onClick={handleClose}
               disabled={inviteUserMutation.isPending}
-              className="border-[#e3cac0] hover:bg-[#fff3ea]"
+              className="border-[#e3cac0] hover:bg-[#fff2ea]"
             >
               Cancel
             </Button>
             <Button 
               type="submit"
               disabled={inviteUserMutation.isPending || (!selectedUser && !phoneNumber.trim())}
-              className="bg-[#ed2024] hover:bg-[#d1001a] text-white"
+              className="bg-[#b95827] hover:bg-[#a04d1f] text-white"
             >
               {inviteUserMutation.isPending ? "Inviting..." : "Send Invite"}
             </Button>

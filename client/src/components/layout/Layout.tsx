@@ -39,7 +39,7 @@ export function Layout({ children }: LayoutProps) {
   }, []);
 
   return (
-    <div className="flex min-h-screen min-h-[100dvh] relative bg-[#fff3ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
+    <div className="flex min-h-screen min-h-[100dvh] relative bg-[#fff2ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
       {/* Mobile menu button - hidden when sidebar is open */}
       {!sidebarOpen && (
         <Button
@@ -65,7 +65,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <main className="flex-1 overflow-auto">
         {/* Simple mobile header with centered logo */}
-        <div className="lg:hidden sticky top-0 z-20 bg-[#fff3ea]/95 backdrop-blur supports-[backdrop-filter]:bg-[#fff3ea]/60 border-b border-[#e3cac0] p-4 flex items-center justify-center">
+        <div className="lg:hidden sticky top-0 z-20 bg-[#fff2ea]/95 backdrop-blur supports-[backdrop-filter]:bg-[#fff2ea]/60 border-b border-[#e3cac0] p-4 flex items-center justify-center">
           <Link href="/">
             <Logo className="w-auto h-8" />
           </Link>

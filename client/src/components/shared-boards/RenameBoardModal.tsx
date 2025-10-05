@@ -90,7 +90,7 @@ export function RenameBoardModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff3ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle>
             Rename {boardType === "shared" ? "Shared" : "Private"} Board

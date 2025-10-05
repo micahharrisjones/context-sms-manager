@@ -129,7 +129,7 @@ export function ProfilePage() {
             <div className="flex justify-center mb-4">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={profile?.avatarUrl} alt={getDisplayName()} />
-                <AvatarFallback className="bg-[#ed2024] text-white text-lg">
+                <AvatarFallback className="bg-[#b95827] text-white text-lg">
                   {getInitials()}
                 </AvatarFallback>
               </Avatar>
@@ -149,7 +149,7 @@ export function ProfilePage() {
                     id="firstName"
                     {...form.register('firstName')}
                     placeholder="Enter your first name"
-                    className="border-[#e3cac0] focus:border-[#ed2024]"
+                    className="border-[#e3cac0] focus:border-[#b95827]"
                   />
                   {form.formState.errors.firstName && (
                     <p className="text-sm text-red-600">
@@ -164,7 +164,7 @@ export function ProfilePage() {
                     id="lastName"
                     {...form.register('lastName')}
                     placeholder="Enter your last name"
-                    className="border-[#e3cac0] focus:border-[#ed2024]"
+                    className="border-[#e3cac0] focus:border-[#b95827]"
                   />
                   {form.formState.errors.lastName && (
                     <p className="text-sm text-red-600">
@@ -194,7 +194,7 @@ export function ProfilePage() {
 
               <Button
                 type="submit"
-                className="w-full bg-[#ed2024] hover:bg-[#d1001a] text-white"
+                className="w-full bg-[#b95827] hover:bg-[#a04d1f] text-white"
                 disabled={updateProfileMutation.isPending}
               >
                 <Save className="h-4 w-4 mr-2" />

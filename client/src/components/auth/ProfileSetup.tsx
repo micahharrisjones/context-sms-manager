@@ -71,10 +71,10 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#fff3ea] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#fff2ea] flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-white border-[#e3cac0]">
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 bg-[#ed2024] rounded-full flex items-center justify-center">
+          <div className="mx-auto w-12 h-12 bg-[#b95827] rounded-full flex items-center justify-center">
             <User className="h-6 w-6 text-white" />
           </div>
           <CardTitle className="text-2xl font-bold">Set Up Your Profile</CardTitle>
@@ -90,7 +90,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 id="firstName"
                 {...form.register('firstName')}
                 placeholder="Enter your first name"
-                className="border-[#e3cac0] focus:border-[#ed2024]"
+                className="border-[#e3cac0] focus:border-[#b95827]"
               />
               {form.formState.errors.firstName && (
                 <p className="text-sm text-red-600">
@@ -105,7 +105,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 id="lastName"
                 {...form.register('lastName')}
                 placeholder="Enter your last name"
-                className="border-[#e3cac0] focus:border-[#ed2024]"
+                className="border-[#e3cac0] focus:border-[#b95827]"
               />
               {form.formState.errors.lastName && (
                 <p className="text-sm text-red-600">
@@ -120,7 +120,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 id="avatarUrl"
                 {...form.register('avatarUrl')}
                 placeholder="https://example.com/your-photo.jpg"
-                className="border-[#e3cac0] focus:border-[#ed2024]"
+                className="border-[#e3cac0] focus:border-[#b95827]"
               />
               {form.formState.errors.avatarUrl && (
                 <p className="text-sm text-red-600">
@@ -136,14 +136,14 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 border-[#e3cac0] hover:bg-[#fff3ea]"
+                className="flex-1 border-[#e3cac0] hover:bg-[#fff2ea]"
                 onClick={onComplete}
               >
                 Skip for Now
               </Button>
               <Button
                 type="submit"
-                className="flex-1 bg-[#ed2024] hover:bg-[#d1001a] text-white"
+                className="flex-1 bg-[#b95827] hover:bg-[#a04d1f] text-white"
                 disabled={updateProfileMutation.isPending}
               >
                 {updateProfileMutation.isPending ? "Setting up..." : "Complete Setup"}

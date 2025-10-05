@@ -307,13 +307,13 @@ export function AdminPage() {
                 <Button 
                   variant="default" 
                   size="sm"
-                  className="bg-[#ed2024] hover:bg-[#d01d21] text-white"
+                  className="bg-[#b95827] hover:bg-[#a04d1f] text-white"
                 >
                   <Send className="h-4 w-4 mr-2" />
                   SMS All Users
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[525px] bg-[#fff3ea] border-[#e3cac0]">
+              <DialogContent className="sm:max-w-[525px] bg-[#fff2ea] border-[#e3cac0]">
                 <DialogHeader>
                   <DialogTitle>Send SMS Broadcast</DialogTitle>
                   <DialogDescription>
@@ -327,7 +327,7 @@ export function AdminPage() {
                     onChange={(e) => setBulkSmsMessage(e.target.value)}
                     rows={6}
                     maxLength={1600}
-                    className="resize-none border-[#e3cac0] focus:border-[#ed2024] focus:ring-[#ed2024]"
+                    className="resize-none border-[#e3cac0] focus:border-[#b95827] focus:ring-[#b95827]"
                   />
                   <div className="text-sm text-gray-500 text-right">
                     {bulkSmsMessage.length}/1600 characters
@@ -344,7 +344,7 @@ export function AdminPage() {
                   <Button 
                     onClick={handleBulkSms} 
                     disabled={!bulkSmsMessage.trim() || bulkSmsMutation.isPending}
-                    className="bg-[#ed2024] hover:bg-[#d01d21] text-white"
+                    className="bg-[#b95827] hover:bg-[#a04d1f] text-white"
                   >
                     {bulkSmsMutation.isPending ? "Sending..." : `Send to ${users?.length || 0} users`}
                   </Button>
@@ -364,7 +364,7 @@ export function AdminPage() {
                   Delete Selected ({selectedUsers.length})
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-[#fff3ea] border-[#e3cac0]">
+              <AlertDialogContent className="bg-[#fff2ea] border-[#e3cac0]">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete {selectedUsers.length} Users</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -444,7 +444,7 @@ export function AdminPage() {
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent className="bg-[#fff3ea] border-[#e3cac0]">
+                          <AlertDialogContent className="bg-[#fff2ea] border-[#e3cac0]">
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete User {user.displayName}</AlertDialogTitle>
                               <AlertDialogDescription>
@@ -505,7 +505,7 @@ export function AdminPage() {
           ) : feedbackMessages && feedbackMessages.length > 0 ? (
             <div className="space-y-4">
               {feedbackMessages.map((message) => (
-                <div key={message.id} className="border rounded-lg p-4 bg-[#fff3ea] border-[#e3cac0]">
+                <div key={message.id} className="border rounded-lg p-4 bg-[#fff2ea] border-[#e3cac0]">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">

@@ -71,7 +71,7 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff3ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -104,7 +104,7 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={member.user?.avatarUrl} alt={getDisplayName(member.user)} />
-                      <AvatarFallback className="bg-[#ed2024] text-white text-sm">
+                      <AvatarFallback className="bg-[#b95827] text-white text-sm">
                         {getInitials(member.user)}
                       </AvatarFallback>
                     </Avatar>

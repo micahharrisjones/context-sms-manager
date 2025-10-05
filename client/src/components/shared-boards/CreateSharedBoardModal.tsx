@@ -70,7 +70,7 @@ export function CreateSharedBoardModal({ isOpen, onClose }: CreateSharedBoardMod
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff3ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
         <DialogHeader>
           <DialogTitle>Create Shared Board</DialogTitle>
           <p className="text-sm text-muted-foreground mt-2">
