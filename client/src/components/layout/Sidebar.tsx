@@ -112,7 +112,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       <ScrollArea className="flex-1 min-h-0 lg:overflow-auto">
         {/* Private Boards Section */}
         <div className="px-4 pt-2 pb-0">
-          <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
+          <div className="flex items-center justify-between text-sm font-medium text-[#263d57]/70 mb-2">
             <div className="flex items-center gap-2">
               <User className="w-4 h-4" />
               Private Boards
@@ -135,7 +135,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start pr-8 hover:bg-[#e3cac0]/30",
+                    "w-full justify-start pr-8 hover:bg-[#e3cac0]/30 text-[#263d57]",
                     location === `/tag/${tag}` && "bg-[#e3cac0]/30"
                   )}
                   onClick={onClose}
@@ -191,7 +191,7 @@ export function Sidebar({ onClose }: SidebarProps) {
         {/* Shared Boards Section */}
         <div className="px-4 py-2">
           <div className="border-t border-[#e3cac0] mb-4"></div>
-          <div className="flex items-center justify-between text-sm font-medium text-muted-foreground mb-2">
+          <div className="flex items-center justify-between text-sm font-medium text-[#263d57]/70 mb-2">
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               Shared Boards
@@ -214,7 +214,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start pr-20 hover:bg-[#e3cac0]/30",
+                      "w-full justify-start pr-20 hover:bg-[#e3cac0]/30 text-[#263d57]",
                       location === `/shared/${board.name}` && "bg-[#e3cac0]/30"
                     )}
                     onClick={onClose}
@@ -222,7 +222,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                     <Hash className="w-4 h-4 mr-2" />
                     {board.name}
                     {board.role === "owner" && (
-                      <span className="ml-auto mr-12 text-xs text-muted-foreground">owner</span>
+                      <span className="ml-auto mr-12 text-xs text-[#263d57]/70">owner</span>
                     )}
                   </Button>
                 </Link>
@@ -296,7 +296,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           </div>
         )}
         {sharedBoards && sharedBoards.length === 0 && (
-          <div className="px-4 text-xs text-muted-foreground">
+          <div className="px-4 text-xs text-[#263d57]/70">
             No shared boards yet. Click + to create one.
           </div>
         )}
