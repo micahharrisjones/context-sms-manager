@@ -788,50 +788,50 @@ export function MessageCard({ message }: MessageCardProps) {
         
         {/* Show sender info for shared board messages only */}
         {(message.senderFirstName || message.senderLastName || message.senderDisplayName) && (
-          <div className="flex items-center justify-between pt-2 border-t border-[#e3cac0]">
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={message.senderAvatarUrl || undefined} />
-                <AvatarFallback className="bg-[#ed2024] text-white text-xs">
-                  {message.senderFirstName && message.senderLastName
-                    ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
-                    : message.senderDisplayName?.[0]?.toUpperCase() || 
-                      getSenderInitials(message.senderId)
-                  }
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 pt-2 border-t border-[#e3cac0]">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={message.senderAvatarUrl || undefined} />
+              <AvatarFallback className="bg-[#ed2024] text-white text-xs">
                 {message.senderFirstName && message.senderLastName
-                  ? `${message.senderFirstName} ${message.senderLastName}`
-                  : message.senderDisplayName || 
-                    (message.senderId ? 
-                      formatSenderDisplay(message.senderId) : 
-                      'Unknown')
+                  ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
+                  : message.senderDisplayName?.[0]?.toUpperCase() || 
+                    getSenderInitials(message.senderId)
                 }
-              </span>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowEditModal(true)}
-                className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
-                aria-label="Edit message"
-              >
-                <Edit className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDeleteModal(true)}
-                className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
-                aria-label="Delete message"
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs text-muted-foreground">
+              {message.senderFirstName && message.senderLastName
+                ? `${message.senderFirstName} ${message.senderLastName}`
+                : message.senderDisplayName || 
+                  (message.senderId ? 
+                    formatSenderDisplay(message.senderId) : 
+                    'Unknown')
+              }
+            </span>
           </div>
         )}
+        
+        {/* Edit and Delete buttons - always visible */}
+        <div className="flex justify-end gap-1 pt-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowEditModal(true)}
+            className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
+            aria-label="Edit message"
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowDeleteModal(true)}
+            className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
+            aria-label="Delete message"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
       </CardContent>
     </Card>
 
