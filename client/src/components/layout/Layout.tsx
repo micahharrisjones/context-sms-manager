@@ -5,7 +5,6 @@ import { Menu } from "lucide-react";
 import { Logo } from "./Logo";
 import { Link, useParams, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
-import { AddButton } from "./AddButton";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -113,9 +112,6 @@ export function Layout({ children }: LayoutProps) {
           {children}
         </div>
       </main>
-
-      {/* Floating Add Button */}
-      <AddButton />
 
       {/* Mobile overlay backdrop */}
       {sidebarOpen && (

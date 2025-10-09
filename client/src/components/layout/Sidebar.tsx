@@ -199,18 +199,6 @@ export function Sidebar({ onClose }: SidebarProps) {
           Delete Account
         </Button>
         
-        {/* Profile and Settings Buttons */}
-        <Link href="/profile">
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-[#263d57]/70 hover:text-[#263d57] hover:bg-[#e3cac0]/20"
-            onClick={onClose}
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Edit Profile
-          </Button>
-        </Link>
-        
         <Link href="/notifications">
           <Button
             variant="ghost"
