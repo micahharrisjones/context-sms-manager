@@ -49,13 +49,13 @@ export default function AllTexts() {
     <div>
       {/* Header with title and controls */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold text-[#263d57]">
               {getTitle()}
             </h1>
             {getBoardType() && (
-              <span className="text-sm text-[#263d57]/60 mt-1">
+              <span className="hidden sm:inline text-sm text-[#263d57]/60 mt-1">
                 {getBoardType()}
               </span>
             )}
@@ -63,7 +63,7 @@ export default function AllTexts() {
 
           {/* Board Controls */}
           {(tag || boardName) && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {/* Private board controls */}
               {tag && (
                 <>
@@ -74,31 +74,31 @@ export default function AllTexts() {
                       setRenameBoardType("private");
                       setRenameBoardModalOpen(true);
                     }}
-                    className="h-8 px-3 hover:bg-blue-50 hover:text-blue-600"
+                    className="h-8 px-2 sm:px-3 hover:bg-blue-50 hover:text-blue-600"
                     aria-label={`Rename tag ${tag}`}
                   >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Rename
+                    <Edit className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Rename</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setInviteToPrivateBoardModalOpen(true)}
-                    className="h-8 px-3 hover:bg-green-50 hover:text-green-600"
+                    className="h-8 px-2 sm:px-3 hover:bg-green-50 hover:text-green-600"
                     aria-label={`Invite users to ${tag}`}
                   >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Invite
+                    <UserPlus className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Invite</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setDeleteTagModalOpen(true)}
-                    className="h-8 px-3 hover:bg-red-50 hover:text-red-600"
+                    className="h-8 px-2 sm:px-3 hover:bg-red-50 hover:text-red-600"
                     aria-label={`Delete tag ${tag}`}
                   >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
+                    <Trash2 className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Delete</span>
                   </Button>
                 </>
               )}
@@ -110,11 +110,11 @@ export default function AllTexts() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setMembersModalOpen(true)}
-                    className="h-8 px-3 hover:bg-green-50 hover:text-green-600"
+                    className="h-8 px-2 sm:px-3 hover:bg-green-50 hover:text-green-600"
                     aria-label={`View members of ${boardName}`}
                   >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Members
+                    <Eye className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Members</span>
                   </Button>
                   {isOwner && (
                     <>
@@ -125,31 +125,31 @@ export default function AllTexts() {
                           setRenameBoardType("shared");
                           setRenameBoardModalOpen(true);
                         }}
-                        className="h-8 px-3 hover:bg-purple-50 hover:text-purple-600"
+                        className="h-8 px-2 sm:px-3 hover:bg-purple-50 hover:text-purple-600"
                         aria-label={`Rename board ${boardName}`}
                       >
-                        <Edit className="h-4 w-4 mr-2" />
-                        Rename
+                        <Edit className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Rename</span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setInviteModalOpen(true)}
-                        className="h-8 px-3 hover:bg-blue-50 hover:text-blue-600"
+                        className="h-8 px-2 sm:px-3 hover:bg-blue-50 hover:text-blue-600"
                         aria-label={`Invite users to ${boardName}`}
                       >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Invite
+                        <UserPlus className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Invite</span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeleteBoardModalOpen(true)}
-                        className="h-8 px-3 hover:bg-red-50 hover:text-red-600"
+                        className="h-8 px-2 sm:px-3 hover:bg-red-50 hover:text-red-600"
                         aria-label={`Delete board ${boardName}`}
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
+                        <Trash2 className="h-4 w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">Delete</span>
                       </Button>
                     </>
                   )}
