@@ -377,6 +377,16 @@ export function MessageCard({ message }: MessageCardProps) {
   return (
     <>
       <Card className="w-full h-fit relative group">
+        {/* Delete button - top right corner */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowDeleteModal(true)}
+          className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity z-10"
+          aria-label="Delete message"
+        >
+          <X className="h-3 w-3" />
+        </Button>
         
       <CardContent className="space-y-4 pt-6">
         {/* Open Graph Preview - Show first */}
@@ -781,8 +791,19 @@ export function MessageCard({ message }: MessageCardProps) {
           ) : (
             <div></div>
           )}
-          <div className="text-sm text-muted-foreground">
-            {format(new Date(message.timestamp), "MM/dd/yy")}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowEditModal(true)}
+              className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
+              aria-label="Edit message"
+            >
+              <Edit className="h-3 w-3" />
+            </Button>
+            <div className="text-sm text-muted-foreground">
+              {format(new Date(message.timestamp), "MM/dd/yy")}
+            </div>
           </div>
         </div>
         
@@ -810,28 +831,6 @@ export function MessageCard({ message }: MessageCardProps) {
             </span>
           </div>
         )}
-        
-        {/* Edit and Delete buttons - always visible */}
-        <div className="flex justify-end gap-1 pt-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowEditModal(true)}
-            className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
-            aria-label="Edit message"
-          >
-            <Edit className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowDeleteModal(true)}
-            className="h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600"
-            aria-label="Delete message"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
       </CardContent>
     </Card>
 
