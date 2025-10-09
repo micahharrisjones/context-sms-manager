@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -10,52 +10,18 @@ import SearchPage from "@/pages/search";
 import { AdminPage } from "@/pages/AdminPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { NotificationSettingsPage } from "@/pages/NotificationSettingsPage";
+import LoginPage from "@/pages/login";
+import SetupPage from "@/pages/setup";
 import { Layout } from "@/components/layout/Layout";
-import { LoginScreen } from "@/components/auth/LoginScreen";
-import { ProfileSetup } from "@/components/auth/ProfileSetup";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { pendo } from "@/lib/pendo";
 
-function Router() {
-  const [location, setLocation] = useLocation();
-
-  // Track SPA page loads for Pendo
-  useEffect(() => {
-    // Track initial page load and route changes
-    pendo.pageLoad(window.location.href);
-  }, [location]); // Re-run when location changes
-
-  // Redirect old auth routes to home - only check once on mount
-  useEffect(() => {
-    const currentPath = window.location.pathname;
-    if (currentPath === '/login' || currentPath === '/setup') {
-      setLocation('/');
-    }
-  }, []); // Empty dependency array - only run once on mount
-
-  return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/all-texts" component={AllTexts} />
-        <Route path="/tag/:tag" component={AllTexts} />
-        <Route path="/shared/:boardName" component={AllTexts} />
-        <Route path="/search" component={SearchPage} />
-        <Route path="/admin" component={AdminPage} />
-        <Route path="/profile" component={ProfilePage} />
-        <Route path="/notifications" component={NotificationSettingsPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
-  );
-}
-
-function AuthenticatedApp() {
-  const { isAuthenticated, isLoading, login } = useAuth();
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { needsProfileSetup, isLoading: profileLoading } = useProfile();
 
-  if (isLoading || profileLoading) {
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff2ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
         <div className="text-center">
@@ -73,21 +39,67 @@ function AuthenticatedApp() {
   }
 
   if (!isAuthenticated) {
-    return <LoginScreen onLogin={login} />;
+    return <Redirect to="/login" />;
   }
 
   if (needsProfileSetup) {
-    return <ProfileSetup onComplete={() => window.location.reload()} />;
+    return <Redirect to="/setup" />;
   }
 
-  return <Router />;
+  return <Component />;
+}
+
+function Router() {
+  const [location] = useLocation();
+
+  // Track SPA page loads for Pendo
+  useEffect(() => {
+    pendo.pageLoad(window.location.href);
+  }, [location]);
+
+  return (
+    <Switch>
+      {/* Public routes */}
+      <Route path="/login" component={LoginPage} />
+      <Route path="/setup" component={SetupPage} />
+      
+      {/* Protected routes */}
+      <Layout>
+        <Switch>
+          <Route path="/">
+            {() => <ProtectedRoute component={Home} />}
+          </Route>
+          <Route path="/all-texts">
+            {() => <ProtectedRoute component={AllTexts} />}
+          </Route>
+          <Route path="/tag/:tag">
+            {() => <ProtectedRoute component={AllTexts} />}
+          </Route>
+          <Route path="/shared/:boardName">
+            {() => <ProtectedRoute component={AllTexts} />}
+          </Route>
+          <Route path="/search">
+            {() => <ProtectedRoute component={SearchPage} />}
+          </Route>
+          <Route path="/admin">
+            {() => <ProtectedRoute component={AdminPage} />}
+          </Route>
+          <Route path="/profile">
+            {() => <ProtectedRoute component={ProfilePage} />}
+          </Route>
+          <Route path="/notifications">
+            {() => <ProtectedRoute component={NotificationSettingsPage} />}
+          </Route>
+          <Route component={NotFound} />
+        </Switch>
+      </Layout>
+    </Switch>
+  );
 }
 
 function App() {
-  // Initialize Pendo anonymously on app startup to fix connection verification
+  // Initialize Pendo anonymously on app startup
   useEffect(() => {
-    // Initialize Pendo immediately with anonymous visitor
-    // This creates a session even before authentication
     pendo.initialize().catch((error) => {
       console.warn('Failed to initialize Pendo anonymously:', error);
     });
@@ -95,7 +107,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthenticatedApp />
+      <Router />
       <Toaster />
     </QueryClientProvider>
   );
