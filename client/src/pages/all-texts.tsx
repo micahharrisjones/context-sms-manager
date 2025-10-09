@@ -55,7 +55,7 @@ export default function AllTexts() {
               {getTitle()}
             </h1>
             {getBoardType() && (
-              <span className="hidden sm:inline text-sm text-[#263d57]/60 mt-1">
+              <span className="text-sm text-[#263d57]/60 mt-1">
                 {getBoardType()}
               </span>
             )}
