@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -10,44 +10,29 @@ import SearchPage from "@/pages/search";
 import { AdminPage } from "@/pages/AdminPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { NotificationSettingsPage } from "@/pages/NotificationSettingsPage";
+import LoginPage from "@/pages/login";
+import SetupPage from "@/pages/setup";
 import { Layout } from "@/components/layout/Layout";
-import { LoginScreen } from "@/components/auth/LoginScreen";
-import { ProfileSetup } from "@/components/auth/ProfileSetup";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { pendo } from "@/lib/pendo";
 
-function Router() {
-  const [location] = useLocation();
-
-  // Track SPA page loads for Pendo
-  useEffect(() => {
-    // Track initial page load and route changes
-    pendo.pageLoad(window.location.href);
-  }, [location]); // Re-run when location changes
-
-  return (
-    <Layout>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/all-texts" component={AllTexts} />
-        <Route path="/tag/:tag" component={AllTexts} />
-        <Route path="/shared/:boardName" component={AllTexts} />
-        <Route path="/search" component={SearchPage} />
-        <Route path="/admin" component={AdminPage} />
-        <Route path="/profile" component={ProfilePage} />
-        <Route path="/notifications" component={NotificationSettingsPage} />
-        <Route component={NotFound} />
-      </Switch>
-    </Layout>
-  );
-}
-
-function AuthenticatedApp() {
-  const { isAuthenticated, isLoading, login } = useAuth();
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { needsProfileSetup, isLoading: profileLoading } = useProfile();
+  const [, setLocation] = useLocation();
 
-  if (isLoading || profileLoading) {
+  useEffect(() => {
+    if (!authLoading && !profileLoading) {
+      if (!isAuthenticated) {
+        setLocation("/login");
+      } else if (needsProfileSetup) {
+        setLocation("/setup");
+      }
+    }
+  }, [isAuthenticated, needsProfileSetup, authLoading, profileLoading, setLocation]);
+
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff2ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
         <div className="text-center">
@@ -64,15 +49,60 @@ function AuthenticatedApp() {
     );
   }
 
-  if (!isAuthenticated) {
-    return <LoginScreen onLogin={login} />;
+  if (!isAuthenticated || needsProfileSetup) {
+    return null;
   }
 
-  if (needsProfileSetup) {
-    return <ProfileSetup onComplete={() => window.location.reload()} />;
-  }
+  return <Component />;
+}
 
-  return <Router />;
+function Router() {
+  const [location] = useLocation();
+
+  // Track SPA page loads for Pendo
+  useEffect(() => {
+    // Track initial page load and route changes
+    pendo.pageLoad(window.location.href);
+  }, [location]); // Re-run when location changes
+
+  return (
+    <Switch>
+      {/* Public routes */}
+      <Route path="/login" component={LoginPage} />
+      <Route path="/setup" component={SetupPage} />
+      
+      {/* Protected routes */}
+      <Layout>
+        <Switch>
+          <Route path="/">
+            {() => <ProtectedRoute component={Home} />}
+          </Route>
+          <Route path="/all-texts">
+            {() => <ProtectedRoute component={AllTexts} />}
+          </Route>
+          <Route path="/tag/:tag">
+            {() => <ProtectedRoute component={AllTexts} />}
+          </Route>
+          <Route path="/shared/:boardName">
+            {() => <ProtectedRoute component={AllTexts} />}
+          </Route>
+          <Route path="/search">
+            {() => <ProtectedRoute component={SearchPage} />}
+          </Route>
+          <Route path="/admin">
+            {() => <ProtectedRoute component={AdminPage} />}
+          </Route>
+          <Route path="/profile">
+            {() => <ProtectedRoute component={ProfilePage} />}
+          </Route>
+          <Route path="/notifications">
+            {() => <ProtectedRoute component={NotificationSettingsPage} />}
+          </Route>
+          <Route component={NotFound} />
+        </Switch>
+      </Layout>
+    </Switch>
+  );
 }
 
 function App() {
@@ -87,7 +117,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthenticatedApp />
+      <Router />
       <Toaster />
     </QueryClientProvider>
   );
