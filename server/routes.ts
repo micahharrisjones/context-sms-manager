@@ -50,6 +50,49 @@ const ADMIN_ONLY_HASHTAGS = [
   'feature-request'
 ];
 
+// Global deduplication cache to prevent duplicate SMS notifications within a time window
+const smsNotificationCache = new Map<string, number>();
+const SMS_DEDUP_WINDOW_MS = 30000; // 30 seconds
+
+// Function to check and record SMS notification attempts
+// Uses board ID + phone number + full message hash for collision-resistant deduplication
+function shouldSendNotification(phoneNumber: string, boardId: number, messageContent: string): boolean {
+  // Create a hash of the full message content to avoid collisions while keeping key manageable
+  const messageHash = hashString(messageContent);
+  const cacheKey = `${phoneNumber}:${boardId}:${messageHash}`;
+  const now = Date.now();
+  const lastSent = smsNotificationCache.get(cacheKey);
+  
+  if (lastSent && (now - lastSent) < SMS_DEDUP_WINDOW_MS) {
+    log(`🚫 DUPLICATE BLOCKED: Already sent notification to ${phoneNumber} for board ID ${boardId} within last ${SMS_DEDUP_WINDOW_MS/1000}s`);
+    return false;
+  }
+  
+  smsNotificationCache.set(cacheKey, now);
+  
+  // Clean up only old entries that have expired
+  const keysToDelete: string[] = [];
+  for (const [key, timestamp] of Array.from(smsNotificationCache.entries())) {
+    if (now - timestamp > SMS_DEDUP_WINDOW_MS) {
+      keysToDelete.push(key);
+    }
+  }
+  keysToDelete.forEach(key => smsNotificationCache.delete(key));
+  
+  return true;
+}
+
+// Simple hash function for message content
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return hash.toString(36);
+}
+
 // Check if a hashtag is admin-only
 function isAdminOnlyHashtag(hashtag: string): boolean {
   return ADMIN_ONLY_HASHTAGS.includes(hashtag.toLowerCase());
@@ -2143,48 +2186,66 @@ export async function registerRoutes(app: Express) {
         const notifiedBoards = new Set<string>(); // Track which boards we've already notified
         const notifiedPhoneNumbers = new Set<string>(); // Track which phone numbers we've already SMS'd
         
+        log(`📱 Starting shared board notifications for message ID ${created.id} with tags: [${nonUntaggedTags.join(', ')}]`);
+        
         for (const tag of nonUntaggedTags) {
           try {
+            log(`🏷️  Processing tag: #${tag}`);
             // First check if the sender is a member or creator of any shared board with this tag name
             const senderSharedBoards = await storage.getSharedBoardsByNameForUser(tag, created.userId);
             
             if (senderSharedBoards.length > 0) {
+              log(`   Found ${senderSharedBoards.length} shared board(s) for tag #${tag}: [${senderSharedBoards.map(b => `${b.name}(ID:${b.id})`).join(', ')}]`);
+              
               // Only send notifications for boards where the sender is actually a member
               for (const board of senderSharedBoards) {
                 // Skip if we've already notified this board to prevent duplicates
                 if (notifiedBoards.has(board.name)) {
-                  log(`Skipping duplicate notification for board #${board.name}`);
+                  log(`   ⏭️  Skipping duplicate notification for board #${board.name} (already processed)`);
                   continue;
                 }
                 
                 const allPhoneNumbers = await storage.getBoardMembersPhoneNumbers(board.name, created.userId);
+                log(`   👥 Board #${board.name} has ${allPhoneNumbers.length} member(s): [${allPhoneNumbers.join(', ')}]`);
+                
                 // Filter out phone numbers we've already notified in this request
                 const newPhoneNumbers = allPhoneNumbers.filter(phone => !notifiedPhoneNumbers.has(phone));
                 
                 if (newPhoneNumbers.length > 0) {
-                  log(`Sending SMS notifications to shared board #${board.name} (ID: ${board.id}) members: [${newPhoneNumbers.join(', ')}] (filtered ${allPhoneNumbers.length - newPhoneNumbers.length} duplicates)`);
-                  notifiedBoards.add(board.name); // Mark this board as notified
-                  
-                  // Track these phone numbers to prevent duplicates in subsequent tags
-                  newPhoneNumbers.forEach(phone => notifiedPhoneNumbers.add(phone));
-                  
-                  // Don't await - let SMS sending happen in background
-                  twilioService.sendSharedBoardNotification(
-                    newPhoneNumbers, 
-                    board.name, 
-                    created.content
+                  // Use global deduplication cache to filter further
+                  const finalPhoneNumbers = newPhoneNumbers.filter(phone => 
+                    shouldSendNotification(phone, board.id, created.content)
                   );
+                  
+                  if (finalPhoneNumbers.length > 0) {
+                    log(`   📤 Sending SMS to ${finalPhoneNumbers.length} member(s) of board #${board.name} (ID: ${board.id}): [${finalPhoneNumbers.join(', ')}]`);
+                    notifiedBoards.add(board.name); // Mark this board as notified
+                    
+                    // Track these phone numbers to prevent duplicates in subsequent tags
+                    finalPhoneNumbers.forEach(phone => notifiedPhoneNumbers.add(phone));
+                    
+                    // Don't await - let SMS sending happen in background
+                    twilioService.sendSharedBoardNotification(
+                      finalPhoneNumbers, 
+                      board.name, 
+                      created.content
+                    );
+                  } else {
+                    log(`   ⏭️  All members already notified recently (global dedup cache), skipping`);
+                  }
                 } else {
-                  log(`All members of board #${board.name} already notified via other tags, skipping`);
+                  log(`   ⏭️  All members of board #${board.name} already notified via other tags, skipping`);
                 }
               }
             } else {
-              log(`Sender ${created.userId} is not a member of any shared board named ${tag}, skipping notifications`);
+              log(`   ℹ️  Sender ${created.userId} is not a member of any shared board named #${tag}, skipping`);
             }
           } catch (error) {
-            log(`Error sending SMS notifications for board ${tag}:`, error instanceof Error ? error.message : String(error));
+            log(`   ❌ Error sending SMS notifications for board ${tag}:`, error instanceof Error ? error.message : String(error));
           }
         }
+        
+        log(`📱 Completed shared board notifications for message ID ${created.id}`);
       }
       
       log("After broadcastNewMessage");
