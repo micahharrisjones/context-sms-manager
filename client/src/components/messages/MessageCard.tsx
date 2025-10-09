@@ -596,7 +596,7 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         {/* Message text - Show after embeds, with hashtags and URLs removed */}
-        {contentWithoutHashtags.length > 0 && (
+        {contentWithoutHashtags.trim().length > 0 && (
           <>
             {/* Check if this is a plain text message (no rich embeds) */}
             {!instagramPostId && !twitterPostId && !redditPostInfo && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
@@ -605,13 +605,13 @@ export function MessageCard({ message }: MessageCardProps) {
                   <MessageSquare className="w-4 h-4 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-foreground break-words leading-relaxed">
+                  <p className="text-foreground break-words leading-relaxed whitespace-pre-wrap">
                     {formattedContent}
                   </p>
                 </div>
               </div>
             ) : (
-              <p className="text-foreground break-words">
+              <p className="text-foreground break-words whitespace-pre-wrap">
                 {formattedContent}
               </p>
             )}
