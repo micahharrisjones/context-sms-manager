@@ -786,8 +786,8 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         </div>
         
-        {/* Show sender info for shared board messages at bottom */}
-        {(message.senderFirstName || message.senderLastName || message.senderId) && (
+        {/* Show sender info for shared board messages only */}
+        {(message.senderFirstName || message.senderLastName || message.senderDisplayName) && (
           <div className="flex items-center justify-between pt-2 border-t border-[#e3cac0]">
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
