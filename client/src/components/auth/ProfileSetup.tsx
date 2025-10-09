@@ -66,8 +66,35 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     },
   });
 
+  const skipSetupMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          firstName: 'User',
+          lastName: 'User',
+        }),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+      onComplete();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to skip setup",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: ProfileSetupData) => {
     updateProfileMutation.mutate(data);
+  };
+
+  const handleSkip = () => {
+    skipSetupMutation.mutate();
   };
 
   return (
@@ -137,9 +164,10 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 type="button"
                 variant="outline"
                 className="flex-1 border-[#e3cac0] hover:bg-[#fff2ea]"
-                onClick={onComplete}
+                onClick={handleSkip}
+                disabled={skipSetupMutation.isPending}
               >
-                Skip for Now
+                {skipSetupMutation.isPending ? "Skipping..." : "Skip for Now"}
               </Button>
               <Button
                 type="submit"
