@@ -188,11 +188,16 @@ export function MessageCard({ message }: MessageCardProps) {
   // Format database tags back to hashtag display format (add # prefix)
   const hashtags = (message.tags ?? []).map(tag => `#${tag}`);
   
-  // Extract content without hashtags for display
-  const words = message.content.split(" ");
-  const contentWithoutHashtags = words.filter(word => 
-    !(word.startsWith("#") && /^#[\w-]+$/.test(word))
-  );
+  // Extract content without hashtags for display - PRESERVE LINE BREAKS
+  // Split by words but keep track of whitespace
+  const contentWithoutHashtags = message.content
+    .split(/(\s+)/) // Split on whitespace but keep the whitespace in the array
+    .filter(part => {
+      // Remove hashtags but keep everything else including whitespace
+      const trimmed = part.trim();
+      return !(trimmed.startsWith("#") && /^#[\w-]+$/.test(trimmed));
+    })
+    .join(''); // Join back together preserving all whitespace
   
   const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
   // Pinterest removed - using Open Graph preview instead
@@ -237,32 +242,40 @@ export function MessageCard({ message }: MessageCardProps) {
     );
   };
 
-  // Format the content without hashtags and hide URLs that have rich previews
-  const formattedContent = contentWithoutHashtags.map((word, i) => {
-    // Check if the word is a URL
-    try {
-      new URL(word);
-      
-      // Hide URLs that have rich previews
-      if (hasRichPreview(word)) {
-        return null;
+  // Format the content: make URLs clickable and hide URLs with rich previews
+  const formattedContent = contentWithoutHashtags.split(/(\s+)/).map((part, i) => {
+    const trimmed = part.trim();
+    
+    // Check if the part is a URL
+    if (trimmed) {
+      try {
+        new URL(trimmed);
+        
+        // Hide URLs that have rich previews
+        if (hasRichPreview(trimmed)) {
+          return null;
+        }
+        
+        return (
+          <a
+            key={i}
+            href={trimmed}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-primary hover:underline"
+          >
+            {trimmed}
+          </a>
+        );
+      } catch {
+        // Not a URL, return the text/whitespace as-is
+        return part;
       }
-      
-      return (
-        <a
-          key={i}
-          href={word}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary hover:underline"
-        >
-          {word}{" "}
-        </a>
-      );
-    } catch {
-      return word + " ";
     }
-  }).filter(Boolean); // Remove null entries
+    
+    // Return whitespace as-is
+    return part;
+  }).filter(part => part !== null); // Remove null entries (hidden URLs)
   
   // Format hashtags for display at bottom
   const formattedHashtags = hashtags.map((hashtag, i) => (
