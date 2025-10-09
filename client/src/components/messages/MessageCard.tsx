@@ -779,18 +779,6 @@ export function MessageCard({ message }: MessageCardProps) {
         
         {/* Show hashtags at bottom */}
         <div className="flex items-center justify-between pt-3 border-t border-[#e3cac0] mt-3">
-          {formattedHashtags.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {formattedHashtags.map((hashtag, i) => (
-                <span key={i} className="inline-flex">
-                  {hashtag}
-                  {i < formattedHashtags.length - 1 && <span className="ml-1">&nbsp;</span>}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div></div>
-          )}
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -801,9 +789,21 @@ export function MessageCard({ message }: MessageCardProps) {
             >
               <Edit className="h-3 w-3" />
             </Button>
-            <div className="text-sm text-muted-foreground">
-              {format(new Date(message.timestamp), "MM/dd/yy")}
-            </div>
+            {formattedHashtags.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {formattedHashtags.map((hashtag, i) => (
+                  <span key={i} className="inline-flex">
+                    {hashtag}
+                    {i < formattedHashtags.length - 1 && <span className="ml-1">&nbsp;</span>}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div></div>
+            )}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {format(new Date(message.timestamp), "MM/dd/yy")}
           </div>
         </div>
         
