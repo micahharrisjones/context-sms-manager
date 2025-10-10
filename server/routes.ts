@@ -2271,22 +2271,6 @@ export async function registerRoutes(app: Express) {
     log("Exiting handleWebhook function");
   };
 
-  // Search for users by name or phone number
-  app.get('/api/users/search', requireAuth, async (req, res) => {
-    try {
-      const query = req.query.q as string;
-      if (!query || query.length < 2) {
-        return res.json([]);
-      }
-
-      const users = await storage.searchUsers(query);
-      res.json(users);
-    } catch (error) {
-      log('Error searching users:', error instanceof Error ? error.message : String(error));
-      res.status(500).json({ error: 'Failed to search users' });
-    }
-  });
-
   // Test endpoint to send welcome message
   app.post('/api/test-welcome', async (req, res) => {
     try {

@@ -1405,41 +1405,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async searchUsers(query: string): Promise<User[]> {
-    try {
-      const searchTerm = query.toLowerCase();
-      
-      const result = await db
-        .select({
-          id: users.id,
-          phoneNumber: users.phoneNumber,
-          displayName: users.displayName,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          avatarUrl: users.avatarUrl,
-          onboardingStep: users.onboardingStep,
-          onboardingCompletedAt: users.onboardingCompletedAt,
-          createdAt: users.createdAt,
-          lastLoginAt: users.lastLoginAt,
-        })
-        .from(users)
-        .where(
-          or(
-            like(users.phoneNumber, `%${searchTerm}%`),
-            like(users.displayName, `%${searchTerm}%`),
-            like(users.firstName, `%${searchTerm}%`),
-            like(users.lastName, `%${searchTerm}%`)
-          )
-        )
-        .limit(10);
-      
-      return result;
-    } catch (error) {
-      log("Error searching users:", error instanceof Error ? error.message : String(error));
-      throw error;
-    }
-  }
-
   // Notification preferences methods
   async getUserNotificationPreferences(userId: number): Promise<NotificationPreference[]> {
     try {
