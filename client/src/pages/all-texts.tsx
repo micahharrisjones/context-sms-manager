@@ -26,6 +26,7 @@ export default function AllTexts() {
   const [renameBoardModalOpen, setRenameBoardModalOpen] = useState(false);
   const [renameBoardType, setRenameBoardType] = useState<"shared" | "private">("shared");
   const [addMessageModalOpen, setAddMessageModalOpen] = useState(false);
+  const [modalCurrentTag, setModalCurrentTag] = useState<string>("");
 
   // Fetch shared boards to get role information
   const { data: sharedBoards } = useQuery<(SharedBoard & { role: string })[]>({ 
@@ -70,7 +71,10 @@ export default function AllTexts() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setAddMessageModalOpen(true)}
+                onClick={() => {
+                  setModalCurrentTag(tag || boardName || "uncategorized");
+                  setAddMessageModalOpen(true);
+                }}
                 className="h-8 px-2 sm:px-3 hover:bg-[#b95827]/10 hover:text-[#b95827]"
                 aria-label="Add card"
               >
@@ -183,7 +187,7 @@ export default function AllTexts() {
       <AddMessageModal
         isOpen={addMessageModalOpen}
         onClose={() => setAddMessageModalOpen(false)}
-        currentTag={tag || boardName}
+        currentTag={modalCurrentTag}
       />
       
       {tag && (
