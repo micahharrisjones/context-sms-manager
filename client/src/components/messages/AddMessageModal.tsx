@@ -89,6 +89,11 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('=== ADD CARD SUBMIT ===');
+    console.log('Content:', content);
+    console.log('Tags state:', tags);
+    console.log('CurrentTag prop:', currentTag);
+    
     if (!content.trim()) {
       toast({
         title: "Message required",
@@ -100,6 +105,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
     
     // If no tags and we have a currentTag, use it
     const finalTags = tags.length === 0 && currentTag ? [currentTag] : tags;
+    console.log('Final tags to send:', finalTags);
     addMessageMutation.mutate({ content: content.trim(), tags: finalTags });
   };
 
