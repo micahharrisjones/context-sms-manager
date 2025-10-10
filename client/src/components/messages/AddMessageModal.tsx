@@ -23,10 +23,19 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Pre-populate tags with currentTag when modal opens
+  // Pre-populate tags with currentTag when modal opens, reset when it closes
   useEffect(() => {
-    if (isOpen && currentTag) {
-      setTags([currentTag]);
+    if (isOpen) {
+      if (currentTag) {
+        setTags([currentTag]);
+      } else {
+        setTags([]);
+      }
+    } else {
+      // Reset state when modal closes
+      setTags([]);
+      setContent('');
+      setNewHashtag('');
     }
   }, [isOpen, currentTag]);
 
@@ -67,9 +76,6 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
       });
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/tags'] });
-      setContent('');
-      setTags([]);
-      setNewHashtag('');
       onClose();
     },
     onError: (error: Error) => {
@@ -99,9 +105,6 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
 
   const handleClose = () => {
     if (!addMessageMutation.isPending) {
-      setContent('');
-      setTags([]);
-      setNewHashtag('');
       onClose();
     }
   };
