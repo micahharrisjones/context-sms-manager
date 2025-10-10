@@ -55,16 +55,17 @@ const smsNotificationCache = new Map<string, number>();
 const SMS_DEDUP_WINDOW_MS = 30000; // 30 seconds
 
 // Function to check and record SMS notification attempts
-// Uses board ID + phone number + full message hash for collision-resistant deduplication
+// Uses phone number + message hash for deduplication (one notification per user per message)
 function shouldSendNotification(phoneNumber: string, boardId: number, messageContent: string): boolean {
   // Create a hash of the full message content to avoid collisions while keeping key manageable
   const messageHash = hashString(messageContent);
-  const cacheKey = `${phoneNumber}:${boardId}:${messageHash}`;
+  // Don't include boardId - we only want ONE notification per user per message, regardless of how many boards they're in
+  const cacheKey = `${phoneNumber}:${messageHash}`;
   const now = Date.now();
   const lastSent = smsNotificationCache.get(cacheKey);
   
   if (lastSent && (now - lastSent) < SMS_DEDUP_WINDOW_MS) {
-    log(`🚫 DUPLICATE BLOCKED: Already sent notification to ${phoneNumber} for board ID ${boardId} within last ${SMS_DEDUP_WINDOW_MS/1000}s`);
+    log(`🚫 DUPLICATE BLOCKED: Already sent notification to ${phoneNumber} for this message within last ${SMS_DEDUP_WINDOW_MS/1000}s`);
     return false;
   }
   
