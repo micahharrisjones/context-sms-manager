@@ -1144,15 +1144,17 @@ export async function registerRoutes(app: Express) {
         return res.status(400).json({ error: "Content is required" });
       }
 
-      // Extract hashtags from content
-      const tags = extractHashtags(content);
+      // Use provided tags from request body (e.g., from Add Card modal) or extract from content
+      const providedTags = req.body.tags && Array.isArray(req.body.tags) ? req.body.tags : [];
+      const extractedTags = extractHashtags(content);
+      const tags = providedTags.length > 0 ? providedTags : (extractedTags.length > 0 ? extractedTags : ["untagged"]);
       
       // Create message data
       const messageData = {
         content: content.trim(),
         senderId: `user-${userId}`, // Use a special sender ID for UI messages
         userId,
-        tags: tags.length > 0 ? tags : ["untagged"],
+        tags,
         source
       };
 
