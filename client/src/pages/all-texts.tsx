@@ -3,7 +3,7 @@ import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Edit, UserPlus, X, Eye, Trash2, Plus } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { DeleteTagModal } from "@/components/layout/DeleteTagModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
 import { InviteToPrivateBoardModal } from "@/components/shared-boards/InviteToPrivateBoardModal";
@@ -17,6 +17,12 @@ export default function AllTexts() {
   const params = useParams();
   const tag = params.tag;
   const boardName = params.boardName;
+  const currentTagRef = useRef<string>("");
+  
+  // Keep ref updated with current tag
+  useEffect(() => {
+    currentTagRef.current = tag || boardName || "uncategorized";
+  }, [tag, boardName]);
 
   const [deleteTagModalOpen, setDeleteTagModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -72,9 +78,7 @@ export default function AllTexts() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  const capturedTag = tag || boardName || "uncategorized";
-                  console.log("Add Card clicked - Capturing tag:", capturedTag, "from tag:", tag, "boardName:", boardName);
-                  setModalCurrentTag(capturedTag);
+                  setModalCurrentTag(currentTagRef.current);
                   setAddMessageModalOpen(true);
                 }}
                 className="h-8 px-2 sm:px-3 hover:bg-[#b95827]/10 hover:text-[#b95827]"
