@@ -104,6 +104,7 @@ export function DeleteSharedBoardModal({
             variant="outline"
             onClick={onClose}
             disabled={deleteSharedBoardMutation.isPending}
+            data-pendo="button-cancel-delete-shared-board"
           >
             Cancel
           </Button>
@@ -111,6 +112,8 @@ export function DeleteSharedBoardModal({
             variant="destructive"
             onClick={handleDelete}
             disabled={deleteSharedBoardMutation.isPending}
+            data-pendo="button-confirm-delete-shared-board"
+            data-board-name={boardName}
           >
             {deleteSharedBoardMutation.isPending ? "Deleting..." : "Delete Board"}
           </Button>

@@ -87,6 +87,7 @@ export function CreateSharedBoardModal({ isOpen, onClose }: CreateSharedBoardMod
               placeholder="Enter board name (e.g., project, team, family)"
               className="w-full"
               disabled={createBoardMutation.isPending}
+              data-pendo="input-shared-board-name"
             />
             <p className="text-sm text-muted-foreground">
               This will create a hashtag category that can be shared with others.
@@ -98,12 +99,14 @@ export function CreateSharedBoardModal({ isOpen, onClose }: CreateSharedBoardMod
               variant="outline" 
               onClick={handleClose}
               disabled={createBoardMutation.isPending}
+              data-pendo="button-cancel-create-shared-board"
             >
               Cancel
             </Button>
             <Button 
               type="submit"
               disabled={createBoardMutation.isPending || !boardName.trim()}
+              data-pendo="button-submit-create-shared-board"
             >
               {createBoardMutation.isPending ? "Creating..." : "Create Board"}
             </Button>

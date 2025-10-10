@@ -96,18 +96,20 @@ export function CreatePrivateBoardModal({ isOpen, onClose }: CreatePrivateBoardM
                 setBoardName(cleanName);
               }}
               required
+              data-pendo="input-private-board-name"
             />
           </div>
           <p className="text-sm text-muted-foreground">
             This will create a hashtag category that is private to you. No need to include the # symbol - it will be added automatically.
           </p>
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} data-pendo="button-cancel-create-private-board">
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={!boardName.trim() || createBoardMutation.isPending}
+              data-pendo="button-submit-create-private-board"
             >
               {createBoardMutation.isPending ? "Creating..." : "Create Private Board"}
             </Button>

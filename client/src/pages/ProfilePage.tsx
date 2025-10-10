@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
 import { User, Save } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { pendo } from '@/lib/pendo';
 
 const profileUpdateSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
@@ -72,12 +73,29 @@ export function ProfilePage() {
         body: JSON.stringify(profileData),
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
+      
+      // Update Pendo immediately with new profile data (fire-and-forget)
+      if (profile) {
+        const updatedProfile = {
+          ...profile,
+          firstName: variables.firstName,
+          lastName: variables.lastName,
+          displayName: `${variables.firstName} ${variables.lastName}`,
+          ...(variables.avatarUrl && { avatarUrl: variables.avatarUrl }),
+        };
+        
+        // Fire-and-forget Pendo update - don't block redirect
+        pendo.identifyUser(updatedProfile)
+          .then(() => console.log('Pendo profile updated in real-time'))
+          .catch((error) => console.warn('Failed to update Pendo profile:', error));
+      }
+      
       // Redirect to main board after successful save
       setLocation('/');
     },
@@ -150,6 +168,7 @@ export function ProfilePage() {
                     {...form.register('firstName')}
                     placeholder="Enter your first name"
                     className="border-[#e3cac0] focus:border-[#b95827]"
+                    data-pendo="input-profile-first-name"
                   />
                   {form.formState.errors.firstName && (
                     <p className="text-sm text-red-600">
@@ -165,6 +184,7 @@ export function ProfilePage() {
                     {...form.register('lastName')}
                     placeholder="Enter your last name"
                     className="border-[#e3cac0] focus:border-[#b95827]"
+                    data-pendo="input-profile-last-name"
                   />
                   {form.formState.errors.lastName && (
                     <p className="text-sm text-red-600">
@@ -181,6 +201,7 @@ export function ProfilePage() {
                   {...form.register('avatarUrl')}
                   placeholder="https://example.com/your-photo.jpg"
                   className="border-[#e3cac0] focus:border-[#ed2024]"
+                  data-pendo="input-profile-avatar-url"
                 />
                 {form.formState.errors.avatarUrl && (
                   <p className="text-sm text-red-600">
@@ -196,6 +217,7 @@ export function ProfilePage() {
                 type="submit"
                 className="w-full bg-[#b95827] hover:bg-[#a04d1f] text-white"
                 disabled={updateProfileMutation.isPending}
+                data-pendo="button-save-profile"
               >
                 <Save className="h-4 w-4 mr-2" />
                 {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}

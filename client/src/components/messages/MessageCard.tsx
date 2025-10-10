@@ -384,6 +384,8 @@ export function MessageCard({ message }: MessageCardProps) {
           onClick={() => setShowDeleteModal(true)}
           className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600 z-10"
           aria-label="Delete message"
+          data-pendo="button-delete-message"
+          data-message-id={message.id}
         >
           <X className="h-3 w-3" />
         </Button>
@@ -786,6 +788,8 @@ export function MessageCard({ message }: MessageCardProps) {
               onClick={() => setShowEditModal(true)}
               className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
               aria-label="Edit message"
+              data-pendo="button-edit-message"
+              data-message-id={message.id}
             >
               <Edit className="h-3 w-3" />
             </Button>

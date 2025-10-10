@@ -26,7 +26,7 @@ export function AdminButton({ onClose, location }: AdminButtonProps) {
   }
 
   return (
-    <Link href="/admin">
+    <Link href="/admin" data-pendo="link-admin-panel">
       <Button
         variant="ghost"
         className={cn(
@@ -34,6 +34,7 @@ export function AdminButton({ onClose, location }: AdminButtonProps) {
           location === "/admin" && "bg-[#e3cac0]/30 text-blue-600"
         )}
         onClick={onClose}
+        data-pendo="button-admin-panel"
       >
         <Settings className="h-4 w-4 mr-2" />
         Admin Panel

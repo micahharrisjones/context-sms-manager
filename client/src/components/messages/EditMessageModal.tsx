@@ -198,6 +198,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
               placeholder="Edit your message content..."
               className="min-h-[120px] mt-2 bg-white border-[#e3cac0] focus:border-[#b95827]"
               data-testid="input-message-content"
+              data-pendo="textarea-edit-message-content"
             />
           </div>
           
@@ -219,6 +220,8 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
                       className="ml-1 hover:bg-primary/30 rounded-full p-0.5 transition-colors"
                       aria-label={`Remove ${tag} tag`}
                       data-testid={`button-remove-tag-${tag}`}
+                      data-pendo="button-remove-tag"
+                      data-tag-name={tag}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -239,12 +242,14 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
                 placeholder="Add new hashtag..."
                 className="flex-1 bg-white border-[#e3cac0] focus:border-[#b95827]"
                 data-testid="input-new-hashtag"
+                data-pendo="input-new-hashtag"
               />
               <Button
                 onClick={handleAddTag}
                 variant="outline"
                 className="border-[#b95827] text-[#b95827] hover:bg-[#b95827] hover:text-white"
                 data-testid="button-add-hashtag"
+                data-pendo="button-add-hashtag"
               >
                 Add
               </Button>
@@ -263,6 +268,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
             disabled={updateMessageMutation.isPending}
             className="border-[#e3cac0] hover:bg-[#e3cac0]"
             data-testid="button-cancel"
+            data-pendo="button-cancel-edit-message"
           >
             Cancel
           </Button>
@@ -271,6 +277,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
             disabled={updateMessageMutation.isPending}
             className="bg-[#b95827] hover:bg-[#a04d1f]"
             data-testid="button-update-message"
+            data-pendo="button-submit-edit-message"
           >
             {updateMessageMutation.isPending ? "Updating..." : "Update Message"}
           </Button>

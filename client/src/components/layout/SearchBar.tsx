@@ -34,7 +34,7 @@ export function SearchBar({ onClose }: SearchBarProps) {
 
   return (
     <div className="relative">
-      <form onSubmit={handleSearch} className="flex items-center gap-2">
+      <form onSubmit={handleSearch} className="flex items-center gap-2" data-pendo="form-search">
         <div className={cn(
           "relative transition-all duration-200",
           isExpanded ? "w-full" : "w-auto"
@@ -46,6 +46,7 @@ export function SearchBar({ onClose }: SearchBarProps) {
               size="icon"
               onClick={() => setIsExpanded(true)}
               className="text-muted-foreground hover:text-foreground"
+              data-pendo="button-expand-search"
             >
               <Search className="h-4 w-4" />
             </Button>
@@ -64,6 +65,7 @@ export function SearchBar({ onClose }: SearchBarProps) {
                     setIsExpanded(false);
                   }
                 }}
+                data-pendo="input-search-query"
               />
               {searchQuery && (
                 <Button
@@ -72,6 +74,7 @@ export function SearchBar({ onClose }: SearchBarProps) {
                   size="icon"
                   onClick={clearSearch}
                   className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 text-muted-foreground hover:text-foreground"
+                  data-pendo="button-clear-search"
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -80,7 +83,7 @@ export function SearchBar({ onClose }: SearchBarProps) {
           )}
         </div>
         {isExpanded && (
-          <Button type="submit" size="sm" disabled={!searchQuery.trim()}>
+          <Button type="submit" size="sm" disabled={!searchQuery.trim()} data-pendo="button-submit-search">
             Search
           </Button>
         )}

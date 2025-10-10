@@ -245,12 +245,14 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   required
                   disabled={isLoading}
                   className="text-lg"
+                  data-pendo="input-phone-number"
                 />
               </div>
               <Button 
                 type="submit" 
                 className="w-full bg-[#b95827] hover:bg-[#a04d1f]"
                 disabled={isLoading || !phoneNumber.trim()}
+                data-pendo="button-send-verification-code"
               >
                 {isLoading ? "Sending code..." : "Send verification code"}
               </Button>
@@ -279,6 +281,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     disabled={isLoading}
                     className="text-lg text-center tracking-widest"
                     maxLength={6}
+                    data-pendo="input-verification-code"
                   />
                 </div>
                 
@@ -287,6 +290,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     type="submit" 
                     className="w-full bg-[#b95827] hover:bg-[#a04d1f]"
                     disabled={isLoading || verificationCode.length !== 6}
+                    data-pendo="button-verify-and-login"
                   >
                     {isLoading ? "Verifying..." : "Verify and login"}
                   </Button>
@@ -300,6 +304,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       setVerificationCode('');
                     }}
                     disabled={isLoading}
+                    data-pendo="button-back-to-phone"
                   >
                     ← Back to phone number
                   </Button>

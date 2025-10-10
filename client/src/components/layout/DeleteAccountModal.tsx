@@ -110,6 +110,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
                 placeholder="Type DELETE here"
                 className="border-[#e3cac0] bg-white"
                 disabled={deleteAccountMutation.isPending}
+                data-pendo="input-delete-account-confirmation"
               />
             </div>
           </div>
@@ -121,6 +122,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
               onClick={handleClose}
               disabled={deleteAccountMutation.isPending}
               className="border-[#e3cac0] hover:bg-[#e3cac0]/30"
+              data-pendo="button-cancel-delete-account"
             >
               Cancel
             </Button>
@@ -129,6 +131,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
               variant="destructive"
               disabled={confirmation !== "DELETE" || deleteAccountMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
+              data-pendo="button-confirm-delete-account"
             >
               {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
             </Button>

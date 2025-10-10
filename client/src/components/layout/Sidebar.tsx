@@ -41,7 +41,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     <div className="w-full lg:w-64 h-full lg:h-screen bg-[#fff2ea] border-r border-[#e3cac0] flex flex-col lg:overflow-hidden">
       {/* Logo Section */}
       <div className="p-6 border-b border-[#e3cac0] flex justify-between items-center flex-shrink-0">
-        <Link href="/" className="flex-1 flex justify-center lg:justify-start">
+        <Link href="/" className="flex-1 flex justify-center lg:justify-start" data-pendo="link-home-logo">
           <Logo className="w-auto h-10 lg:h-14" />
         </Link>
         {onClose && (
@@ -50,6 +50,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             size="icon"
             className="lg:hidden"
             onClick={onClose}
+            data-pendo="button-close-sidebar"
           >
             <X className="h-4 w-4" />
           </Button>
@@ -66,7 +67,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               ? "bg-primary/5 shadow-lg" 
               : "bg-[#e3cac0]/10"
           )}>
-            <Link href="/all-texts">
+            <Link href="/all-texts" data-pendo="link-all-texts">
               <Button 
                 variant="ghost" 
                 className={cn(
@@ -77,6 +78,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 )}
                 size="lg"
                 onClick={onClose}
+                data-pendo="button-all-texts"
               >
                 All Texts
               </Button>
@@ -97,6 +99,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               size="sm"
               className="h-6 w-6 p-0 hover:bg-[#e3cac0]/30"
               onClick={() => setCreatePrivateBoardModalOpen(true)}
+              data-pendo="button-create-private-board"
             >
               <Plus className="h-3 w-3" />
             </Button>
@@ -104,9 +107,9 @@ export function Sidebar({ onClose }: SidebarProps) {
         </div>
         
         <div className="px-4 pb-4 space-y-2">
-          {tags?.map((tag) => (
+          {tags?.map((tag, index) => (
             <div key={tag}>
-              <Link href={`/tag/${tag}`}>
+              <Link href={`/tag/${tag}`} data-pendo={`link-private-board-item-${index + 1}`} data-board-name={tag}>
                 <Button
                   variant="ghost"
                   className={cn(
@@ -114,6 +117,8 @@ export function Sidebar({ onClose }: SidebarProps) {
                     location === `/tag/${tag}` && "bg-[#e3cac0]/30"
                   )}
                   onClick={onClose}
+                  data-pendo={`button-private-board-item-${index + 1}`}
+                  data-board-name={tag}
                 >
                   <Hash className="w-4 h-4 mr-2" />
                   {tag}
@@ -136,6 +141,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               size="sm"
               className="h-6 w-6 p-0 hover:bg-[#e3cac0]/30"
               onClick={() => setCreateBoardModalOpen(true)}
+              data-pendo="button-create-shared-board"
             >
               <Plus className="h-3 w-3" />
             </Button>
@@ -143,9 +149,9 @@ export function Sidebar({ onClose }: SidebarProps) {
         </div>
         {sharedBoards && sharedBoards.length > 0 && (
           <div className="px-4 space-y-2">
-            {sharedBoards.map((board) => (
+            {sharedBoards.map((board, index) => (
               <div key={board.id}>
-                <Link href={`/shared/${board.name}`}>
+                <Link href={`/shared/${board.name}`} data-pendo={`link-shared-board-item-${index + 1}`} data-board-id={board.id} data-board-name={board.name}>
                   <Button
                     variant="ghost"
                     className={cn(
@@ -153,8 +159,11 @@ export function Sidebar({ onClose }: SidebarProps) {
                       location === `/shared/${board.name}` && "bg-[#e3cac0]/30"
                     )}
                     onClick={onClose}
+                    data-pendo={`button-shared-board-item-${index + 1}`}
+                    data-board-id={board.id}
+                    data-board-name={board.name}
                   >
-                    <Hash className="w-4 h-4 mr-2" />
+                    <Hash className="w-4 w-4 mr-2" />
                     {board.name}
                     {board.role === "owner" && (
                       <span className="ml-auto text-xs text-[#263d57]/70">owner</span>
@@ -194,16 +203,18 @@ export function Sidebar({ onClose }: SidebarProps) {
           variant="ghost"
           onClick={() => setDeleteAccountModalOpen(true)}
           className="w-full justify-start text-[#263d57]/70 hover:text-red-600 hover:bg-red-50"
+          data-pendo="button-delete-account"
         >
           <Trash2 className="h-4 w-4 mr-2" />
           Delete Account
         </Button>
         
-        <Link href="/notifications">
+        <Link href="/notifications" data-pendo="link-notification-settings">
           <Button
             variant="ghost"
             className="w-full justify-start text-[#263d57]/70 hover:text-[#263d57] hover:bg-[#e3cac0]/20"
             onClick={onClose}
+            data-pendo="button-notification-settings"
           >
             <Bell className="h-4 w-4 mr-2" />
             Notification Settings
@@ -214,6 +225,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           variant="ghost"
           onClick={logout}
           className="w-full justify-start text-[#263d57]/70 hover:text-red-600 hover:bg-[#e3cac0]/20"
+          data-pendo="button-logout"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Logout

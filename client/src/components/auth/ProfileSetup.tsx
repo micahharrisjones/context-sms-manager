@@ -118,6 +118,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 {...form.register('firstName')}
                 placeholder="Enter your first name"
                 className="border-[#e3cac0] focus:border-[#b95827]"
+                data-pendo="input-setup-first-name"
               />
               {form.formState.errors.firstName && (
                 <p className="text-sm text-red-600">
@@ -133,6 +134,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 {...form.register('lastName')}
                 placeholder="Enter your last name"
                 className="border-[#e3cac0] focus:border-[#b95827]"
+                data-pendo="input-setup-last-name"
               />
               {form.formState.errors.lastName && (
                 <p className="text-sm text-red-600">
@@ -148,6 +150,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 {...form.register('avatarUrl')}
                 placeholder="https://example.com/your-photo.jpg"
                 className="border-[#e3cac0] focus:border-[#b95827]"
+                data-pendo="input-setup-avatar-url"
               />
               {form.formState.errors.avatarUrl && (
                 <p className="text-sm text-red-600">
@@ -166,6 +169,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 className="flex-1 border-[#e3cac0] hover:bg-[#fff2ea]"
                 onClick={handleSkip}
                 disabled={skipSetupMutation.isPending}
+                data-pendo="button-skip-profile-setup"
               >
                 {skipSetupMutation.isPending ? "Skipping..." : "Skip for Now"}
               </Button>
@@ -173,6 +177,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
                 type="submit"
                 className="flex-1 bg-[#b95827] hover:bg-[#a04d1f] text-white"
                 disabled={updateProfileMutation.isPending}
+                data-pendo="button-complete-profile-setup"
               >
                 {updateProfileMutation.isPending ? "Setting up..." : "Complete Setup"}
               </Button>

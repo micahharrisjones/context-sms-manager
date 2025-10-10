@@ -156,6 +156,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
               disabled={addMessageMutation.isPending}
               rows={4}
               className="resize-none bg-white border-[#e3cac0] focus:border-[#b95827]"
+              data-pendo="textarea-message-content"
             />
           </div>
 
@@ -176,6 +177,8 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
                       className="ml-1 hover:bg-[#b95827]/30 rounded-full p-0.5 transition-colors"
                       aria-label={`Remove ${tag} tag`}
                       type="button"
+                      data-pendo="button-remove-tag"
+                      data-tag-name={tag}
                     >
                       <X className="w-3 h-3" />
                     </button>
@@ -196,6 +199,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
                 placeholder="Add new hashtag..."
                 className="flex-1 bg-white border-[#e3cac0] focus:border-[#b95827]"
                 disabled={addMessageMutation.isPending}
+                data-pendo="input-new-hashtag"
               />
               <Button
                 onClick={handleAddTag}
@@ -203,6 +207,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
                 type="button"
                 className="border-[#b95827] text-[#b95827] hover:bg-[#b95827] hover:text-white"
                 disabled={addMessageMutation.isPending}
+                data-pendo="button-add-hashtag"
               >
                 Add
               </Button>
@@ -216,6 +221,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
               onClick={handleClose}
               disabled={addMessageMutation.isPending}
               className="flex-1"
+              data-pendo="button-cancel-add-message"
             >
               Cancel
             </Button>
@@ -223,6 +229,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
               type="submit"
               disabled={addMessageMutation.isPending || !content.trim()}
               className="flex-1 bg-[#b95827] hover:bg-[#a04d1f]"
+              data-pendo="button-submit-add-message"
             >
               {addMessageMutation.isPending ? "Adding..." : "Add Message"}
             </Button>

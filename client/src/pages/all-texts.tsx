@@ -83,6 +83,8 @@ export default function AllTexts() {
                 }}
                 className="h-8 px-2 sm:px-3 hover:bg-[#b95827]/10 hover:text-[#b95827]"
                 aria-label="Add card"
+                data-pendo="button-add-card"
+                data-board-name={tag || boardName}
               >
                 <Plus className="h-4 w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Add Card</span>
@@ -100,6 +102,8 @@ export default function AllTexts() {
                     }}
                     className="h-8 px-2 sm:px-3 hover:bg-blue-50 hover:text-blue-600"
                     aria-label={`Rename tag ${tag}`}
+                    data-pendo="button-rename-private-board"
+                    data-board-name={tag}
                   >
                     <Edit className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Rename</span>
@@ -110,6 +114,8 @@ export default function AllTexts() {
                     onClick={() => setInviteToPrivateBoardModalOpen(true)}
                     className="h-8 px-2 sm:px-3 hover:bg-green-50 hover:text-green-600"
                     aria-label={`Invite users to ${tag}`}
+                    data-pendo="button-invite-to-private-board"
+                    data-board-name={tag}
                   >
                     <UserPlus className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Invite</span>
@@ -120,6 +126,8 @@ export default function AllTexts() {
                     onClick={() => setDeleteTagModalOpen(true)}
                     className="h-8 px-2 sm:px-3 hover:bg-red-50 hover:text-red-600"
                     aria-label={`Delete tag ${tag}`}
+                    data-pendo="button-delete-private-board"
+                    data-board-name={tag}
                   >
                     <Trash2 className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Delete</span>
@@ -136,6 +144,8 @@ export default function AllTexts() {
                     onClick={() => setMembersModalOpen(true)}
                     className="h-8 px-2 sm:px-3 hover:bg-green-50 hover:text-green-600"
                     aria-label={`View members of ${boardName}`}
+                    data-pendo="button-view-members"
+                    data-board-name={boardName}
                   >
                     <Eye className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Members</span>
@@ -151,6 +161,8 @@ export default function AllTexts() {
                         }}
                         className="h-8 px-2 sm:px-3 hover:bg-purple-50 hover:text-purple-600"
                         aria-label={`Rename board ${boardName}`}
+                        data-pendo="button-rename-shared-board"
+                        data-board-name={boardName}
                       >
                         <Edit className="h-4 w-4 sm:mr-2" />
                         <span className="hidden sm:inline">Rename</span>
@@ -161,6 +173,8 @@ export default function AllTexts() {
                         onClick={() => setInviteModalOpen(true)}
                         className="h-8 px-2 sm:px-3 hover:bg-blue-50 hover:text-blue-600"
                         aria-label={`Invite users to ${boardName}`}
+                        data-pendo="button-invite-to-shared-board"
+                        data-board-name={boardName}
                       >
                         <UserPlus className="h-4 w-4 sm:mr-2" />
                         <span className="hidden sm:inline">Invite</span>
@@ -171,6 +185,8 @@ export default function AllTexts() {
                         onClick={() => setDeleteBoardModalOpen(true)}
                         className="h-8 px-2 sm:px-3 hover:bg-red-50 hover:text-red-600"
                         aria-label={`Delete board ${boardName}`}
+                        data-pendo="button-delete-shared-board"
+                        data-board-name={boardName}
                       >
                         <Trash2 className="h-4 w-4 sm:mr-2" />
                         <span className="hidden sm:inline">Delete</span>
