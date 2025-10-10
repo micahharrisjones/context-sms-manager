@@ -2,7 +2,7 @@ import { MessageList } from "@/components/messages/MessageList";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Edit, UserPlus, X, Eye, Trash2 } from "lucide-react";
+import { Edit, UserPlus, X, Eye, Trash2, Plus } from "lucide-react";
 import { useState } from "react";
 import { DeleteTagModal } from "@/components/layout/DeleteTagModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
@@ -10,6 +10,7 @@ import { InviteToPrivateBoardModal } from "@/components/shared-boards/InviteToPr
 import { BoardMembersModal } from "@/components/shared-boards/BoardMembersModal";
 import { DeleteSharedBoardModal } from "@/components/shared-boards/DeleteSharedBoardModal";
 import { RenameBoardModal } from "@/components/shared-boards/RenameBoardModal";
+import { AddMessageModal } from "@/components/messages/AddMessageModal";
 import { SharedBoard } from "@shared/schema";
 
 export default function AllTexts() {
@@ -24,6 +25,7 @@ export default function AllTexts() {
   const [deleteBoardModalOpen, setDeleteBoardModalOpen] = useState(false);
   const [renameBoardModalOpen, setRenameBoardModalOpen] = useState(false);
   const [renameBoardType, setRenameBoardType] = useState<"shared" | "private">("shared");
+  const [addMessageModalOpen, setAddMessageModalOpen] = useState(false);
 
   // Fetch shared boards to get role information
   const { data: sharedBoards } = useQuery<(SharedBoard & { role: string })[]>({ 
@@ -64,6 +66,18 @@ export default function AllTexts() {
           {/* Board Controls */}
           {(tag || boardName) && (
             <div className="flex items-center gap-1 sm:gap-2">
+              {/* Add Card Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAddMessageModalOpen(true)}
+                className="h-8 px-2 sm:px-3 hover:bg-[#b95827]/10 hover:text-[#b95827]"
+                aria-label="Add card"
+              >
+                <Plus className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Add Card</span>
+              </Button>
+
               {/* Private board controls */}
               {tag && (
                 <>
@@ -166,6 +180,11 @@ export default function AllTexts() {
       <MessageList tag={tag} sharedBoard={boardName} />
 
       {/* Modals */}
+      <AddMessageModal
+        isOpen={addMessageModalOpen}
+        onClose={() => setAddMessageModalOpen(false)}
+      />
+      
       {tag && (
         <>
           <DeleteTagModal
