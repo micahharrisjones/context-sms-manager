@@ -157,6 +157,13 @@ function getSenderInitials(senderId?: string): React.ReactNode {
   return senderId[0]?.toUpperCase() || <User className="h-3 w-3" />;
 }
 
+// Helper function to decode HTML entities
+function decodeHtmlEntities(text: string): string {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+}
+
 interface MovieData {
   posterUrl: string | null;
   title: string | null;
@@ -434,11 +441,11 @@ export function MessageCard({ message }: MessageCardProps) {
                       </div>
                       <div>
                         <h3 className="font-bold text-[#263d57] text-lg mb-1">
-                          {ogData.title}
+                          {decodeHtmlEntities(ogData.title)}
                         </h3>
                         {ogData.description && (
                           <p className="text-[#263d57]/70 text-sm">
-                            {ogData.description}
+                            {decodeHtmlEntities(ogData.description)}
                           </p>
                         )}
                       </div>
@@ -447,16 +454,16 @@ export function MessageCard({ message }: MessageCardProps) {
                     <div className="flex items-start gap-2">
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-[#263d57] line-clamp-2 text-sm">
-                          {ogData.title}
+                          {decodeHtmlEntities(ogData.title)}
                         </h3>
                         {ogData.description && (
                           <p className="text-[#263d57]/70 text-sm mt-1 line-clamp-2">
-                            {ogData.description}
+                            {decodeHtmlEntities(ogData.description)}
                           </p>
                         )}
                         {ogData.site_name && (
                           <p className="text-[#263d57]/70 text-xs mt-2 uppercase tracking-wide">
-                            {ogData.site_name}
+                            {decodeHtmlEntities(ogData.site_name)}
                           </p>
                         )}
                       </div>
