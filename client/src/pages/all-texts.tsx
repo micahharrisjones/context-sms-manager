@@ -72,7 +72,9 @@ export default function AllTexts() {
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  setModalCurrentTag(tag || boardName || "uncategorized");
+                  const capturedTag = tag || boardName || "uncategorized";
+                  console.log("Add Card clicked - Capturing tag:", capturedTag, "from tag:", tag, "boardName:", boardName);
+                  setModalCurrentTag(capturedTag);
                   setAddMessageModalOpen(true);
                 }}
                 className="h-8 px-2 sm:px-3 hover:bg-[#b95827]/10 hover:text-[#b95827]"

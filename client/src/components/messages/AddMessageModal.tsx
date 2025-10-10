@@ -26,9 +26,12 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
   // Pre-populate tags with currentTag when modal opens, reset when it closes
   useEffect(() => {
     if (isOpen) {
+      console.log("AddMessageModal opened with currentTag:", currentTag);
       if (currentTag) {
+        console.log("Setting tags to:", [currentTag]);
         setTags([currentTag]);
       } else {
+        console.log("No currentTag, setting empty tags");
         setTags([]);
       }
     } else {
@@ -100,6 +103,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
     
     // If no tags and we have a currentTag, use it
     const finalTags = tags.length === 0 && currentTag ? [currentTag] : tags;
+    console.log("Submitting message with tags:", finalTags, "from state tags:", tags, "currentTag:", currentTag);
     addMessageMutation.mutate({ content: content.trim(), tags: finalTags });
   };
 
