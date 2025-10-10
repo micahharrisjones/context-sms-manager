@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
-import { Users, Phone } from "lucide-react";
+import { Users } from "lucide-react";
 
 interface BoardMember {
   id: number;
@@ -19,6 +19,9 @@ interface BoardMember {
     id: number;
     phoneNumber: string;
     displayName: string;
+    firstName?: string;
+    lastName?: string;
+    avatarUrl?: string;
     createdAt: string;
     lastLoginAt: string | null;
   };
@@ -35,9 +38,6 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
     queryKey: [`/api/shared-boards/${boardName}/members`],
     enabled: isOpen && !!boardName,
   });
-
-  // Debug logging
-  console.log('BoardMembersModal:', { isOpen, boardName, members, isLoading, error });
 
   // Format phone number for display
   const formatPhoneNumber = (phone: string) => {
@@ -71,7 +71,7 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -100,6 +100,8 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
                 <div
                   key={member.id}
                   className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                  data-pendo={`member-item-${member.userId}`}
+                  data-member-role={member.role}
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
@@ -113,28 +115,14 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
                         {member.user ? getDisplayName(member.user) : 'Unknown User'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {member.user?.firstName && member.user?.lastName ? (
-                          formatPhoneNumber(member.user.phoneNumber)
-                        ) : (
-                          `Joined ${new Date(member.joinedAt).toLocaleDateString()}`
-                        )}
+                        {formatPhoneNumber(member.user.phoneNumber)}
                       </div>
-                      {member.user?.firstName && member.user?.lastName && (
-                        <div className="text-xs text-muted-foreground">
-                          Joined {new Date(member.joinedAt).toLocaleDateString()}
-                        </div>
-                      )}
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-medium capitalize text-primary">
                       {member.role}
                     </div>
-                    {member.user?.lastLoginAt && (
-                      <div className="text-xs text-muted-foreground">
-                        Last active: {new Date(member.user.lastLoginAt).toLocaleDateString()}
-                      </div>
-                    )}
                   </div>
                 </div>
               ))}
@@ -142,7 +130,11 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
           )}
           
           <div className="flex justify-end pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
+            <Button 
+              variant="outline" 
+              onClick={onClose}
+              data-pendo="button-close-members-modal"
+            >
               Close
             </Button>
           </div>
