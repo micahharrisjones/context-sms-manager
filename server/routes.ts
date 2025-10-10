@@ -1149,6 +1149,8 @@ export async function registerRoutes(app: Express) {
       const extractedTags = extractHashtags(content);
       const tags = providedTags.length > 0 ? providedTags : (extractedTags.length > 0 ? extractedTags : ["untagged"]);
       
+      log(`Tag processing - Provided: ${JSON.stringify(providedTags)}, Extracted: ${JSON.stringify(extractedTags)}, Final: ${JSON.stringify(tags)}`);
+      
       // Create message data
       const messageData = {
         content: content.trim(),
