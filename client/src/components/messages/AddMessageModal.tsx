@@ -91,7 +91,10 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
       });
       return;
     }
-    addMessageMutation.mutate({ content: content.trim(), tags });
+    
+    // If no tags and we have a currentTag, use it
+    const finalTags = tags.length === 0 && currentTag ? [currentTag] : tags;
+    addMessageMutation.mutate({ content: content.trim(), tags: finalTags });
   };
 
   const handleClose = () => {
@@ -177,7 +180,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
                 ))
               ) : (
                 <span className="inline-block bg-[#e3cac0] text-[#263d57]/70 px-2 py-1 rounded-md text-sm">
-                  #uncategorized (will be added if no tags)
+                  {currentTag ? `#${currentTag} (will be added if no tags)` : '#uncategorized (will be added if no tags)'}
                 </span>
               )}
             </div>
