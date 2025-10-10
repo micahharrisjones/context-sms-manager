@@ -183,6 +183,7 @@ export default function AllTexts() {
       <AddMessageModal
         isOpen={addMessageModalOpen}
         onClose={() => setAddMessageModalOpen(false)}
+        currentTag={tag || boardName}
       />
       
       {tag && (

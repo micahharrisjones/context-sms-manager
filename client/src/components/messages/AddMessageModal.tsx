@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,28 +8,37 @@ import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { pendo } from '@/lib/pendo';
+import { X } from 'lucide-react';
 
 interface AddMessageModalProps {
   isOpen: boolean;
   onClose: () => void;
+  currentTag?: string;
 }
 
-export function AddMessageModal({ isOpen, onClose }: AddMessageModalProps) {
+export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModalProps) {
   const [content, setContent] = useState('');
-  const [hashtags, setHashtags] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
+  const [newHashtag, setNewHashtag] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const addMessageMutation = useMutation({
-    mutationFn: async (data: { content: string; hashtags: string }) => {
-      const messageContent = data.hashtags.trim() 
-        ? `${data.content} ${data.hashtags.split(',').map(tag => tag.trim().startsWith('#') ? tag.trim() : `#${tag.trim()}`).join(' ')}`
-        : data.content;
+  // Pre-populate tags with currentTag when modal opens
+  useEffect(() => {
+    if (isOpen && currentTag) {
+      setTags([currentTag]);
+    }
+  }, [isOpen, currentTag]);
 
+  const addMessageMutation = useMutation({
+    mutationFn: async (data: { content: string; tags: string[] }) => {
+      const finalTags = data.tags.length === 0 ? ["uncategorized"] : data.tags;
+      
       const response = await apiRequest('/api/messages', {
         method: 'POST',
         body: JSON.stringify({ 
-          content: messageContent,
+          content: data.content,
+          tags: finalTags,
           source: 'ui'
         }),
       });
@@ -45,8 +54,8 @@ export function AddMessageModal({ isOpen, onClose }: AddMessageModalProps) {
       // Track message creation success
       pendo.track('Message Created', {
         message_source: 'ui',
-        has_hashtags: hashtags.trim().length > 0,
-        hashtag_count: hashtags.trim() ? hashtags.split(',').length : 0,
+        has_hashtags: tags.length > 0,
+        hashtag_count: tags.length,
         has_url: /https?:\/\/[^\s]+/.test(content),
         message_length: content.length,
         platform: 'web'
@@ -54,12 +63,13 @@ export function AddMessageModal({ isOpen, onClose }: AddMessageModalProps) {
       
       toast({
         title: "Message added",
-        description: "Your message has been added to Context.",
+        description: "Your message has been added to Aside.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/tags'] });
       setContent('');
-      setHashtags('');
+      setTags([]);
+      setNewHashtag('');
       onClose();
     },
     onError: (error: Error) => {
@@ -81,22 +91,52 @@ export function AddMessageModal({ isOpen, onClose }: AddMessageModalProps) {
       });
       return;
     }
-    addMessageMutation.mutate({ content: content.trim(), hashtags: hashtags.trim() });
+    addMessageMutation.mutate({ content: content.trim(), tags });
   };
 
   const handleClose = () => {
     if (!addMessageMutation.isPending) {
       setContent('');
-      setHashtags('');
+      setTags([]);
+      setNewHashtag('');
       onClose();
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleAddTag = () => {
+    const trimmedTag = newHashtag.trim().replace(/^#+/, '');
+    if (trimmedTag === "") return;
+    
+    if (tags.includes(trimmedTag)) {
+      toast({
+        title: "Duplicate Tag",
+        description: "This hashtag is already added.",
+        variant: "destructive",
+      });
+      setNewHashtag("");
+      return;
+    }
+    
+    setTags([...tags, trimmedTag]);
+    setNewHashtag("");
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddTag();
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
         <DialogHeader>
-          <DialogTitle className="text-center">Add to Context</DialogTitle>
+          <DialogTitle className="text-center">Add to Aside</DialogTitle>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -109,22 +149,58 @@ export function AddMessageModal({ isOpen, onClose }: AddMessageModalProps) {
               onChange={(e) => setContent(e.target.value)}
               disabled={addMessageMutation.isPending}
               rows={4}
-              className="resize-none"
+              className="resize-none bg-white border-[#e3cac0] focus:border-[#b95827]"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="hashtags">Tags (optional)</Label>
-            <Input
-              id="hashtags"
-              placeholder="work, ideas, quotes (comma separated)"
-              value={hashtags}
-              onChange={(e) => setHashtags(e.target.value)}
-              disabled={addMessageMutation.isPending}
-            />
-            <p className="text-sm text-[#263d57]/70">
-              Separate multiple tags with commas. The # symbol will be added automatically.
-            </p>
+          <div className="bg-white p-3 rounded-md border border-[#e3cac0]">
+            <Label className="text-sm font-medium text-[#263d57]/80">
+              Boards:
+            </Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {tags.length > 0 ? (
+                tags.map((tag) => (
+                  <div
+                    key={tag}
+                    className="inline-flex items-center gap-1 bg-[#b95827]/10 text-[#b95827] px-2 py-1 rounded-md text-sm group hover:bg-[#b95827]/20 transition-colors"
+                  >
+                    <span>#{tag}</span>
+                    <button
+                      onClick={() => handleRemoveTag(tag)}
+                      className="ml-1 hover:bg-[#b95827]/30 rounded-full p-0.5 transition-colors"
+                      aria-label={`Remove ${tag} tag`}
+                      type="button"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <span className="inline-block bg-[#e3cac0] text-[#263d57]/70 px-2 py-1 rounded-md text-sm">
+                  #uncategorized (will be added if no tags)
+                </span>
+              )}
+            </div>
+            
+            <div className="mt-3 flex gap-2">
+              <Input
+                value={newHashtag}
+                onChange={(e) => setNewHashtag(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Add new hashtag..."
+                className="flex-1 bg-white border-[#e3cac0] focus:border-[#b95827]"
+                disabled={addMessageMutation.isPending}
+              />
+              <Button
+                onClick={handleAddTag}
+                variant="outline"
+                type="button"
+                className="border-[#b95827] text-[#b95827] hover:bg-[#b95827] hover:text-white"
+                disabled={addMessageMutation.isPending}
+              >
+                Add
+              </Button>
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">
