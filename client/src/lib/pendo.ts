@@ -105,29 +105,44 @@ class PendoService {
           id: 'anonymous-' + Date.now(),
         },
         account: {
-          id: 'context-app',
-          accountName: 'Context SMS Platform',
+          id: 'aside',
+          accountName: 'Aside',
           payingStatus: 'trial',
           planType: 'anonymous',
         }
       };
     }
 
+    // Use phone number in E.164 format (+1XXXXXXXXXX) as visitor ID
+    // Fallback to database ID if phone number is missing
+    let visitorId: string;
+    if (user.phoneNumber) {
+      // Normalize phone number: remove spaces, dashes, parentheses
+      const cleanPhone = user.phoneNumber.replace(/[\s\-\(\)]/g, '');
+      visitorId = cleanPhone.startsWith('+') ? cleanPhone : `+1${cleanPhone}`;
+    } else {
+      // Fallback to database ID if no phone number
+      visitorId = user.id.toString();
+    }
+
     return {
       visitor: {
-        id: user.id.toString(),
-        email: user.email || undefined,
+        id: visitorId, // Phone number as ID for unified tracking
+        phoneNumber: user.phoneNumber || undefined,
         firstName: user.displayName?.split(' ')[0] || undefined,
         lastName: user.displayName?.split(' ').slice(1).join(' ') || undefined,
-        phoneNumber: user.phoneNumber || undefined,
+        email: user.email || undefined,
         // Add custom properties
+        userId: user.id, // Keep database ID as metadata
         hasDisplayName: !!user.displayName,
         hasEmail: !!user.email,
+        hasCompletedProfile: !!(user.displayName?.includes(' ')), // Has both first and last name
         accountCreatedAt: user.createdAt || new Date().toISOString(),
+        signupMethod: 'sms', // Default signup method
       },
       account: {
-        id: 'context-app',
-        accountName: 'Context SMS Platform',
+        id: 'aside',
+        accountName: 'Aside',
         payingStatus: 'active', // This could be dynamic based on user subscription
         planType: 'standard', // This could be dynamic
       }
