@@ -105,6 +105,35 @@ class PendoServerService {
       }
     );
   }
+
+  async trackUserCreated(
+    phoneNumber: string
+  ): Promise<void> {
+    await this.trackEvent(
+      'User Created',
+      phoneNumber,
+      'aside',
+      {
+        signupMethod: 'SMS',
+        timestamp: new Date().toISOString()
+      }
+    );
+  }
+
+  async trackSharedBoardCreated(
+    phoneNumber: string,
+    boardName: string
+  ): Promise<void> {
+    await this.trackEvent(
+      'Shared Board Created',
+      phoneNumber,
+      'aside',
+      {
+        boardName,
+        creationMethod: 'Web UI'
+      }
+    );
+  }
 }
 
 export const pendoServerService = new PendoServerService();

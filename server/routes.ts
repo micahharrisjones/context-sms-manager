@@ -344,6 +344,10 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       isNewUser = true;
       log(`🆕 NEW USER CREATED: Account created for phone ${senderId} - User ID: ${user.id}`);
       
+      // Track User Created event in Pendo
+      pendoServerService.trackUserCreated(senderId).catch(error => {
+        log('Pendo tracking failed for user creation:', error instanceof Error ? error.message : String(error));
+      });
       
       // IMMEDIATELY send welcome message to new users for fast response
       const digitsOnly = senderId.replace(/\D/g, '');
@@ -1143,15 +1147,14 @@ export async function registerRoutes(app: Express) {
         createdBy: userId
       });
 
-      // Track New Board Created via SMS event in Pendo
+      // Track Shared Board Created event in Pendo (via web UI conversion)
       const creatorUser = await storage.getUserById(userId);
       if (creatorUser?.phoneNumber) {
-        pendoServerService.trackNewBoardCreatedViaSMS(
+        pendoServerService.trackSharedBoardCreated(
           creatorUser.phoneNumber,
-          boardName,
-          'shared'
+          boardName
         ).catch(error => {
-          log('Pendo tracking failed for board creation:', error instanceof Error ? error.message : String(error));
+          log('Pendo tracking failed for shared board creation:', error instanceof Error ? error.message : String(error));
         });
       }
 
@@ -1730,6 +1733,17 @@ export async function registerRoutes(app: Express) {
         createdBy: userId
       });
       
+      // Track Shared Board Created event in Pendo
+      const user = await storage.getUserById(userId);
+      if (user?.phoneNumber) {
+        pendoServerService.trackSharedBoardCreated(
+          user.phoneNumber,
+          boardName
+        ).catch(error => {
+          log('Pendo tracking failed for shared board creation:', error instanceof Error ? error.message : String(error));
+        });
+      }
+      
       log(`Created shared board ${board.id} (${boardName}) by user ${userId}`);
       res.status(201).json(board);
     } catch (error) {
@@ -2172,6 +2186,10 @@ export async function registerRoutes(app: Express) {
       const message = insertMessageSchema.parse(smsData);
       log("insertMessageSchema parsing complete");
 
+      // Check if this message contains any new tags (private board creation via SMS)
+      const existingTags = await storage.getTags(smsData.userId);
+      const newTags = (smsData.tags || []).filter(tag => tag !== 'untagged' && !existingTags.includes(tag));
+      
       log("Creating message in storage");
       const created = await storage.createMessage(message);
       log("Message creation complete");
@@ -2185,6 +2203,19 @@ export async function registerRoutes(app: Express) {
       ).catch(error => {
         log('Pendo tracking failed for SMS message:', error instanceof Error ? error.message : String(error));
       });
+      
+      // Track new private board creation via SMS in Pendo
+      if (newTags.length > 0) {
+        for (const newTag of newTags) {
+          pendoServerService.trackNewBoardCreatedViaSMS(
+            smsData.senderId,
+            newTag,
+            'private'
+          ).catch(error => {
+            log('Pendo tracking failed for private board creation via SMS:', error instanceof Error ? error.message : String(error));
+          });
+        }
+      }
       
 
       // Handle onboarding flow for existing users (new users already got welcome message above)
