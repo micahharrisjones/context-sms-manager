@@ -2257,60 +2257,61 @@ export async function registerRoutes(app: Express) {
                 });
                 
                 if (newPhoneNumbers.length > 0) {
-                  // Use global deduplication cache to filter further
-                  const finalPhoneNumbers = newPhoneNumbers.filter(phone => 
-                    shouldSendNotification(phone, board.id, created.content)
-                  );
+                  log(`   📤 Queueing SMS notification for ${newPhoneNumbers.length} member(s) of board #${board.name} (ID: ${board.id})`);
+                  notifiedBoards.add(board.name); // Mark this board as notified
                   
-                  if (finalPhoneNumbers.length > 0) {
-                    log(`   📤 Queueing SMS notification for ${finalPhoneNumbers.length} member(s) of board #${board.name} (ID: ${board.id})`);
-                    notifiedBoards.add(board.name); // Mark this board as notified
-                    
-                    // Track these phone numbers to prevent duplicates in subsequent tags (store normalized)
-                    finalPhoneNumbers.forEach(phone => notifiedPhoneNumbers.add(normalizePhoneNumber(phone)));
-                    
-                    // Debounce notifications - wait a few seconds to batch rapid messages
-                    const notificationKey = `${board.id}:${created.userId}`;
-                    const existing = pendingNotifications.get(notificationKey);
-                    
-                    if (existing) {
-                      // Clear existing timeout and add this message to the batch
-                      clearTimeout(existing.timeoutId);
-                      existing.messages.push(created.content);
-                      log(`   ⏱️  Added to existing notification batch (${existing.messages.length} messages total)`);
-                    } else {
-                      // Create new pending notification
-                      pendingNotifications.set(notificationKey, {
-                        boardName: board.name,
-                        phoneNumbers: finalPhoneNumbers,
-                        messages: [created.content],
-                        timeoutId: null as any // Will be set below
-                      });
-                    }
-                    
-                    // Set/reset the timeout to send notification
-                    const pending = pendingNotifications.get(notificationKey)!;
-                    pending.timeoutId = setTimeout(() => {
-                      const notification = pendingNotifications.get(notificationKey);
-                      if (notification) {
-                        // Combine all messages
-                        const combinedMessage = notification.messages.join(' ');
-                        log(`   📤 Sending debounced SMS notification: ${notification.messages.length} message(s) combined`);
+                  // Track these phone numbers to prevent duplicates in subsequent tags (store normalized)
+                  newPhoneNumbers.forEach(phone => notifiedPhoneNumbers.add(normalizePhoneNumber(phone)));
+                  
+                  // Debounce notifications - wait a few seconds to batch rapid messages
+                  const notificationKey = `${board.id}:${created.userId}`;
+                  const existing = pendingNotifications.get(notificationKey);
+                  
+                  if (existing) {
+                    // Clear existing timeout and add this message to the batch
+                    clearTimeout(existing.timeoutId);
+                    existing.messages.push(created.content);
+                    log(`   ⏱️  Added to existing notification batch (${existing.messages.length} messages total)`);
+                  } else {
+                    // Create new pending notification
+                    pendingNotifications.set(notificationKey, {
+                      boardName: board.name,
+                      phoneNumbers: newPhoneNumbers,
+                      messages: [created.content],
+                      timeoutId: null as any // Will be set below
+                    });
+                  }
+                  
+                  // Set/reset the timeout to send notification
+                  const pending = pendingNotifications.get(notificationKey)!;
+                  pending.timeoutId = setTimeout(() => {
+                    const notification = pendingNotifications.get(notificationKey);
+                    if (notification) {
+                      // Combine all messages
+                      const combinedMessage = notification.messages.join(' ');
+                      
+                      // Apply global deduplication check ONLY when actually sending
+                      const finalPhoneNumbers = notification.phoneNumbers.filter(phone => 
+                        shouldSendNotification(phone, board.id, combinedMessage)
+                      );
+                      
+                      if (finalPhoneNumbers.length > 0) {
+                        log(`   📤 Sending debounced SMS notification to ${finalPhoneNumbers.length} member(s): ${notification.messages.length} message(s) combined`);
                         
                         twilioService.sendSharedBoardNotification(
-                          notification.phoneNumbers,
+                          finalPhoneNumbers,
                           notification.boardName,
                           combinedMessage
                         );
-                        
-                        pendingNotifications.delete(notificationKey);
+                      } else {
+                        log(`   ⏭️  All members already notified recently (global dedup cache), skipping debounced notification`);
                       }
-                    }, NOTIFICATION_DEBOUNCE_MS);
-                    
-                    log(`   ⏱️  Notification will send in ${NOTIFICATION_DEBOUNCE_MS}ms (unless more messages arrive)`);
-                  } else {
-                    log(`   ⏭️  All members already notified recently (global dedup cache), skipping`);
-                  }
+                      
+                      pendingNotifications.delete(notificationKey);
+                    }
+                  }, NOTIFICATION_DEBOUNCE_MS);
+                  
+                  log(`   ⏱️  Notification will send in ${NOTIFICATION_DEBOUNCE_MS}ms (unless more messages arrive)`);
                 } else {
                   log(`   ⏭️  All members of board #${board.name} already notified via other tags, skipping`);
                 }
