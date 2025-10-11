@@ -361,8 +361,8 @@ class OpenGraphService {
 
       const response = await fetch(url, {
         headers: {
-          // Updated to latest Chrome user agent
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          // Use Facebot user-agent (used by iMessage) to bypass bot protection
+          'User-Agent': 'Facebot',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
           'Accept-Language': 'en-US,en;q=0.9',
           'Accept-Encoding': 'gzip, deflate, br',
