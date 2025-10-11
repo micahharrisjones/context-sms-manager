@@ -333,6 +333,57 @@ class OpenGraphService {
     return (now - entry.timestamp) < ttl;
   }
 
+  // Fetch Open Graph data from Microlink.io API
+  private async fetchFromMicrolink(url: string): Promise<OpenGraphData | null> {
+    const microlinkApiKey = process.env.MICROLINK_API_KEY;
+    
+    if (!microlinkApiKey) {
+      log('Microlink API key not configured, skipping Microlink fetch');
+      return null;
+    }
+
+    try {
+      const microlinkUrl = new URL('https://api.microlink.io');
+      microlinkUrl.searchParams.set('url', url);
+      microlinkUrl.searchParams.set('meta', 'true');
+      
+      const response = await fetch(microlinkUrl.toString(), {
+        headers: {
+          'x-api-key': microlinkApiKey,
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
+
+      if (!response.ok) {
+        log(`Microlink API error: ${response.status} ${response.statusText}`);
+        return null;
+      }
+
+      const data = await response.json();
+      
+      if (data.status !== 'success' || !data.data) {
+        log(`Microlink returned non-success status: ${data.status}`);
+        return null;
+      }
+
+      const ogData: OpenGraphData = {};
+      
+      // Extract data from Microlink response
+      if (data.data.title) ogData.title = this.decodeHtmlEntities(data.data.title);
+      if (data.data.description) ogData.description = this.decodeHtmlEntities(data.data.description);
+      if (data.data.image?.url) ogData.image = data.data.image.url;
+      if (data.data.publisher) ogData.site_name = data.data.publisher;
+      if (data.data.url) ogData.url = data.data.url;
+
+      log(`Successfully fetched data from Microlink for ${url}: ${JSON.stringify(ogData)}`);
+      return ogData;
+    } catch (error) {
+      log('Microlink fetch error:', error instanceof Error ? error.message : String(error));
+      return null;
+    }
+  }
+
   // Main function to fetch Open Graph data
   async fetchOpenGraph(url: string): Promise<OpenGraphData | null> {
     // Check cache first
@@ -346,7 +397,14 @@ class OpenGraphService {
       }
     }
 
-    // Attempt to fetch with retries
+    // Try Microlink first (handles bot protection)
+    const microlinkData = await this.fetchFromMicrolink(url);
+    if (microlinkData && (microlinkData.title || microlinkData.description || microlinkData.image)) {
+      this.cacheSuccess(url, microlinkData);
+      return microlinkData;
+    }
+
+    // Fallback to direct fetch if Microlink fails or isn't configured
     const retryCount = cached?.retryCount || 0;
     return this.fetchWithRetry(url, retryCount);
   }
@@ -361,8 +419,7 @@ class OpenGraphService {
 
       const response = await fetch(url, {
         headers: {
-          // Use Facebot user-agent (used by iMessage) to bypass bot protection
-          'User-Agent': 'Facebot',
+          'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0; +https://textaside.app)',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
           'Accept-Language': 'en-US,en;q=0.9',
           'Accept-Encoding': 'gzip, deflate, br',
