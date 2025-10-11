@@ -72,10 +72,10 @@ function Router() {
           <Route path="/all-texts">
             {() => <ProtectedRoute component={AllTexts} />}
           </Route>
-          <Route path="/tag/:tag">
+          <Route path="/tag/private/:tag">
             {() => <ProtectedRoute component={AllTexts} />}
           </Route>
-          <Route path="/shared/:boardName">
+          <Route path="/tag/shared/:boardName">
             {() => <ProtectedRoute component={AllTexts} />}
           </Route>
           <Route path="/search">

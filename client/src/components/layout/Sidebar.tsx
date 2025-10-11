@@ -109,12 +109,12 @@ export function Sidebar({ onClose }: SidebarProps) {
         <div className="px-4 pb-4 space-y-2">
           {tags?.map((tag, index) => (
             <div key={tag}>
-              <Link href={`/tag/${tag}`} data-pendo={`link-private-board-item-${index + 1}`} data-board-name={tag}>
+              <Link href={`/tag/private/${tag}`} data-pendo={`link-private-board-item-${index + 1}`} data-board-name={tag}>
                 <Button
                   variant="ghost"
                   className={cn(
                     "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57]",
-                    location === `/tag/${tag}` && "bg-[#e3cac0]/30"
+                    location === `/tag/private/${tag}` && "bg-[#e3cac0]/30"
                   )}
                   onClick={onClose}
                   data-pendo={`button-private-board-item-${index + 1}`}
@@ -151,12 +151,12 @@ export function Sidebar({ onClose }: SidebarProps) {
           <div className="px-4 space-y-2">
             {sharedBoards.map((board, index) => (
               <div key={board.id}>
-                <Link href={`/shared/${board.name}`} data-pendo={`link-shared-board-item-${index + 1}`} data-board-id={board.id} data-board-name={board.name}>
+                <Link href={`/tag/shared/${board.name}`} data-pendo={`link-shared-board-item-${index + 1}`} data-board-id={board.id} data-board-name={board.name}>
                   <Button
                     variant="ghost"
                     className={cn(
                       "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57]",
-                      location === `/shared/${board.name}` && "bg-[#e3cac0]/30"
+                      location === `/tag/shared/${board.name}` && "bg-[#e3cac0]/30"
                     )}
                     onClick={onClose}
                     data-pendo={`button-shared-board-item-${index + 1}`}

@@ -61,13 +61,13 @@ export default function Dashboard() {
     ...(boardsData?.privateTags.map(tag => ({ 
       name: tag.tag, 
       type: 'private' as const, 
-      href: `/tag/${tag.tag}`,
+      href: `/tag/private/${tag.tag}`,
       count: tag.count 
     })) || []),
     ...(boardsData?.sharedBoards.map(board => ({ 
       name: board.name, 
       type: 'shared' as const, 
-      href: `/shared/${board.name}`,
+      href: `/tag/shared/${board.name}`,
       role: board.role,
       count: board.count
     })) || [])
