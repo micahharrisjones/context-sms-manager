@@ -232,9 +232,6 @@ export function MessageCard({ message }: MessageCardProps) {
     );
     return shouldFetchOpenGraph(url, hasUrlSpecificEmbed);
   }) || null;
-  
-  // Check if the preview URL is a Pinterest URL
-  const isPinterestUrl = previewUrl && (previewUrl.includes('pinterest.com') || previewUrl.includes('pin.it'));
 
   // Check if a URL has a rich preview (social media embed, IMDB, Open Graph)
   const hasRichPreview = (url: string): boolean => {
@@ -402,11 +399,7 @@ export function MessageCard({ message }: MessageCardProps) {
         {/* Open Graph Preview - Show first */}
         {ogData && ogData.title && (
           <div className="w-full">
-            <div className={`shadow-md rounded-lg overflow-hidden bg-white hover:shadow-lg transition-shadow ${
-              isPinterestUrl 
-                ? 'bg-gradient-to-br from-red-50 to-pink-50' 
-                : ''
-            }`}>
+            <div className="shadow-md rounded-lg overflow-hidden bg-white hover:shadow-lg transition-shadow">
               <a 
                 href={previewUrl || ogData.url} 
                 target="_blank" 
@@ -427,50 +420,24 @@ export function MessageCard({ message }: MessageCardProps) {
                   </div>
                 )}
                 <div className="p-4">
-                  {isPinterestUrl ? (
-                    <>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0">
-                            <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                              <path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.219-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.562-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.888-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.357-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12.001 24c6.624 0 11.999-5.373 11.999-12C24 5.372 18.626.001 12.001.001z"/>
-                            </svg>
-                          </div>
-                          <span className="text-xs font-bold text-red-700 bg-red-100 px-3 py-1 rounded-full uppercase tracking-wide">PINTEREST</span>
-                        </div>
-                        <ExternalLink className="w-4 h-4 text-red-500 flex-shrink-0" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-[#263d57] text-lg mb-1">
-                          {decodeHtmlEntities(ogData.title)}
-                        </h3>
-                        {ogData.description && (
-                          <p className="text-[#263d57]/70 text-sm">
-                            {decodeHtmlEntities(ogData.description)}
-                          </p>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-start gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-[#263d57] line-clamp-2 text-sm">
-                          {decodeHtmlEntities(ogData.title)}
-                        </h3>
-                        {ogData.description && (
-                          <p className="text-[#263d57]/70 text-sm mt-1 line-clamp-2">
-                            {decodeHtmlEntities(ogData.description)}
-                          </p>
-                        )}
-                        {ogData.site_name && (
-                          <p className="text-[#263d57]/70 text-xs mt-2 uppercase tracking-wide">
-                            {decodeHtmlEntities(ogData.site_name)}
-                          </p>
-                        )}
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-[#263d57]/50 flex-shrink-0 mt-0.5" />
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-[#263d57] line-clamp-2 text-sm">
+                        {decodeHtmlEntities(ogData.title)}
+                      </h3>
+                      {ogData.description && (
+                        <p className="text-[#263d57]/70 text-sm mt-1 line-clamp-2">
+                          {decodeHtmlEntities(ogData.description)}
+                        </p>
+                      )}
+                      {ogData.site_name && (
+                        <p className="text-[#263d57]/70 text-xs mt-2 uppercase tracking-wide">
+                          {decodeHtmlEntities(ogData.site_name)}
+                        </p>
+                      )}
                     </div>
-                  )}
+                    <ExternalLink className="w-4 h-4 text-[#263d57]/50 flex-shrink-0 mt-0.5" />
+                  </div>
                 </div>
               </a>
             </div>
@@ -480,45 +447,14 @@ export function MessageCard({ message }: MessageCardProps) {
         {/* Fallback: Show styled card when preview fails and we're not loading */}
         {previewUrl && !isLoadingOg && (!ogData || !ogData.title) && (
           <div className="w-full">
-            {isPinterestUrl ? (
-              <div className="shadow-md rounded-lg overflow-hidden bg-gradient-to-br from-red-50 to-pink-50 hover:shadow-xl transition-shadow">
-                <a 
-                  href={previewUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block p-4"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center flex-shrink-0">
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 0C5.373 0 0 5.372 0 12c0 5.084 3.163 9.426 7.627 11.174-.105-.949-.2-2.405.042-3.441.219-.937 1.407-5.965 1.407-5.965s-.359-.719-.359-1.782c0-1.668.967-2.914 2.171-2.914 1.023 0 1.518.769 1.518 1.69 0 1.029-.655 2.568-.994 3.995-.283 1.194.599 2.169 1.777 2.169 2.133 0 3.772-2.249 3.772-5.495 0-2.873-2.064-4.882-5.012-4.882-3.414 0-5.418 2.562-5.418 5.207 0 1.031.397 2.138.893 2.738.098.119.112.224.083.345l-.333 1.36c-.053.22-.174.267-.402.161-1.499-.698-2.436-2.888-2.436-4.649 0-3.785 2.75-7.262 7.929-7.262 4.163 0 7.398 2.967 7.398 6.931 0 4.136-2.607 7.464-6.227 7.464-1.216 0-2.357-.631-2.75-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24 12.001 24c6.624 0 11.999-5.373 11.999-12C24 5.372 18.626.001 12.001.001z"/>
-                        </svg>
-                      </div>
-                      <span className="text-xs font-bold text-red-700 bg-red-100 px-3 py-1 rounded-full uppercase tracking-wide">PINTEREST</span>
-                    </div>
-                    <ExternalLink className="w-4 h-4 text-red-500 flex-shrink-0" />
-                  </div>
-                  <div className="mt-3">
-                    <h3 className="font-bold text-[#263d57] text-lg mb-1">
-                      View Pin on Pinterest
-                    </h3>
-                    <p className="text-[#263d57]/70 text-sm">
-                      Click to open and view this pin on Pinterest
-                    </p>
-                  </div>
-                </a>
-              </div>
-            ) : (
-              <a
-                href={previewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline text-sm break-all block p-3 shadow-md rounded-lg bg-[#263d57]/5 hover:bg-[#263d57]/10 transition-colors"
-              >
-                {previewUrl}
-              </a>
-            )}
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline text-sm break-all block p-3 shadow-md rounded-lg bg-[#263d57]/5 hover:bg-[#263d57]/10 transition-colors"
+            >
+              {previewUrl}
+            </a>
           </div>
         )}
         
