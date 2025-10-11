@@ -159,7 +159,7 @@ Let's try it — send me a text right now, anything you want.`;
     boardName: string, 
     messagePreview: string
   ): Promise<void> {
-    const boardUrl = `https://textaside.app/board/${encodeURIComponent(boardName)}`;
+    const boardUrl = `https://textaside.app/shared/${encodeURIComponent(boardName)}`;
     const notificationText = `🔔 Someone added to your shared board #${boardName}\n\n"${messagePreview.slice(0, 100)}${messagePreview.length > 100 ? '...' : ''}"\n\nView: ${boardUrl}\n\nReply STOP to unsubscribe`;
 
     const sendPromises = recipientPhoneNumbers.map(phoneNumber => 
