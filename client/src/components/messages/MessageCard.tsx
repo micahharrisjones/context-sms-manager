@@ -85,7 +85,8 @@ function getIMDbInfo(url: string): { type: string; id: string } | null {
 
 // Extract all URLs from message content
 function extractUrls(content: string): string[] {
-  const urlRegex = /https?:\/\/[^\s]+/g;
+  // More robust URL regex that handles special characters, paths, and query strings
+  const urlRegex = /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)/g;
   const matches = content.match(urlRegex);
   return matches || [];
 }
