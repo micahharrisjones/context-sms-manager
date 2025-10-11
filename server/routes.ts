@@ -54,6 +54,16 @@ const ADMIN_ONLY_HASHTAGS = [
 const smsNotificationCache = new Map<string, number>();
 const SMS_DEDUP_WINDOW_MS = 30000; // 30 seconds
 
+// Notification debouncing to handle rapid messages from same sender
+interface PendingNotification {
+  boardName: string;
+  phoneNumbers: string[];
+  messages: string[];
+  timeoutId: NodeJS.Timeout;
+}
+const pendingNotifications = new Map<string, PendingNotification>(); // key: "boardId:userId"
+const NOTIFICATION_DEBOUNCE_MS = 3000; // 3 seconds - wait for additional messages
+
 // Normalize phone number to E.164-like format for consistent deduplication
 // This is a simple normalization without validation - just for comparison purposes
 function normalizePhoneNumber(phoneNumber: string): string {
@@ -2253,18 +2263,51 @@ export async function registerRoutes(app: Express) {
                   );
                   
                   if (finalPhoneNumbers.length > 0) {
-                    log(`   📤 Sending SMS to ${finalPhoneNumbers.length} member(s) of board #${board.name} (ID: ${board.id}): [${finalPhoneNumbers.join(', ')}]`);
+                    log(`   📤 Queueing SMS notification for ${finalPhoneNumbers.length} member(s) of board #${board.name} (ID: ${board.id})`);
                     notifiedBoards.add(board.name); // Mark this board as notified
                     
                     // Track these phone numbers to prevent duplicates in subsequent tags (store normalized)
                     finalPhoneNumbers.forEach(phone => notifiedPhoneNumbers.add(normalizePhoneNumber(phone)));
                     
-                    // Don't await - let SMS sending happen in background
-                    twilioService.sendSharedBoardNotification(
-                      finalPhoneNumbers, 
-                      board.name, 
-                      created.content
-                    );
+                    // Debounce notifications - wait a few seconds to batch rapid messages
+                    const notificationKey = `${board.id}:${created.userId}`;
+                    const existing = pendingNotifications.get(notificationKey);
+                    
+                    if (existing) {
+                      // Clear existing timeout and add this message to the batch
+                      clearTimeout(existing.timeoutId);
+                      existing.messages.push(created.content);
+                      log(`   ⏱️  Added to existing notification batch (${existing.messages.length} messages total)`);
+                    } else {
+                      // Create new pending notification
+                      pendingNotifications.set(notificationKey, {
+                        boardName: board.name,
+                        phoneNumbers: finalPhoneNumbers,
+                        messages: [created.content],
+                        timeoutId: null as any // Will be set below
+                      });
+                    }
+                    
+                    // Set/reset the timeout to send notification
+                    const pending = pendingNotifications.get(notificationKey)!;
+                    pending.timeoutId = setTimeout(() => {
+                      const notification = pendingNotifications.get(notificationKey);
+                      if (notification) {
+                        // Combine all messages
+                        const combinedMessage = notification.messages.join(' ');
+                        log(`   📤 Sending debounced SMS notification: ${notification.messages.length} message(s) combined`);
+                        
+                        twilioService.sendSharedBoardNotification(
+                          notification.phoneNumbers,
+                          notification.boardName,
+                          combinedMessage
+                        );
+                        
+                        pendingNotifications.delete(notificationKey);
+                      }
+                    }, NOTIFICATION_DEBOUNCE_MS);
+                    
+                    log(`   ⏱️  Notification will send in ${NOTIFICATION_DEBOUNCE_MS}ms (unless more messages arrive)`);
                   } else {
                     log(`   ⏭️  All members already notified recently (global dedup cache), skipping`);
                   }
