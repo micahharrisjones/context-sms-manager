@@ -54,18 +54,45 @@ const ADMIN_ONLY_HASHTAGS = [
 const smsNotificationCache = new Map<string, number>();
 const SMS_DEDUP_WINDOW_MS = 30000; // 30 seconds
 
+// Normalize phone number to E.164-like format for consistent deduplication
+// This is a simple normalization without validation - just for comparison purposes
+function normalizePhoneNumber(phoneNumber: string): string {
+  // Remove all non-digit characters
+  const digitsOnly = phoneNumber.replace(/\D/g, '');
+  
+  // If it starts with 1 and has 11 digits, add + prefix
+  if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
+    return `+${digitsOnly}`;
+  }
+  
+  // If it has 10 digits, add US country code +1
+  if (digitsOnly.length === 10) {
+    return `+1${digitsOnly}`;
+  }
+  
+  // For any other format, just return with + if it's not already there
+  if (phoneNumber.startsWith('+')) {
+    return phoneNumber;
+  }
+  
+  return `+${digitsOnly}`;
+}
+
 // Function to check and record SMS notification attempts
 // Uses phone number + message hash for deduplication (one notification per user per message)
 function shouldSendNotification(phoneNumber: string, boardId: number, messageContent: string): boolean {
+  // Normalize phone number before using it in cache key to prevent duplicates from different formats
+  const normalizedPhone = normalizePhoneNumber(phoneNumber);
+  
   // Create a hash of the full message content to avoid collisions while keeping key manageable
   const messageHash = hashString(messageContent);
   // Don't include boardId - we only want ONE notification per user per message, regardless of how many boards they're in
-  const cacheKey = `${phoneNumber}:${messageHash}`;
+  const cacheKey = `${normalizedPhone}:${messageHash}`;
   const now = Date.now();
   const lastSent = smsNotificationCache.get(cacheKey);
   
   if (lastSent && (now - lastSent) < SMS_DEDUP_WINDOW_MS) {
-    log(`🚫 DUPLICATE BLOCKED: Already sent notification to ${phoneNumber} for this message within last ${SMS_DEDUP_WINDOW_MS/1000}s`);
+    log(`🚫 DUPLICATE BLOCKED: Already sent notification to ${phoneNumber} (normalized: ${normalizedPhone}) for this message within last ${SMS_DEDUP_WINDOW_MS/1000}s`);
     return false;
   }
   
@@ -2213,8 +2240,11 @@ export async function registerRoutes(app: Express) {
                 const allPhoneNumbers = await storage.getBoardMembersPhoneNumbers(board.name, created.userId);
                 log(`   👥 Board #${board.name} has ${allPhoneNumbers.length} member(s): [${allPhoneNumbers.join(', ')}]`);
                 
-                // Filter out phone numbers we've already notified in this request
-                const newPhoneNumbers = allPhoneNumbers.filter(phone => !notifiedPhoneNumbers.has(phone));
+                // Filter out phone numbers we've already notified in this request (using normalized comparison)
+                const newPhoneNumbers = allPhoneNumbers.filter(phone => {
+                  const normalized = normalizePhoneNumber(phone);
+                  return !notifiedPhoneNumbers.has(normalized);
+                });
                 
                 if (newPhoneNumbers.length > 0) {
                   // Use global deduplication cache to filter further
@@ -2226,8 +2256,8 @@ export async function registerRoutes(app: Express) {
                     log(`   📤 Sending SMS to ${finalPhoneNumbers.length} member(s) of board #${board.name} (ID: ${board.id}): [${finalPhoneNumbers.join(', ')}]`);
                     notifiedBoards.add(board.name); // Mark this board as notified
                     
-                    // Track these phone numbers to prevent duplicates in subsequent tags
-                    finalPhoneNumbers.forEach(phone => notifiedPhoneNumbers.add(phone));
+                    // Track these phone numbers to prevent duplicates in subsequent tags (store normalized)
+                    finalPhoneNumbers.forEach(phone => notifiedPhoneNumbers.add(normalizePhoneNumber(phone)));
                     
                     // Don't await - let SMS sending happen in background
                     twilioService.sendSharedBoardNotification(
