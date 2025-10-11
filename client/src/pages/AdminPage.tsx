@@ -289,6 +289,7 @@ export function AdminPage() {
               size="sm"
               onClick={selectAllUsers}
               disabled={!users || users.length === 0}
+              data-pendo="admin-button-select-all"
             >
               Select All ({users?.length || 0})
             </Button>
@@ -297,6 +298,7 @@ export function AdminPage() {
               size="sm"
               onClick={clearSelection}
               disabled={selectedUsers.length === 0}
+              data-pendo="admin-button-clear-selection"
             >
               Clear Selection
             </Button>
@@ -308,6 +310,7 @@ export function AdminPage() {
                   variant="default" 
                   size="sm"
                   className="bg-[#b95827] hover:bg-[#a04d1f] text-white"
+                  data-pendo="admin-button-sms-all-users"
                 >
                   <Send className="h-4 w-4 mr-2" />
                   SMS All Users
@@ -338,6 +341,7 @@ export function AdminPage() {
                     variant="outline" 
                     onClick={() => setShowBulkSmsModal(false)}
                     className="border-[#e3cac0] hover:bg-[#e3cac0]/20"
+                    data-pendo="admin-button-cancel-sms"
                   >
                     Cancel
                   </Button>
@@ -345,6 +349,7 @@ export function AdminPage() {
                     onClick={handleBulkSms} 
                     disabled={!bulkSmsMessage.trim() || bulkSmsMutation.isPending}
                     className="bg-[#b95827] hover:bg-[#a04d1f] text-white"
+                    data-pendo="admin-button-send-sms"
                   >
                     {bulkSmsMutation.isPending ? "Sending..." : `Send to ${users?.length || 0} users`}
                   </Button>
@@ -359,6 +364,7 @@ export function AdminPage() {
                   size="sm"
                   disabled={selectedUsers.length === 0}
                   className="sm:ml-auto"
+                  data-pendo="admin-button-delete-selected"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Selected ({selectedUsers.length})
@@ -372,10 +378,11 @@ export function AdminPage() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel data-pendo="admin-button-cancel-delete">Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleBulkDelete}
                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    data-pendo="admin-button-confirm-delete-users"
                   >
                     Delete Users
                   </AlertDialogAction>
@@ -440,6 +447,8 @@ export function AdminPage() {
                               size="sm"
                               disabled={deleteUserMutation.isPending}
                               className="h-8 w-8 p-0"
+                              data-pendo="admin-button-delete-user"
+                              data-user-id={user.id}
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -452,10 +461,12 @@ export function AdminPage() {
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogCancel data-pendo="admin-button-cancel-delete-user">Cancel</AlertDialogCancel>
                               <AlertDialogAction
                                 onClick={() => handleDeleteUser(user.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                data-pendo="admin-button-confirm-delete-user"
+                                data-user-id={user.id}
                               >
                                 Delete User
                               </AlertDialogAction>

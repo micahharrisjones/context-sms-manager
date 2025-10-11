@@ -84,6 +84,7 @@ export function Layout({ children }: LayoutProps) {
                 onClick={() => setSidebarOpen(true)}
                 className="flex-shrink-0"
                 data-testid="button-open-menu"
+                data-pendo="layout-button-open-menu"
               >
                 <Menu className="h-6 w-6" />
               </Button>
