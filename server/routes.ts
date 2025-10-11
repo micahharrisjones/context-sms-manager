@@ -294,9 +294,9 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
   if (twilioResult.success) {
     const validatedData = twilioResult.data;
 
-    // Log multi-part message info
-    if (validatedData.NumSegments) {
-      log(`Multi-part message detected: ${validatedData.NumSegments} segments`);
+    // Log multi-part message info (Twilio automatically reassembles these)
+    if (validatedData.NumSegments && parseInt(validatedData.NumSegments) > 1) {
+      log(`Multi-part message received: ${validatedData.NumSegments} segments (already reassembled by Twilio)`);
     }
 
     // Verify this is from our Twilio account (optional validation)
