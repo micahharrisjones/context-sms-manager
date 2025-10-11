@@ -2222,7 +2222,8 @@ export async function registerRoutes(app: Express) {
           wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
         }
 
-        // Send SMS notifications to shared board members (excluding the sender)
+        // SMS notifications for shared boards are currently DISABLED
+        /* DISABLED - Send SMS notifications to shared board members (excluding the sender)
         // ENHANCED DEDUPLICATION: Track both boards and individual phone numbers to prevent ALL duplicates
         const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
         const notifiedBoards = new Set<string>(); // Track which boards we've already notified
@@ -2325,6 +2326,7 @@ export async function registerRoutes(app: Express) {
         }
         
         log(`📱 Completed shared board notifications for message ID ${created.id}`);
+        */ // END DISABLED SMS notifications
       }
       
       log("After broadcastNewMessage");
