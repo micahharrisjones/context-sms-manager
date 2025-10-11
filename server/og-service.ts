@@ -145,6 +145,74 @@ class OpenGraphService {
     return ogData;
   }
 
+  // Discover oEmbed endpoint from HTML link tags
+  private discoverOembedEndpoint(html: string): string | null {
+    // Look for oEmbed discovery links (JSON format preferred over XML)
+    const jsonOembedRegex = /<link[^>]*type=["']application\/json\+oembed["'][^>]*href=["']([^"']+)["'][^>]*>/i;
+    const xmlOembedRegex = /<link[^>]*type=["'](?:text\/xml|application\/xml)\+oembed["'][^>]*href=["']([^"']+)["'][^>]*>/i;
+    
+    // Try JSON format first
+    let match = html.match(jsonOembedRegex);
+    if (match) {
+      return match[1];
+    }
+    
+    // Fallback to XML format
+    match = html.match(xmlOembedRegex);
+    if (match) {
+      return match[1];
+    }
+    
+    return null;
+  }
+
+  // Fetch and parse oEmbed data
+  private async fetchOembed(endpoint: string): Promise<OpenGraphData> {
+    const ogData: OpenGraphData = {};
+    
+    try {
+      const response = await fetch(endpoint, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0)',
+          'Accept': 'application/json',
+        },
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
+
+      if (!response.ok) {
+        log(`oEmbed fetch failed: ${response.status} ${response.statusText}`);
+        return ogData;
+      }
+
+      const data = await response.json();
+      
+      // Extract relevant data from oEmbed response
+      if (data.title) {
+        ogData.title = this.decodeHtmlEntities(data.title);
+      }
+      
+      if (data.author_name) {
+        ogData.description = `By ${data.author_name}`;
+      }
+      
+      // oEmbed can provide thumbnail_url or url for images
+      if (data.thumbnail_url) {
+        ogData.image = data.thumbnail_url;
+      } else if (data.url && data.type === 'photo') {
+        ogData.image = data.url;
+      }
+      
+      if (data.provider_name) {
+        ogData.site_name = data.provider_name;
+      }
+      
+    } catch (error) {
+      log('oEmbed fetch error:', error instanceof Error ? error.message : String(error));
+    }
+    
+    return ogData;
+  }
+
   // Extract Open Graph metadata from HTML
   private parseOpenGraph(html: string): OpenGraphData {
     const ogData: OpenGraphData = {};
@@ -339,6 +407,21 @@ class OpenGraphService {
 
       const html = await response.text();
       const ogData = this.parseOpenGraph(html);
+
+      // If we're still missing data, try oEmbed discovery
+      if (!ogData.title || !ogData.description || !ogData.image) {
+        const oembedEndpoint = this.discoverOembedEndpoint(html);
+        if (oembedEndpoint) {
+          log(`Found oEmbed endpoint for ${url}: ${oembedEndpoint}`);
+          const oembedData = await this.fetchOembed(oembedEndpoint);
+          
+          // Merge oEmbed data with existing data (oEmbed fills in gaps)
+          if (!ogData.title && oembedData.title) ogData.title = oembedData.title;
+          if (!ogData.description && oembedData.description) ogData.description = oembedData.description;
+          if (!ogData.image && oembedData.image) ogData.image = oembedData.image;
+          if (!ogData.site_name && oembedData.site_name) ogData.site_name = oembedData.site_name;
+        }
+      }
 
       // Make image URLs absolute
       if (ogData.image) {
