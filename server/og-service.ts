@@ -54,6 +54,97 @@ class OpenGraphService {
     });
   }
 
+  // Extract product data from JSON-LD object (handles deeply nested structures)
+  private extractProductFromJsonLd(data: any, ogData: OpenGraphData, visited = new Set<any>()): void {
+    // Prevent infinite loops in circular references
+    if (!data || typeof data !== 'object' || visited.has(data)) {
+      return;
+    }
+    visited.add(data);
+    
+    // Check if this is a Product
+    const isProduct = data['@type'] === 'Product' || 
+                     (Array.isArray(data['@type']) && data['@type'].includes('Product'));
+    
+    if (isProduct) {
+      if (!ogData.title && data.name) {
+        ogData.title = this.decodeHtmlEntities(data.name);
+      }
+      if (!ogData.description && data.description) {
+        ogData.description = this.decodeHtmlEntities(data.description);
+      }
+      if (!ogData.image && data.image) {
+        // Handle both string and array of images
+        const imageUrl = Array.isArray(data.image) ? data.image[0] : data.image;
+        // Handle both direct URLs and ImageObject with multiple field names
+        if (typeof imageUrl === 'string') {
+          ogData.image = imageUrl;
+        } else if (imageUrl) {
+          ogData.image = imageUrl.url || imageUrl.contentUrl || imageUrl.thumbnailUrl;
+        }
+      }
+      if (!ogData.site_name && data.brand) {
+        ogData.site_name = typeof data.brand === 'string' ? data.brand : data.brand?.name;
+      }
+    }
+    
+    // Look for organization/website info
+    if (!ogData.site_name && (data['@type'] === 'WebSite' || data['@type'] === 'Organization')) {
+      if (data.name) {
+        ogData.site_name = this.decodeHtmlEntities(data.name);
+      }
+    }
+    
+    // Recursively traverse all properties to find nested Product objects
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        const value = data[key];
+        
+        if (Array.isArray(value)) {
+          // Traverse arrays
+          for (const item of value) {
+            this.extractProductFromJsonLd(item, ogData, visited);
+          }
+        } else if (typeof value === 'object' && value !== null) {
+          // Traverse nested objects
+          this.extractProductFromJsonLd(value, ogData, visited);
+        }
+      }
+    }
+  }
+
+  // Parse JSON-LD structured data (used by e-commerce sites like Home Depot)
+  private parseJsonLd(html: string): OpenGraphData {
+    const ogData: OpenGraphData = {};
+    
+    try {
+      // Find all JSON-LD script tags
+      const jsonLdRegex = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+      let match;
+      
+      while ((match = jsonLdRegex.exec(html)) !== null) {
+        try {
+          const jsonData = JSON.parse(match[1]);
+          
+          // Handle both single objects and arrays
+          const dataArray = Array.isArray(jsonData) ? jsonData : [jsonData];
+          
+          for (const data of dataArray) {
+            this.extractProductFromJsonLd(data, ogData);
+          }
+        } catch (parseError) {
+          // Skip invalid JSON-LD blocks
+          continue;
+        }
+      }
+    } catch (error) {
+      // If JSON-LD parsing fails, just return empty data
+      log('JSON-LD parsing error:', error instanceof Error ? error.message : String(error));
+    }
+    
+    return ogData;
+  }
+
   // Extract Open Graph metadata from HTML
   private parseOpenGraph(html: string): OpenGraphData {
     const ogData: OpenGraphData = {};
@@ -111,6 +202,15 @@ class OpenGraphService {
             break;
         }
       }
+    }
+    
+    // Fallback to JSON-LD structured data (for e-commerce sites like Home Depot)
+    if (!ogData.title || !ogData.description || !ogData.image) {
+      const jsonLdData = this.parseJsonLd(html);
+      if (!ogData.title && jsonLdData.title) ogData.title = jsonLdData.title;
+      if (!ogData.description && jsonLdData.description) ogData.description = jsonLdData.description;
+      if (!ogData.image && jsonLdData.image) ogData.image = jsonLdData.image;
+      if (!ogData.site_name && jsonLdData.site_name) ogData.site_name = jsonLdData.site_name;
     }
     
     // Fallback to basic HTML tags
