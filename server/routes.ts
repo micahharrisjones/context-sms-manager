@@ -62,7 +62,7 @@ interface PendingNotification {
   timeoutId: NodeJS.Timeout;
 }
 const pendingNotifications = new Map<string, PendingNotification>(); // key: "boardId:userId"
-const NOTIFICATION_DEBOUNCE_MS = 3000; // 3 seconds - wait for additional messages
+const NOTIFICATION_DEBOUNCE_MS = 10000; // 10 seconds - wait for additional messages
 
 // Normalize phone number to E.164-like format for consistent deduplication
 // This is a simple normalization without validation - just for comparison purposes
@@ -2311,7 +2311,7 @@ export async function registerRoutes(app: Express) {
                     }
                   }, NOTIFICATION_DEBOUNCE_MS);
                   
-                  log(`   ⏱️  Notification will send in ${NOTIFICATION_DEBOUNCE_MS}ms (unless more messages arrive)`);
+                  log(`   ⏱️  Notification will send in ${NOTIFICATION_DEBOUNCE_MS/1000}s (unless more messages arrive)`);
                 } else {
                   log(`   ⏭️  All members of board #${board.name} already notified via other tags, skipping`);
                 }
