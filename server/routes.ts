@@ -65,6 +65,15 @@ interface PendingNotification {
 const pendingNotifications = new Map<string, PendingNotification>(); // key: "boardId:userId"
 const NOTIFICATION_DEBOUNCE_MS = 10000; // 10 seconds - wait for additional messages
 
+// Pending invite signups - track phone numbers waiting for YES confirmation
+interface PendingInviteSignup {
+  phoneNumber: string;
+  inviteCode: string;
+  timestamp: number;
+}
+const pendingInviteSignups = new Map<string, PendingInviteSignup>(); // key: normalized phone number
+const PENDING_SIGNUP_TTL_MS = 3600000; // 1 hour expiry
+
 // Normalize phone number to E.164-like format for consistent deduplication
 // This is a simple normalization without validation - just for comparison purposes
 function normalizePhoneNumber(phoneNumber: string): string {
@@ -323,6 +332,79 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
     
     log(`Message from ${senderId} to Context number ${recipientNumber}`);
     
+    // Check if this is a YES response to invite opt-in
+    const normalizedReply = content.toLowerCase().trim();
+    if (normalizedReply === 'yes') {
+      const normalizedPhone = normalizePhoneNumber(senderId);
+      const pendingSignup = pendingInviteSignups.get(normalizedPhone);
+      
+      if (pendingSignup) {
+        // Check if pending signup hasn't expired (1 hour TTL)
+        if (Date.now() - pendingSignup.timestamp < PENDING_SIGNUP_TTL_MS) {
+          log(`✅ YES confirmation received for invite ${pendingSignup.inviteCode} from ${senderId}`);
+          
+          // Import invite service
+          const { inviteService } = await import("./invite-service");
+          
+          try {
+            // Check if user already exists (idempotency check)
+            const existingUser = await storage.getUserByPhoneNumber(senderId);
+            
+            if (existingUser) {
+              log(`User already exists for ${senderId}, tracking conversion only`);
+              
+              // Still track conversion if not already tracked
+              if (!existingUser.referredBy) {
+                await inviteService.trackConversion(pendingSignup.inviteCode, existingUser.id);
+                log(`Tracked conversion for existing user ${existingUser.id}`);
+              }
+              
+              // Remove from pending signups
+              pendingInviteSignups.delete(normalizedPhone);
+              
+              await twilioService.sendSMS(senderId, "You're already signed up! Start texting to save anything.");
+              return null;
+            }
+            
+            // Create user account
+            const newUser = await storage.createUser({
+              phoneNumber: senderId,
+              displayName: `User ${senderId.slice(-4)}`,
+              firstName: 'User',
+              lastName: senderId.slice(-4),
+              onboardingStep: "welcome_sent",
+              referredBy: pendingSignup.inviteCode,
+              signupMethod: "invite_link"
+            });
+            
+            log(`🎉 Created invite user ${newUser.id} via code ${pendingSignup.inviteCode}`);
+            
+            // Track conversion
+            await inviteService.trackConversion(pendingSignup.inviteCode, newUser.id);
+            
+            // Send welcome message
+            await twilioService.sendWelcomeMessage(senderId, onboardingService);
+            await storage.markOnboardingCompleted(newUser.id);
+            
+            // Remove from pending signups
+            pendingInviteSignups.delete(normalizedPhone);
+            
+            log(`✅ Invite signup completed for ${senderId}`);
+            
+            // Don't save the YES message itself
+            return null;
+          } catch (error) {
+            log(`Error completing invite signup: ${error instanceof Error ? error.message : String(error)}`);
+            await twilioService.sendSMS(senderId, "Sorry, there was an error completing your signup. Please try again later.");
+            return null;
+          }
+        } else {
+          log(`Pending invite signup expired for ${senderId}`);
+          pendingInviteSignups.delete(normalizedPhone);
+        }
+      }
+    }
+    
     // IMPORTANT: For SMS messages sent TO the Context phone number,
     // we need to find which user account this message belongs to.
     // Since we currently have one Twilio number shared across users,
@@ -418,6 +500,39 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
     if (!hasHashtags) {
       // Only check conversational AI if no hashtags are present
       log("No hashtags detected, checking conversational AI...");
+      
+      // Check if this is an invite command first
+      const normalizedContent = content.toLowerCase().trim();
+      if (normalizedContent === 'invite') {
+        log(`🎁 Detected invite command from user ${user.id}`);
+        try {
+          // Import invite service
+          const { inviteService } = await import("./invite-service");
+          
+          // Create a new invite code
+          const invite = await inviteService.createInvite(user.id, 'sms_link');
+          const inviteMessage = inviteService.getInviteMessage(invite.code);
+          
+          // Track invite initiated event (will add Pendo later)
+          log(`Generated invite ${invite.code} for user ${user.id}`);
+          
+          // Send the invite message to the user
+          await twilioService.sendSMS(senderId, `I'll send you the invite message in a separate text. You can copy and paste it to share with your friend!`);
+          
+          // Send the shareable message in a second text
+          setTimeout(async () => {
+            await twilioService.sendSMS(senderId, inviteMessage);
+            log(`Sent invite message to ${senderId}`);
+          }, 500);
+          
+        } catch (error) {
+          log(`Error generating invite: ${error instanceof Error ? error.message : String(error)}`);
+          await twilioService.sendSMS(senderId, "Sorry, there was an error creating your invite link. Please try again.");
+        }
+        
+        // Skip storing this message since it was a command
+        return null;
+      }
       
       // Check if this is a conversational help request first
       const helpRequest = await aiService.handleHelpRequest(content);
@@ -872,6 +987,84 @@ export async function registerRoutes(app: Express) {
       res.status(500).json({ 
         error: "Signup failed", 
         message: "An unexpected error occurred. Please try again." 
+      });
+    }
+  });
+
+  // Invite landing page phone submission endpoint
+  app.post("/api/invite/submit", async (req, res) => {
+    try {
+      const { phoneNumber, inviteCode } = req.body;
+      
+      if (!phoneNumber || !inviteCode) {
+        return res.status(400).json({ 
+          error: "Phone number and invite code are required" 
+        });
+      }
+
+      // Validate phone number format (basic check for digits)
+      const digitsOnly = phoneNumber.replace(/\D/g, '');
+      if (digitsOnly.length < 10 || digitsOnly.length > 11) {
+        return res.status(400).json({ 
+          error: "Please enter a valid 10-digit phone number" 
+        });
+      }
+
+      // Import invite service
+      const { inviteService } = await import("./invite-service");
+      
+      // Validate invite code exists
+      const invite = await inviteService.getInviteByCode(inviteCode);
+      if (!invite) {
+        return res.status(404).json({ 
+          error: "Invalid invite code" 
+        });
+      }
+
+      // Format phone number
+      const formattedNumber = twilioService.formatPhoneNumber(phoneNumber);
+      log(`📱 Invite signup request for ${formattedNumber} using code ${inviteCode}`);
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByPhoneNumber(formattedNumber);
+      if (existingUser) {
+        return res.status(400).json({ 
+          error: "This phone number is already registered" 
+        });
+      }
+
+      // Send opt-in SMS
+      const optInMessage = `Welcome to Aside! Reply YES to confirm and start saving links and ideas by text.
+
+Reply STOP to opt out`;
+
+      const smsSent = await twilioService.sendSMS(formattedNumber, optInMessage);
+      
+      if (!smsSent) {
+        return res.status(500).json({ 
+          error: "Failed to send SMS" 
+        });
+      }
+
+      // Store pending signup for YES confirmation
+      const normalizedPhone = normalizePhoneNumber(formattedNumber);
+      pendingInviteSignups.set(normalizedPhone, {
+        phoneNumber: formattedNumber,
+        inviteCode: inviteCode,
+        timestamp: Date.now()
+      });
+      
+      log(`✅ Sent opt-in SMS to ${formattedNumber} for invite ${inviteCode}`);
+
+      res.json({
+        success: true,
+        message: `Check your phone! We sent a text to ${phoneNumber}. Reply YES to confirm and start using Aside.`
+      });
+
+    } catch (error) {
+      log("Error in invite submission:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ 
+        error: "Signup failed" 
       });
     }
   });

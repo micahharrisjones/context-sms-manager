@@ -12,6 +12,7 @@ import { ProfilePage } from "@/pages/ProfilePage";
 import { NotificationSettingsPage } from "@/pages/NotificationSettingsPage";
 import LoginPage from "@/pages/login";
 import SetupPage from "@/pages/setup";
+import JoinPage from "@/pages/JoinPage";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -62,6 +63,7 @@ function Router() {
       {/* Public routes */}
       <Route path="/login" component={LoginPage} />
       <Route path="/setup" component={SetupPage} />
+      <Route path="/join/:code" component={JoinPage} />
       
       {/* Protected routes */}
       <Layout>
