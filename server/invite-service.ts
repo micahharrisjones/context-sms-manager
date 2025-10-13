@@ -95,10 +95,7 @@ export class InviteService {
    * Get invite URL for a code
    */
   static getInviteUrl(code: string): string {
-    const baseUrl = process.env.REPL_SLUG 
-      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-      : 'https://textaside.app';
-    
+    const baseUrl = 'https://textaside.app';
     return `${baseUrl}/join/${code}`;
   }
 
