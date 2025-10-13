@@ -50,10 +50,7 @@ export class MagicLinkService {
       });
       
       // Construct the URL
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN 
-        ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-        : 'https://textaside.app';
-      
+      const baseUrl = 'https://textaside.app';
       const url = `${baseUrl}/auth/${token}`;
       
       log(`Created magic link for user ${userId}: expires at ${expiresAt.toISOString()}`);
