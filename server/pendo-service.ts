@@ -134,6 +134,66 @@ class PendoServerService {
       }
     );
   }
+
+  async trackInviteCommandSent(
+    phoneNumber: string
+  ): Promise<void> {
+    await this.trackEvent(
+      'Invite Command Sent',
+      phoneNumber,
+      'aside',
+      {
+        method: 'SMS'
+      }
+    );
+  }
+
+  async trackInviteLinkSent(
+    phoneNumber: string,
+    inviteCode: string
+  ): Promise<void> {
+    await this.trackEvent(
+      'Invite Link Sent',
+      phoneNumber,
+      'aside',
+      {
+        inviteCode,
+        method: 'SMS'
+      }
+    );
+  }
+
+  async trackInviteOptInSent(
+    phoneNumber: string,
+    inviteCode: string
+  ): Promise<void> {
+    await this.trackEvent(
+      'Invite Opt-In Sent',
+      phoneNumber,
+      'aside',
+      {
+        inviteCode,
+        method: 'SMS'
+      }
+    );
+  }
+
+  async trackInviteConversionCompleted(
+    phoneNumber: string,
+    inviteCode: string,
+    userId: number
+  ): Promise<void> {
+    await this.trackEvent(
+      'Invite Conversion Completed',
+      phoneNumber,
+      'aside',
+      {
+        inviteCode,
+        userId,
+        signupMethod: 'invite_link'
+      }
+    );
+  }
 }
 
 export const pendoServerService = new PendoServerService();

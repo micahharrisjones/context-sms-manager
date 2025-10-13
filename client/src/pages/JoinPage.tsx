@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle } from "lucide-react";
+import { pendo } from "@/lib/pendo";
 
 export default function JoinPage() {
   const [, params] = useRoute("/join/:code");
@@ -13,6 +14,16 @@ export default function JoinPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
+
+  // Track landing page view
+  useEffect(() => {
+    if (inviteCode) {
+      pendo.track('Invite Landing Viewed', {
+        inviteCode,
+        source: 'invite_link'
+      });
+    }
+  }, [inviteCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +52,13 @@ export default function JoinPage() {
 
       if (data.success) {
         setSubmitted(true);
+        
+        // Track phone number submission
+        pendo.track('Invite Phone Submitted', {
+          inviteCode,
+          phoneNumber: phoneNumber.trim()
+        });
+        
         toast({
           title: "Success!",
           description: data.message || "Check your phone for a confirmation text",

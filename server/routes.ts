@@ -359,6 +359,9 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
                 log(`Tracked conversion for existing user ${existingUser.id}`);
               }
               
+              // Track Pendo conversion completed for existing user
+              await pendoServerService.trackInviteConversionCompleted(senderId, pendingSignup.inviteCode, existingUser.id);
+              
               // Remove from pending signups
               pendingInviteSignups.delete(normalizedPhone);
               
@@ -381,6 +384,9 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
             
             // Track conversion
             await inviteService.trackConversion(pendingSignup.inviteCode, newUser.id);
+            
+            // Track Pendo conversion completed
+            await pendoServerService.trackInviteConversionCompleted(senderId, pendingSignup.inviteCode, newUser.id);
             
             // Send welcome message
             await twilioService.sendWelcomeMessage(senderId, onboardingService);
@@ -509,11 +515,13 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           // Import invite service
           const { inviteService } = await import("./invite-service");
           
+          // Track invite command sent
+          await pendoServerService.trackInviteCommandSent(senderId);
+          
           // Create a new invite code
           const invite = await inviteService.createInvite(user.id, 'sms_link');
           const inviteMessage = inviteService.getInviteMessage(invite.code);
           
-          // Track invite initiated event (will add Pendo later)
           log(`Generated invite ${invite.code} for user ${user.id}`);
           
           // Send the invite message to the user
@@ -521,8 +529,15 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           
           // Send the shareable message in a second text
           setTimeout(async () => {
-            await twilioService.sendSMS(senderId, inviteMessage);
-            log(`Sent invite message to ${senderId}`);
+            twilioService.sendSMS(senderId, inviteMessage)
+              .then(() => {
+                log(`Sent invite message to ${senderId}`);
+                // Track invite link sent
+                pendoServerService.trackInviteLinkSent(senderId, invite.code);
+              })
+              .catch((error) => {
+                log(`Error sending invite link SMS: ${error instanceof Error ? error.message : String(error)}`);
+              });
           }, 500);
           
         } catch (error) {
@@ -1055,6 +1070,9 @@ Reply STOP to opt out`;
       });
       
       log(`✅ Sent opt-in SMS to ${formattedNumber} for invite ${inviteCode}`);
+      
+      // Track opt-in SMS sent
+      await pendoServerService.trackInviteOptInSent(formattedNumber, inviteCode);
 
       res.json({
         success: true,
