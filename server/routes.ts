@@ -15,6 +15,7 @@ import { OnboardingService } from "./onboarding-service";
 import { MagicLinkService } from "./magic-link-service";
 import { pendoServerService } from "./pendo-service";
 import { embeddingService } from "./embedding-service";
+import { microlinkQueue } from "./request-queue";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -2286,7 +2287,8 @@ Reply STOP to opt out`;
         return res.json({ skip: true });
       }
 
-      const ogData = await openGraphService.fetchOpenGraph(url);
+      // Use request queue to limit concurrent Microlink.io API calls (max 3 at a time)
+      const ogData = await microlinkQueue.add(() => openGraphService.fetchOpenGraph(url));
       
       if (!ogData) {
         return res.json({ error: 'Failed to fetch Open Graph data' });
