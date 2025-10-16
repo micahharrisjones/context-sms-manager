@@ -189,8 +189,6 @@ export function MessageCard({ message }: MessageCardProps) {
   const [isLoadingMovie, setIsLoadingMovie] = useState(false);
   const [ogData, setOgData] = useState<OpenGraphData | null>(null);
   const [isLoadingOg, setIsLoadingOg] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
 
   // Use hashtags from database instead of re-extracting from content
   // Format database tags back to hashtag display format (add # prefix)
@@ -286,37 +284,10 @@ export function MessageCard({ message }: MessageCardProps) {
     </Link>
   ));
   
-  // Lazy load previews only when card is visible (Intersection Observer)
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible(true);
-          }
-        });
-      },
-      {
-        rootMargin: '100px', // Start loading 100px before card enters viewport
-        threshold: 0.1
-      }
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
-    return () => {
-      if (cardRef.current) {
-        observer.unobserve(cardRef.current);
-      }
-    };
-  }, []);
-
-  // Fetch movie data from TMDB when IMDB link is detected (only when visible)
+  // Fetch movie data from TMDB when IMDB link is detected
   useEffect(() => {
     async function fetchMovieData() {
-      if (!imdbInfo || !isVisible) {
+      if (!imdbInfo) {
         return;
       }
       
@@ -336,12 +307,13 @@ export function MessageCard({ message }: MessageCardProps) {
     }
 
     fetchMovieData();
-  }, [imdbInfo?.id, isVisible]);
+  }, [imdbInfo?.id]);
 
-  // Fetch Open Graph data for general URLs (only when visible)
+  // Fetch Open Graph data for general URLs
   useEffect(() => {
     async function fetchOpenGraphData() {
-      if (!previewUrl || !isVisible) {
+      if (!previewUrl) {
+        setOgData(null);
         return;
       }
       
@@ -363,11 +335,11 @@ export function MessageCard({ message }: MessageCardProps) {
     }
 
     fetchOpenGraphData();
-  }, [previewUrl, isVisible]);
+  }, [previewUrl]);
 
   return (
     <>
-      <Card ref={cardRef} className="w-full h-fit relative group">
+      <Card className="w-full h-fit relative group">
         {/* Delete button - top right corner */}
         <Button
           variant="ghost"
