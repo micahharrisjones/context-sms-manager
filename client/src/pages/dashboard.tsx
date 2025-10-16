@@ -2,6 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { MessageList } from "@/components/messages/MessageList";
+import type { Message } from "@shared/schema";
 
 interface Tag {
   tag: string;
@@ -27,6 +32,16 @@ const boardCardStyle = "bg-[#fff2ea] shadow-md hover:shadow-lg hover:bg-[#e3cac0
 
 export default function Dashboard() {
   const { profile } = useProfile();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   
   // Get private tags with counts
   const { data: tagsWithCounts, isLoading: tagsLoading, error: tagsError } = useQuery<Tag[]>({
@@ -40,8 +55,19 @@ export default function Dashboard() {
     retry: false,
   });
 
-  // Debug logging - remove after testing
-  // console.log("Dashboard data:", { tagsWithCounts, sharedBoards, tagsLoading, sharedLoading, tagsError, sharedError, profile });
+  // Hybrid search query
+  const { data: searchResults, isLoading: searchLoading } = useQuery<Message[]>({
+    queryKey: ["/api/messages/hybrid-search", debouncedQuery],
+    queryFn: async () => {
+      if (!debouncedQuery.trim()) return [];
+      const response = await fetch(`/api/messages/hybrid-search?q=${encodeURIComponent(debouncedQuery)}`, {
+        credentials: "include"
+      });
+      if (!response.ok) throw new Error("Search failed");
+      return response.json();
+    },
+    enabled: !!debouncedQuery.trim(),
+  });
 
   const isLoading = tagsLoading || sharedLoading;
   
@@ -49,12 +75,6 @@ export default function Dashboard() {
     privateTags: tagsWithCounts || [],
     sharedBoards: sharedBoards || []
   };
-
-  // Generate daily affirmation
-  const { data: affirmation, isLoading: affirmationLoading } = useQuery<{ text: string }>({
-    queryKey: ["/api/affirmation", new Date().toDateString()], // Cache per day
-    staleTime: 1000 * 60 * 60 * 24, // 24 hours
-  });
 
   const firstName = profile?.firstName;
   const allBoards = [
@@ -89,57 +109,95 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Welcome Message */}
-      <div className="text-left py-8">
-        <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-[#263d57]">
-          {firstName ? (
-            <>
-              Hi {firstName}, {affirmation?.text || "welcome to your Context boards."}
-            </>
-          ) : (
-            <>Welcome to your Context boards.</>
-          )}
-        </h1>
+      {/* Search Bar Hero */}
+      <div className="py-8">
+        <div className="max-w-3xl">
+          <h2 className="text-2xl font-light text-[#263d57] mb-4">
+            {firstName ? `Hi ${firstName}, ` : ""}find anything you've saved
+          </h2>
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#263d57]/50" />
+            <Input
+              type="text"
+              placeholder="Search by meaning, not just keywords... (e.g., 'recipes for dinner' or 'that article about AI')"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12 pr-4 py-6 text-lg bg-white border-2 border-[#e3cac0] focus:border-[#b95827] focus:ring-0"
+              data-pendo="input-homescreen-search"
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Divider */}
-      <div className="w-full h-px bg-[#e3cac0]"></div>
-
-      {/* Boards Grid */}
-      {allBoards.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {allBoards.map((board) => (
-            <Link key={`${board.type}-${board.name}`} href={board.href}>
-              <Card className={`cursor-pointer ${boardCardStyle}`}>
-                <CardContent className="p-6 relative flex items-center">
-                  <div className="flex-1 space-y-2">
-                    <h3 className="font-medium text-[#263d57] text-lg">
-                      {board.type === 'private' ? `#${board.name}` : board.name}
-                    </h3>
-                    <div>
-                      <span className="text-sm text-[#263d57]/70">
-                        {board.type === 'private' ? 'Private Board' : 
-                         board.type === 'shared' ? 
-                           (board.role === 'owner' ? 'Shared Board (Owner)' : 'Shared Board') : ''}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Large count number - vertically centered, right-aligned */}
-                  <div className="ml-4">
-                    <span className="text-6xl font-thin text-[#263d57]">
-                      {'count' in board ? board.count : 0}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+      {/* Search Results or Boards Grid */}
+      {debouncedQuery.trim() ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-[#263d57]">
+              {searchLoading ? "Searching..." : `Results for "${debouncedQuery}"`}
+            </h3>
+            {searchResults && searchResults.length > 0 && (
+              <span className="text-sm text-[#263d57]/70">{searchResults.length} found</span>
+            )}
+          </div>
+          <div className="w-full h-px bg-[#e3cac0]"></div>
+          {searchLoading ? (
+            <div className="space-y-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-32 bg-[#263d57]/10 rounded-lg animate-pulse"></div>
+              ))}
+            </div>
+          ) : searchResults && searchResults.length > 0 ? (
+            <MessageList messages={searchResults} isLoading={false} />
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-[#263d57]/70">No results found for "{debouncedQuery}"</p>
+              <p className="text-[#263d57]/50 text-sm mt-2">Try a different search or browse your boards below</p>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <p className="text-[#263d57]/70 text-lg">No boards yet. Start by sending a message with a hashtag!</p>
-          <p className="text-[#263d57]/50 text-sm mt-2">Text +1 (458) 218-8508 with #example to create your first board.</p>
-        </div>
+        <>
+          {/* Divider */}
+          <div className="w-full h-px bg-[#e3cac0]"></div>
+
+          {/* Boards Grid */}
+          {allBoards.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {allBoards.map((board) => (
+                <Link key={`${board.type}-${board.name}`} href={board.href}>
+                  <Card className={`cursor-pointer ${boardCardStyle}`}>
+                    <CardContent className="p-6 relative flex items-center">
+                      <div className="flex-1 space-y-2">
+                        <h3 className="font-medium text-[#263d57] text-lg">
+                          {board.type === 'private' ? `#${board.name}` : board.name}
+                        </h3>
+                        <div>
+                          <span className="text-sm text-[#263d57]/70">
+                            {board.type === 'private' ? 'Private Board' : 
+                             board.type === 'shared' ? 
+                               (board.role === 'owner' ? 'Shared Board (Owner)' : 'Shared Board') : ''}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Large count number - vertically centered, right-aligned */}
+                      <div className="ml-4">
+                        <span className="text-6xl font-thin text-[#263d57]">
+                          {'count' in board ? board.count : 0}
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-[#263d57]/70 text-lg">No boards yet. Start by sending a message with a hashtag!</p>
+              <p className="text-[#263d57]/50 text-sm mt-2">Text +1 (458) 218-8508 with #example to create your first board.</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

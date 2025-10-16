@@ -19,6 +19,8 @@ import {
   type UpdateOnboardingMessage,
   type Invite,
   type InsertInvite,
+  type MessageEmbedding,
+  type InsertMessageEmbedding,
   messages, 
   users, 
   authSessions,
@@ -27,7 +29,8 @@ import {
   boardMemberships,
   notificationPreferences,
   onboardingMessages,
-  invites
+  invites,
+  messageEmbeddings
 } from "@shared/schema";
 import { db } from "./db";
 import { desc, eq, sql, gte, lt, and, inArray, or, like, count, asc } from "drizzle-orm";
@@ -133,6 +136,12 @@ export interface IStorage {
   getInviteByCode(code: string): Promise<Invite | null>;
   incrementInviteConversions(inviteId: number): Promise<void>;
   updateUserReferral(userId: number, inviteCode: string, signupMethod: string): Promise<void>;
+  
+  // Embedding methods for hybrid search
+  saveMessageEmbedding(messageId: number, embedding: number[]): Promise<void>;
+  getMessageEmbedding(messageId: number): Promise<number[] | null>;
+  hybridSearch(userId: number, query: string, queryEmbedding: number[], alpha: number, limit: number): Promise<Message[]>;
+  getAllMessagesWithoutEmbeddings(limit?: number): Promise<Message[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1664,6 +1673,121 @@ export class DatabaseStorage implements IStorage {
       log(`Updated user ${userId} referral info: code=${inviteCode}, method=${signupMethod}`);
     } catch (error) {
       log("Error updating user referral:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  // Embedding methods for hybrid search
+  async saveMessageEmbedding(messageId: number, embedding: number[]): Promise<void> {
+    try {
+      // Format embedding as PostgreSQL vector string
+      const embeddingString = `[${embedding.join(',')}]`;
+      
+      await db
+        .insert(messageEmbeddings)
+        .values({
+          messageId: messageId,
+          embedding: sql`${embeddingString}::vector`
+        })
+        .onConflictDoUpdate({
+          target: messageEmbeddings.messageId,
+          set: { embedding: sql`${embeddingString}::vector` }
+        });
+      
+      log(`Saved embedding for message ${messageId}`);
+    } catch (error) {
+      log(`Error saving embedding for message ${messageId}:`, error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getMessageEmbedding(messageId: number): Promise<number[] | null> {
+    try {
+      const result = await db
+        .select()
+        .from(messageEmbeddings)
+        .where(eq(messageEmbeddings.messageId, messageId))
+        .limit(1);
+      
+      if (result.length === 0) {
+        return null;
+      }
+      
+      // The embedding is stored as a vector type, convert to array
+      return result[0].embedding as unknown as number[];
+    } catch (error) {
+      log(`Error getting embedding for message ${messageId}:`, error instanceof Error ? error.message : String(error));
+      return null;
+    }
+  }
+
+  async hybridSearch(userId: number, query: string, queryEmbedding: number[], alpha: number = 0.7, limit: number = 20): Promise<Message[]> {
+    try {
+      log(`Performing hybrid search for user ${userId} with query: "${query}", alpha: ${alpha}`);
+      
+      // Format query embedding as PostgreSQL vector
+      const embeddingString = `[${queryEmbedding.join(',')}]`;
+      
+      // Hybrid search using BM25 (keyword) + vector similarity
+      // Alpha determines the weight: 0 = pure keyword, 1 = pure semantic
+      // We use alpha=0.7 to lean toward semantic search for conversational queries
+      const results = await db.execute(sql`
+        WITH keyword_scores AS (
+          SELECT 
+            m.id,
+            ts_rank(to_tsvector('english', m.content), plainto_tsquery('english', ${query})) as keyword_score
+          FROM ${messages} m
+          WHERE m.user_id = ${userId}
+            AND to_tsvector('english', m.content) @@ plainto_tsquery('english', ${query})
+        ),
+        vector_scores AS (
+          SELECT 
+            m.id,
+            1 - (me.embedding <=> ${embeddingString}::vector) as vector_score
+          FROM ${messages} m
+          INNER JOIN ${messageEmbeddings} me ON m.id = me.message_id
+          WHERE m.user_id = ${userId}
+          ORDER BY me.embedding <=> ${embeddingString}::vector
+          LIMIT 100
+        ),
+        combined_scores AS (
+          SELECT 
+            COALESCE(ks.id, vs.id) as id,
+            COALESCE(ks.keyword_score, 0) * ${1 - alpha} + COALESCE(vs.vector_score, 0) * ${alpha} as hybrid_score
+          FROM keyword_scores ks
+          FULL OUTER JOIN vector_scores vs ON ks.id = vs.id
+        )
+        SELECT m.*
+        FROM ${messages} m
+        INNER JOIN combined_scores cs ON m.id = cs.id
+        ORDER BY cs.hybrid_score DESC
+        LIMIT ${limit}
+      `);
+      
+      log(`Hybrid search returned ${results.rows.length} results`);
+      return results.rows as Message[];
+    } catch (error) {
+      log(`Error performing hybrid search:`, error instanceof Error ? error.message : String(error));
+      // Fallback to simple keyword search if hybrid fails
+      log("Falling back to keyword search");
+      return this.searchMessages(userId, query);
+    }
+  }
+
+  async getAllMessagesWithoutEmbeddings(limit: number = 1000): Promise<Message[]> {
+    try {
+      const results = await db
+        .select()
+        .from(messages)
+        .leftJoin(messageEmbeddings, eq(messages.id, messageEmbeddings.messageId))
+        .where(sql`${messageEmbeddings.id} IS NULL`)
+        .orderBy(asc(messages.timestamp))
+        .limit(limit);
+      
+      log(`Found ${results.length} messages without embeddings`);
+      return results.map(r => r.messages);
+    } catch (error) {
+      log(`Error getting messages without embeddings:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

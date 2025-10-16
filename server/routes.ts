@@ -14,6 +14,7 @@ import aiService from "./ai-service";
 import { OnboardingService } from "./onboarding-service";
 import { MagicLinkService } from "./magic-link-service";
 import { pendoServerService } from "./pendo-service";
+import { embeddingService } from "./embedding-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -1218,6 +1219,33 @@ Reply STOP to opt out`;
     }
   });
 
+  // Hybrid search endpoint - combines keyword (BM25) + semantic (vector) search
+  app.get("/api/messages/hybrid-search", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const query = req.query.q as string;
+      const alpha = parseFloat(req.query.alpha as string) || 0.7; // Default to 0.7 (lean toward semantic)
+      const limit = parseInt(req.query.limit as string) || 20;
+      
+      if (!query || query.trim().length === 0) {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+      
+      // Generate embedding for the search query
+      const queryEmbedding = await embeddingService.generateEmbedding(query.trim());
+      
+      // Perform hybrid search
+      const messages = await storage.hybridSearch(userId, query.trim(), queryEmbedding, alpha, limit);
+      
+      log(`Hybrid search for "${query}" (alpha=${alpha}) returned ${messages.length} messages for user ${userId}`);
+      res.json(messages);
+    } catch (error) {
+      log(`Error in hybrid search: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to perform hybrid search" });
+    }
+  });
+
+  // Legacy keyword-only search endpoint (kept for backward compatibility)
   app.get("/api/messages/search", requireAuth, async (req, res) => {
     try {
       const userId = req.userId!;
@@ -2404,6 +2432,19 @@ Reply STOP to opt out`;
       log("Creating message in storage");
       const created = await storage.createMessage(message);
       log("Message creation complete");
+      
+      // Generate and save embedding for hybrid search (async, non-blocking)
+      (async () => {
+        try {
+          log(`Generating embedding for message ${created.id}`);
+          const embedding = await embeddingService.generateEmbedding(created.content);
+          await storage.saveMessageEmbedding(created.id, embedding);
+          log(`Embedding saved for message ${created.id}`);
+        } catch (error) {
+          log(`Error generating/saving embedding for message ${created.id}:`, error instanceof Error ? error.message : String(error));
+          // Don't fail the whole request if embedding generation fails
+        }
+      })();
       
       // Track SMS Message Received event in Pendo
       pendoServerService.trackSMSMessageReceived(
