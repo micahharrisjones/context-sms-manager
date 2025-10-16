@@ -74,6 +74,9 @@ function Router() {
           <Route path="/all-texts">
             {() => <ProtectedRoute component={AllTexts} />}
           </Route>
+          <Route path="/tag/:tag">
+            {() => <ProtectedRoute component={AllTexts} />}
+          </Route>
           <Route path="/tag/private/:tag">
             {() => <ProtectedRoute component={AllTexts} />}
           </Route>
