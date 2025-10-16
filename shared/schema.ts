@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, varchar, integer, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, varchar, integer, uniqueIndex, vector } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
@@ -164,6 +164,21 @@ export const invitesRelations = relations(invites, ({ one }) => ({
   }),
 }));
 
+// Message embeddings table - stores vector embeddings for hybrid search
+export const messageEmbeddings = pgTable("message_embeddings", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").references(() => messages.id).notNull().unique(),
+  embedding: vector("embedding", { dimensions: 1536 }).notNull(), // OpenAI text-embedding-3-small uses 1536 dimensions
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const messageEmbeddingsRelations = relations(messageEmbeddings, ({ one }) => ({
+  message: one(messages, {
+    fields: [messageEmbeddings.messageId],
+    references: [messages.id],
+  }),
+}));
+
 // Schema exports
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -237,6 +252,11 @@ export const insertInviteSchema = createInsertSchema(invites).omit({
   createdAt: true,
 });
 
+export const insertMessageEmbeddingSchema = createInsertSchema(messageEmbeddings).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -265,3 +285,5 @@ export type InsertOnboardingMessage = z.infer<typeof insertOnboardingMessageSche
 export type UpdateOnboardingMessage = z.infer<typeof updateOnboardingMessageSchema>;
 export type Invite = typeof invites.$inferSelect;
 export type InsertInvite = z.infer<typeof insertInviteSchema>;
+export type MessageEmbedding = typeof messageEmbeddings.$inferSelect;
+export type InsertMessageEmbedding = z.infer<typeof insertMessageEmbeddingSchema>;
