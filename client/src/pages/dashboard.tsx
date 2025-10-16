@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { MessageList } from "@/components/messages/MessageList";
 import type { Message } from "@shared/schema";
+import { pendo } from "@/lib/pendo";
 
 interface Tag {
   tag: string;
@@ -35,13 +36,21 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   
-  // Debounce search query
+  // Debounce search query and track analytics
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (searchQuery.trim() && searchQuery !== debouncedQuery) {
+        // Track search query
+        pendo.track("Hybrid_Search_Query_Submitted", {
+          query: searchQuery,
+          queryLength: searchQuery.length,
+          source: "homescreen",
+        });
+      }
       setDebouncedQuery(searchQuery);
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, debouncedQuery]);
   
   // Get private tags with counts
   const { data: tagsWithCounts, isLoading: tagsLoading, error: tagsError } = useQuery<Tag[]>({
@@ -68,6 +77,18 @@ export default function Dashboard() {
     },
     enabled: !!debouncedQuery.trim(),
   });
+
+  // Track search results analytics
+  useEffect(() => {
+    if (searchResults && debouncedQuery.trim()) {
+      pendo.track("Hybrid_Search_Results_Displayed", {
+        query: debouncedQuery,
+        resultsCount: searchResults.length,
+        hasResults: searchResults.length > 0,
+        source: "homescreen",
+      });
+    }
+  }, [searchResults, debouncedQuery]);
 
   const isLoading = tagsLoading || sharedLoading;
   
