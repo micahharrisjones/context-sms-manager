@@ -582,8 +582,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
         log(`🔍 Detected search query from user ${user.id}: "${content}"`);
         try {
           // Track SMS search query
-          await pendoServerService.track('SMS_Search_Query_Submitted', {
-            phoneNumber: senderId,
+          await pendoServerService.trackEvent('SMS_Search_Query_Submitted', senderId, 'aside', {
             query: content,
             queryLength: content.length,
           });
@@ -601,8 +600,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           log(`SMS search returned ${searchResults.length} results for "${content}"`);
           
           // Track search results
-          await pendoServerService.track('SMS_Search_Results_Returned', {
-            phoneNumber: senderId,
+          await pendoServerService.trackEvent('SMS_Search_Results_Returned', senderId, 'aside', {
             query: content,
             resultsCount: searchResults.length,
             hasResults: searchResults.length > 0,
