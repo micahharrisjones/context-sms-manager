@@ -141,6 +141,28 @@ export function AdminPage() {
     }
   });
 
+  // Batch embedding generation mutation
+  const batchEmbedMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('/api/admin/batch-embed', {
+        method: 'POST'
+      });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Embeddings generated",
+        description: `Successfully generated embeddings for ${data.processed} messages (${data.errors} errors)`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Embedding generation failed",
+        description: error.message || "Failed to generate embeddings",
+        variant: "destructive"
+      });
+    }
+  });
+
 
 
   const handleDeleteUser = (userId: number) => {
@@ -272,6 +294,32 @@ export function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Search Embeddings Card */}
+      <Card className="bg-[#fff2ea] border-[#e3cac0]">
+        <CardHeader>
+          <CardTitle>Search Feature Setup</CardTitle>
+          <CardDescription>
+            Generate vector embeddings for existing messages to enable semantic search. This only needs to be run once.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={() => batchEmbedMutation.mutate()}
+            disabled={batchEmbedMutation.isPending}
+            className="bg-[#b95827] hover:bg-[#a04d1f] text-white"
+            data-pendo="admin-button-generate-embeddings"
+          >
+            <Database className="h-4 w-4 mr-2" />
+            {batchEmbedMutation.isPending ? "Generating Embeddings..." : "Generate Search Embeddings"}
+          </Button>
+          {batchEmbedMutation.isPending && (
+            <p className="text-sm text-[#263d57]/70 mt-2">
+              This may take a few minutes depending on message count...
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* User Management */}
       <Card>

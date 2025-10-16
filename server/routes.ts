@@ -2791,6 +2791,72 @@ Reply STOP to opt out`;
     log("Exiting handleWebhook function");
   };
 
+  // Admin endpoint to generate embeddings for all existing messages
+  app.post('/api/admin/batch-embed', requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const userIsAdmin = await isUserAdmin(userId);
+      
+      if (!userIsAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+      
+      log('Starting batch embedding generation...');
+      
+      // Get all messages without embeddings
+      const messages = await storage.getAllMessagesWithoutEmbeddings(1000);
+      log(`Found ${messages.length} messages without embeddings`);
+      
+      if (messages.length === 0) {
+        return res.json({ success: true, message: 'All messages already have embeddings!', processed: 0 });
+      }
+      
+      // Process in batches of 10
+      const BATCH_SIZE = 10;
+      let processed = 0;
+      let errors = 0;
+      
+      for (let i = 0; i < messages.length; i += BATCH_SIZE) {
+        const batch = messages.slice(i, i + BATCH_SIZE);
+        const texts = batch.map(m => m.content).filter(content => content && content.trim().length > 0);
+        
+        try {
+          const embeddings = await embeddingService.generateEmbeddingsBatch(texts);
+          
+          await Promise.all(
+            batch.map(async (message, idx) => {
+              try {
+                await storage.saveMessageEmbedding(message.id, embeddings[idx]);
+                processed++;
+              } catch (error) {
+                errors++;
+                log(`Failed to save embedding for message ${message.id}:`, error instanceof Error ? error.message : String(error));
+              }
+            })
+          );
+        } catch (error) {
+          errors += batch.length;
+          log(`Failed to generate embeddings for batch:`, error instanceof Error ? error.message : String(error));
+        }
+        
+        // Small delay to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      log(`Batch embedding complete: ${processed} processed, ${errors} errors`);
+      res.json({ 
+        success: true, 
+        message: 'Batch embedding complete', 
+        processed, 
+        errors,
+        total: messages.length
+      });
+    } catch (error) {
+      log('Error in batch-embed endpoint:', error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: 'Failed to generate batch embeddings' });
+    }
+  });
+
   // Test endpoint to send welcome message
   app.post('/api/test-welcome', async (req, res) => {
     try {
