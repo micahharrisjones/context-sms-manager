@@ -99,6 +99,75 @@ function normalizePhoneNumber(phoneNumber: string): string {
   return `+${digitsOnly}`;
 }
 
+// Detect if a message is a search query
+function isSearchQuery(content: string): boolean {
+  const lower = content.toLowerCase().trim();
+  
+  // Has question mark anywhere in the message
+  if (content.includes('?')) {
+    return true;
+  }
+  
+  // Starts with common question words
+  const questionStarters = [
+    'do i have',
+    'did i save',
+    'where is',
+    'where\'s',
+    'find',
+    'search',
+    'show me',
+    'what',
+    'when',
+    'who',
+    'why',
+    'how',
+    'can you find',
+    'look for',
+    'any',
+    'is there'
+  ];
+  
+  return questionStarters.some(starter => lower.startsWith(starter));
+}
+
+// Format search results for SMS response
+function formatSearchResultsForSMS(results: any[], query: string): string {
+  if (results.length === 0) {
+    return `No results found for "${query}". Try a different search or text with #tags to save new content.`;
+  }
+  
+  // Show top 3 results
+  const topResults = results.slice(0, 3);
+  let response = `Found ${results.length} result${results.length !== 1 ? 's' : ''} for "${query}":\n\n`;
+  
+  topResults.forEach((msg, index) => {
+    // Extract title from content (first 60 chars or until newline)
+    let title = msg.content.split('\n')[0].substring(0, 60);
+    if (msg.content.length > 60) title += '...';
+    
+    // Extract URL if present
+    const urlMatch = msg.content.match(/(https?:\/\/[^\s]+)/);
+    const hasUrl = !!urlMatch;
+    
+    // Format: "1. Title (has link)" or "1. Title"
+    response += `${index + 1}. ${title}`;
+    if (hasUrl) {
+      response += ` - ${urlMatch[0]}`;
+    }
+    if (msg.tags && msg.tags.length > 0 && !msg.tags.includes('untagged')) {
+      response += ` #${msg.tags[0]}`;
+    }
+    response += '\n\n';
+  });
+  
+  if (results.length > 3) {
+    response += `...and ${results.length - 3} more. View all at textaside.app`;
+  }
+  
+  return response.trim();
+}
+
 // Function to check and record SMS notification attempts
 // Uses phone number + message hash for deduplication (one notification per user per message)
 function shouldSendNotification(phoneNumber: string, boardId: number, messageContent: string): boolean {
@@ -508,7 +577,53 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       // Only check conversational AI if no hashtags are present
       log("No hashtags detected, checking conversational AI...");
       
-      // Check if this is an invite command first
+      // Check if this is a search query first
+      if (isSearchQuery(content)) {
+        log(`🔍 Detected search query from user ${user.id}: "${content}"`);
+        try {
+          // Track SMS search query
+          await pendoServerService.track('SMS_Search_Query_Submitted', {
+            phoneNumber: senderId,
+            query: content,
+            queryLength: content.length,
+          });
+          
+          // Generate embedding for search query
+          const queryEmbedding = await embeddingService.generateEmbedding(content);
+          
+          if (!queryEmbedding) {
+            throw new Error('Failed to generate query embedding');
+          }
+          
+          // Perform hybrid search
+          const searchResults = await storage.hybridSearch(user.id, content, queryEmbedding, 0.7, 10);
+          
+          log(`SMS search returned ${searchResults.length} results for "${content}"`);
+          
+          // Track search results
+          await pendoServerService.track('SMS_Search_Results_Returned', {
+            phoneNumber: senderId,
+            query: content,
+            resultsCount: searchResults.length,
+            hasResults: searchResults.length > 0,
+          });
+          
+          // Format and send results
+          const formattedResults = formatSearchResultsForSMS(searchResults, content);
+          await twilioService.sendSMS(senderId, formattedResults);
+          
+          log(`Sent SMS search results to ${senderId}`);
+          
+          // Skip storing this message since it was a search query
+          return null;
+        } catch (error) {
+          log(`Error processing SMS search: ${error instanceof Error ? error.message : String(error)}`);
+          await twilioService.sendSMS(senderId, "Sorry, I couldn't search your messages right now. Please try again later.");
+          return null;
+        }
+      }
+      
+      // Check if this is an invite command
       const normalizedContent = content.toLowerCase().trim();
       if (normalizedContent === 'invite') {
         log(`🎁 Detected invite command from user ${user.id}`);
