@@ -5,7 +5,7 @@ import { format } from "date-fns";
 import { Link } from "wouter";
 import { X, Edit, ExternalLink, User, MessageSquare } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DeleteMessageModal } from "./DeleteMessageModal";
 import { EditMessageModal } from "./EditMessageModal";
 
@@ -189,6 +189,8 @@ export function MessageCard({ message }: MessageCardProps) {
   const [isLoadingMovie, setIsLoadingMovie] = useState(false);
   const [ogData, setOgData] = useState<OpenGraphData | null>(null);
   const [isLoadingOg, setIsLoadingOg] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   // Use hashtags from database instead of re-extracting from content
   // Format database tags back to hashtag display format (add # prefix)
@@ -284,12 +286,37 @@ export function MessageCard({ message }: MessageCardProps) {
     </Link>
   ));
   
+  // Lazy load previews only when card is visible (Intersection Observer)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+          }
+        });
+      },
+      {
+        rootMargin: '100px', // Start loading 100px before card enters viewport
+        threshold: 0.1
+      }
+    );
 
-  // Fetch movie data from TMDB when IMDB link is detected
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => {
+      if (cardRef.current) {
+        observer.unobserve(cardRef.current);
+      }
+    };
+  }, []);
+
+  // Fetch movie data from TMDB when IMDB link is detected (only when visible)
   useEffect(() => {
     async function fetchMovieData() {
-      if (!imdbInfo) {
-        setMovieData(null);
+      if (!imdbInfo || !isVisible) {
         return;
       }
       
@@ -309,13 +336,12 @@ export function MessageCard({ message }: MessageCardProps) {
     }
 
     fetchMovieData();
-  }, [imdbInfo?.id]);
+  }, [imdbInfo?.id, isVisible]);
 
-  // Fetch Open Graph data for general URLs
+  // Fetch Open Graph data for general URLs (only when visible)
   useEffect(() => {
     async function fetchOpenGraphData() {
-      if (!previewUrl) {
-        setOgData(null);
+      if (!previewUrl || !isVisible) {
         return;
       }
       
@@ -337,11 +363,11 @@ export function MessageCard({ message }: MessageCardProps) {
     }
 
     fetchOpenGraphData();
-  }, [previewUrl]);
+  }, [previewUrl, isVisible]);
 
   return (
     <>
-      <Card className="w-full h-fit relative group">
+      <Card ref={cardRef} className="w-full h-fit relative group">
         {/* Delete button - top right corner */}
         <Button
           variant="ghost"
