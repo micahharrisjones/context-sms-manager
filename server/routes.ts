@@ -1347,6 +1347,11 @@ Reply STOP to opt out`;
       // Generate embedding for the search query
       const queryEmbedding = await embeddingService.generateEmbedding(query.trim());
       
+      if (!queryEmbedding || queryEmbedding.length === 0) {
+        log(`Failed to generate embedding for query: "${query}"`);
+        throw new Error('Failed to generate query embedding');
+      }
+      
       // Perform hybrid search
       const messages = await storage.hybridSearch(userId, query.trim(), queryEmbedding, alpha, limit);
       
