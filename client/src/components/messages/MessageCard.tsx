@@ -280,19 +280,16 @@ export function MessageCard({ message }: MessageCardProps) {
     
     // Return whitespace as-is
     return part;
-  }).filter(part => part !== null); // Remove null entries (hidden URLs)
+  }).filter(part => part !== null && part !== undefined); // Remove null/undefined entries (hidden URLs)
   
-  // DEBUG: Log rendering decisions for search results debugging
-  if (message.tags.some(tag => tag === 'gifts')) {
-    console.log(`[DEBUG MessageCard #${message.id}]`, {
-      originalContent: message.content,
-      contentWithoutHashtags,
-      formattedContentLength: formattedContent.length,
-      formattedContent: formattedContent,
-      hasDisplayableContent: formattedContent.some(part => typeof part !== 'string' || part.trim().length > 0),
-      hashtags: message.tags
-    });
-  }
+  // Check if there's actual displayable content (not just whitespace or empty React arrays)
+  const hasDisplayableContent = formattedContent.length > 0 && formattedContent.some(part => {
+    if (typeof part === 'string') {
+      return part.trim().length > 0;
+    }
+    // For React elements, they should be truthy and not null/undefined
+    return part != null;
+  });
   
   // Format hashtags for display at bottom
   const formattedHashtags = hashtags.map((hashtag, i) => (
@@ -454,7 +451,7 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         {/* Message text - Show after embeds, with hashtags and URLs removed */}
-        {formattedContent.some(part => typeof part !== 'string' || part.trim().length > 0) && (
+        {hasDisplayableContent && (
           <>
             {/* Check if this is a plain text message (no rich embeds) */}
             {!instagramPostId && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
