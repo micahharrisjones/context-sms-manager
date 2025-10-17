@@ -82,7 +82,7 @@ export function DeleteTagModal({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
-      <AlertDialogContent className="bg-[#fff2ea] border-[#e3cac0]">
+      <AlertDialogContent className="bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-delete-tag">
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Tag #{tag}</AlertDialogTitle>
           <AlertDialogDescription className="space-y-2">
@@ -102,14 +102,14 @@ export function DeleteTagModal({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={deleteTagMutation.isPending} data-pendo="button-cancel-delete-tag">
+          <AlertDialogCancel disabled={deleteTagMutation.isPending} data-pendo="modal-cancel-btn">
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={deleteTagMutation.isPending}
             className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-            data-pendo="button-confirm-delete-tag"
+            data-pendo="modal-delete-confirm-btn"
             data-tag-name={tag}
           >
             {deleteTagMutation.isPending ? "Deleting..." : "Delete Tag"}

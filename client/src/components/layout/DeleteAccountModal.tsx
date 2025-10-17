@@ -75,7 +75,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px] bg-[#fff2ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-[425px] bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-delete-account">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-red-600">
             <AlertTriangle className="h-5 w-5" />
@@ -122,7 +122,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
               onClick={handleClose}
               disabled={deleteAccountMutation.isPending}
               className="border-[#e3cac0] hover:bg-[#e3cac0]/30"
-              data-pendo="button-cancel-delete-account"
+              data-pendo="modal-cancel-btn"
             >
               Cancel
             </Button>
@@ -131,7 +131,7 @@ export function DeleteAccountModal({ isOpen, onClose }: DeleteAccountModalProps)
               variant="destructive"
               disabled={confirmation !== "DELETE" || deleteAccountMutation.isPending}
               className="bg-red-600 hover:bg-red-700"
-              data-pendo="button-confirm-delete-account"
+              data-pendo="modal-delete-confirm-btn"
             >
               {deleteAccountMutation.isPending ? "Deleting..." : "Delete Account"}
             </Button>
