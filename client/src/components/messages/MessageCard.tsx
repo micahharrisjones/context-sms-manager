@@ -347,7 +347,7 @@ export function MessageCard({ message }: MessageCardProps) {
           onClick={() => setShowDeleteModal(true)}
           className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600 z-10"
           aria-label="Delete message"
-          data-pendo={`button-delete-message-${message.id}`}
+          data-pendo="content-delete-btn"
           data-message-id={message.id}
         >
           <X className="h-3 w-3" />
@@ -363,6 +363,7 @@ export function MessageCard({ message }: MessageCardProps) {
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="block"
+                data-pendo="content-external-link-btn"
               >
                 {ogData.image && (
                   <div className="aspect-video w-full bg-[#263d57]/10 overflow-hidden">
@@ -410,6 +411,7 @@ export function MessageCard({ message }: MessageCardProps) {
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:underline text-sm break-all block p-3 shadow-md rounded-lg bg-[#263d57]/5 hover:bg-[#263d57]/10 transition-colors"
+              data-pendo="content-external-link-btn"
             >
               {previewUrl}
             </a>
@@ -611,7 +613,7 @@ export function MessageCard({ message }: MessageCardProps) {
               onClick={() => setShowEditModal(true)}
               className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
               aria-label="Edit message"
-              data-pendo={`button-edit-message-${message.id}`}
+              data-pendo="content-edit-btn"
               data-message-id={message.id}
             >
               <Edit className="h-3 w-3" />
