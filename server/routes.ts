@@ -650,8 +650,9 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
         }
       }
       
-      // Check if this is a search query
-      if (isSearchQuery(content)) {
+      // Check if this is a search query (but ONLY if no hashtags present)
+      // Messages with hashtags should ALWAYS be saved, never treated as search
+      if (!hasHashtags && isSearchQuery(content)) {
         log(`🔍 Detected search query from user ${user.id}: "${content}"`);
         try {
           // Track SMS search query
