@@ -97,20 +97,9 @@ class PendoService {
     });
   }
 
-  private createPendoOptions(user?: any): PendoOptions {
+  private createPendoOptions(user: any): PendoOptions {
     if (!user) {
-      // Anonymous visitor for initial initialization
-      return {
-        visitor: {
-          id: 'anonymous-' + Date.now(),
-        },
-        account: {
-          id: 'aside',
-          accountName: 'Aside',
-          payingStatus: 'trial',
-          planType: 'anonymous',
-        }
-      };
+      throw new Error('Pendo cannot be initialized without a user. User must be authenticated first.');
     }
 
     // Use phone number in E.164 format (+1XXXXXXXXXX) as visitor ID
@@ -149,14 +138,19 @@ class PendoService {
     };
   }
 
-  public async initialize(user?: any): Promise<boolean> {
+  public async initialize(user: any): Promise<boolean> {
+    if (!user) {
+      console.warn('Pendo initialization skipped: user is required');
+      return false;
+    }
+    
     // Prevent multiple simultaneous initializations
     if (this.initializationPromise) {
       return this.initializationPromise.then(() => this.initialized);
     }
     
     // If already initialized with same user, just identify
-    if (this.initialized && user && this.currentUser?.id === user.id) {
+    if (this.initialized && this.currentUser?.id === user.id) {
       return this.identifyUser(user);
     }
     
@@ -164,7 +158,7 @@ class PendoService {
     return this.initializationPromise.then(() => this.initialized);
   }
   
-  private async performInitialization(user?: any): Promise<void> {
+  private async performInitialization(user: any): Promise<void> {
     try {
       const pendoReady = await this.waitForPendo();
       
@@ -178,12 +172,12 @@ class PendoService {
       if (this.initialized) {
         // If already initialized but with different user, identify the new user
         window.pendo.identify(pendoOptions);
-        console.log('Pendo user switched to:', user ? user.id : 'anonymous');
+        console.log('Pendo user switched to:', user.phoneNumber || user.id);
       } else {
         // First time initialization
         window.pendo.initialize(pendoOptions);
         this.initialized = true;
-        console.log('Pendo initialized for user:', user ? user.id : 'anonymous');
+        console.log('Pendo initialized for user:', user.phoneNumber || user.id);
       }
       
       this.currentUser = user;
