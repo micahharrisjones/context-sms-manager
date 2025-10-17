@@ -138,35 +138,25 @@ function formatSearchResultsForSMS(results: any[], query: string): string {
     return `No results found for "${query}". Try a different search or text with #tags to save new content.`;
   }
   
-  // Show top 3 results
-  const topResults = results.slice(0, 3);
-  let response = `Found ${results.length} result${results.length !== 1 ? 's' : ''} for "${query}":\n\n`;
+  // Show only the top result
+  const topResult = results[0];
   
-  topResults.forEach((msg, index) => {
-    // Extract title from content (first 60 chars or until newline)
-    let title = msg.content.split('\n')[0].substring(0, 60);
-    if (msg.content.length > 60) title += '...';
-    
-    // Extract URL if present
-    const urlMatch = msg.content.match(/(https?:\/\/[^\s]+)/);
-    const hasUrl = !!urlMatch;
-    
-    // Format: "1. Title (has link)" or "1. Title"
-    response += `${index + 1}. ${title}`;
-    if (hasUrl) {
-      response += ` - ${urlMatch[0]}`;
-    }
-    if (msg.tags && msg.tags.length > 0 && !msg.tags.includes('untagged')) {
-      response += ` #${msg.tags[0]}`;
-    }
-    response += '\n\n';
-  });
+  // Extract title from content (first 60 chars or until newline)
+  let title = topResult.content.split('\n')[0].substring(0, 60);
+  if (topResult.content.length > 60) title += '...';
   
-  if (results.length > 3) {
-    response += `...and ${results.length - 3} more. View all at textaside.app`;
+  // Extract URL if present
+  const urlMatch = topResult.content.match(/(https?:\/\/[^\s]+)/);
+  
+  let response = `Found "${query}":\n\n${title}`;
+  if (urlMatch) {
+    response += `\n${urlMatch[0]}`;
   }
   
-  return response.trim();
+  // Add link to view all results in Aside
+  response += `\n\nView all in Aside: https://textaside.app`;
+  
+  return response;
 }
 
 // Function to check and record SMS notification attempts
