@@ -111,28 +111,43 @@ function normalizePhoneNumber(phoneNumber: string): string {
 }
 
 // Detect if a message is a search query
+// STRICT DETECTION: Only trigger for very clear search intent to avoid false positives
 function isSearchQuery(content: string): boolean {
   const lower = content.toLowerCase().trim();
   
+  // CRITICAL: Never treat messages with URLs as search queries
+  // URLs indicate the user is saving content, not searching
+  if (content.includes('http://') || content.includes('https://')) {
+    return false;
+  }
+  
   // Only trigger on question mark if it's near the end (within last 10 chars)
-  // This prevents "What a find!" from triggering but allows "did I save this?"
+  // AND the message is asking a question (not just enthusiastic like "What a find!")
   const questionMarkIndex = content.lastIndexOf('?');
   if (questionMarkIndex >= 0 && questionMarkIndex >= content.length - 10) {
-    return true;
+    // Additional check: question must be asking about saved content
+    // Not just general questions or statements
+    const questionWords = ['do i', 'did i', 'where', 'can you', 'have i', 'is there'];
+    if (questionWords.some(word => lower.includes(word))) {
+      return true;
+    }
+    // Otherwise, not a search query even with ?
+    return false;
   }
   
   // Starts with common question words/phrases (must be exact word boundaries)
+  // REDUCED LIST: Only very explicit search commands
   const questionStarters = [
     'do i have',
     'did i save',
     'where is',
-    'where\'s',
-    'find',
+    'where\'s the',
+    'search for',
     'search',
-    'show me',
+    'find my',
     'can you find',
-    'look for',
-    'is there'
+    'look for my',
+    'is there a'
   ];
   
   // Only match if the starter is at the beginning and followed by a space, ?, or end of string
