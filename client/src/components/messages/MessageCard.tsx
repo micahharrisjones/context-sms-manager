@@ -442,7 +442,7 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         {/* Message text - Show after embeds, with hashtags and URLs removed */}
-        {contentWithoutHashtags.trim().length > 0 && (
+        {formattedContent.some(part => typeof part !== 'string' || part.trim().length > 0) && (
           <>
             {/* Check if this is a plain text message (no rich embeds) */}
             {!instagramPostId && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
