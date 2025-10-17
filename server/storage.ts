@@ -1760,7 +1760,7 @@ export class DatabaseStorage implements IStorage {
         SELECT m.*
         FROM ${messages} m
         INNER JOIN combined_scores cs ON m.id = cs.id
-        WHERE cs.hybrid_score > 0.25
+        WHERE cs.hybrid_score > 0.15
         ORDER BY cs.hybrid_score DESC
         LIMIT ${limit}
       `);
