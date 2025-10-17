@@ -76,6 +76,16 @@ interface PendingInviteSignup {
 const pendingInviteSignups = new Map<string, PendingInviteSignup>(); // key: normalized phone number
 const PENDING_SIGNUP_TTL_MS = 3600000; // 1 hour expiry
 
+// Search session tracking - track ongoing search conversations
+interface SearchSession {
+  query: string;
+  results: any[];
+  currentIndex: number;
+  timestamp: number;
+}
+const searchSessions = new Map<string, SearchSession>(); // key: normalized phone number
+const SEARCH_SESSION_TTL_MS = 300000; // 5 minutes expiry
+
 // Normalize phone number to E.164-like format for consistent deduplication
 // This is a simple normalization without validation - just for comparison purposes
 function normalizePhoneNumber(phoneNumber: string): string {
@@ -132,23 +142,58 @@ function isSearchQuery(content: string): boolean {
   return questionStarters.some(starter => lower.startsWith(starter));
 }
 
+// Detect if a message is a negative response to a search result
+function isNegativeResponse(content: string): boolean {
+  const lower = content.toLowerCase().trim();
+  
+  const negativeIndicators = [
+    'no',
+    'nope',
+    'not it',
+    'not that',
+    'not what i',
+    'that\'s not',
+    'thats not',
+    'wrong',
+    'incorrect',
+    'different',
+    'not the one',
+    'not looking for',
+    'try again',
+    'next',
+    'another'
+  ];
+  
+  return negativeIndicators.some(indicator => lower.includes(indicator));
+}
+
 // Format search results for SMS response
-function formatSearchResultsForSMS(results: any[], query: string): string {
+function formatSearchResultsForSMS(results: any[], query: string, isFollowUp: boolean = false, resultIndex: number = 0): string {
   if (results.length === 0) {
     return `No results found for "${query}". Try a different search or text with #tags to save new content.`;
   }
   
-  // Show only the top result
-  const topResult = results[0];
+  // Check if we've exhausted all results
+  if (resultIndex >= results.length) {
+    return `Sorry, I've shown you all the results I found. Try a different search or view all at https://textaside.app`;
+  }
+  
+  // Get the result at the specified index
+  const result = results[resultIndex];
   
   // Extract title from content (first 60 chars or until newline)
-  let title = topResult.content.split('\n')[0].substring(0, 60);
-  if (topResult.content.length > 60) title += '...';
+  let title = result.content.split('\n')[0].substring(0, 60);
+  if (result.content.length > 60) title += '...';
   
   // Extract URL if present
-  const urlMatch = topResult.content.match(/(https?:\/\/[^\s]+)/);
+  const urlMatch = result.content.match(/(https?:\/\/[^\s]+)/);
   
-  let response = `I think I found what you're looking for. Is this it?\n\n${title}`;
+  // Use conversational intro based on whether it's a follow-up
+  const intro = isFollowUp 
+    ? `Oh, sorry. What about this one?\n\n${title}`
+    : `I think I found what you're looking for. Is this it?\n\n${title}`;
+  
+  let response = intro;
   if (urlMatch) {
     response += `\n${urlMatch[0]}`;
   }
@@ -568,7 +613,44 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       // Only check conversational AI if no hashtags are present
       log("No hashtags detected, checking conversational AI...");
       
-      // Check if this is a search query first
+      const normalizedPhone = normalizePhoneNumber(senderId);
+      
+      // Check if this is a negative response to an active search session first
+      const activeSession = searchSessions.get(normalizedPhone);
+      if (activeSession && isNegativeResponse(content)) {
+        log(`🔄 Detected negative response from user ${user.id}, serving next result`);
+        
+        // Clean up expired session
+        const isExpired = Date.now() - activeSession.timestamp > SEARCH_SESSION_TTL_MS;
+        if (isExpired) {
+          searchSessions.delete(normalizedPhone);
+          log(`Search session expired for ${normalizedPhone}`);
+        } else {
+          try {
+            // Increment to next result
+            const nextIndex = activeSession.currentIndex + 1;
+            activeSession.currentIndex = nextIndex;
+            activeSession.timestamp = Date.now(); // Refresh TTL
+            
+            // Format and send next result
+            const formattedResults = formatSearchResultsForSMS(
+              activeSession.results, 
+              activeSession.query, 
+              true, // isFollowUp
+              nextIndex
+            );
+            await twilioService.sendSMS(senderId, formattedResults);
+            
+            log(`Sent follow-up search result ${nextIndex + 1} to ${senderId}`);
+            return null;
+          } catch (error) {
+            log(`Error processing follow-up search: ${error instanceof Error ? error.message : String(error)}`);
+            searchSessions.delete(normalizedPhone); // Clear failed session
+          }
+        }
+      }
+      
+      // Check if this is a search query
       if (isSearchQuery(content)) {
         log(`🔍 Detected search query from user ${user.id}: "${content}"`);
         try {
@@ -595,6 +677,14 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
             query: content,
             resultsCount: searchResults.length,
             hasResults: searchResults.length > 0,
+          });
+          
+          // Store search session for potential follow-ups
+          searchSessions.set(normalizedPhone, {
+            query: content,
+            results: searchResults,
+            currentIndex: 0,
+            timestamp: Date.now()
           });
           
           // Format and send results
