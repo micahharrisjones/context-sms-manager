@@ -1923,6 +1923,18 @@ Reply STOP to opt out`;
     }
   });
 
+  // Admin endpoint to clear Open Graph cache (useful when API key is added/changed)
+  app.post("/api/admin/clear-og-cache", requireAdmin, async (req, res) => {
+    try {
+      openGraphService.clearCache();
+      log('Admin cleared Open Graph cache');
+      res.json({ success: true, message: "Open Graph cache cleared successfully" });
+    } catch (error) {
+      log(`Error clearing OG cache: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to clear cache" });
+    }
+  });
+
   // Admin users endpoint
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {

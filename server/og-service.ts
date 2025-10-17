@@ -25,6 +25,12 @@ class OpenGraphService {
   private readonly FAILURE_CACHE_TTL = 60 * 60 * 1000; // 1 hour for failures
   private readonly MAX_RETRIES = 3;
 
+  // Public method to clear the entire cache (useful when API key is added/changed)
+  clearCache(): void {
+    this.cache.clear();
+    log('Open Graph cache cleared');
+  }
+
   // Decode HTML entities in text content
   private decodeHtmlEntities(text: string): string {
     const entityMap: { [key: string]: string } = {
