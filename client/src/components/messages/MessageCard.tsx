@@ -227,15 +227,24 @@ export function MessageCard({ message }: MessageCardProps) {
   }) || null;
 
   // Check if a URL has a rich preview (social media embed, IMDB, Open Graph)
+  // IMPORTANT: Only hide URL if preview has actually loaded successfully
   const hasRichPreview = (url: string): boolean => {
-    return !!(
-      getInstagramPostId(url) ||
-      getFacebookPostId(url) ||
-      getYouTubeVideoId(url) ||
-      getTikTokVideoId(url) ||
-      getIMDbInfo(url) ||
-      (previewUrl && url === previewUrl)
-    );
+    // Always show social media embeds (Instagram, Facebook, YouTube, TikTok)
+    if (getInstagramPostId(url) || getFacebookPostId(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
+      return true;
+    }
+    
+    // For IMDB, only hide if movie data has loaded
+    if (getIMDbInfo(url) && movieData) {
+      return true;
+    }
+    
+    // For Open Graph, only hide if OG data has loaded successfully
+    if (previewUrl && url === previewUrl && ogData && ogData.title) {
+      return true;
+    }
+    
+    return false;
   };
 
   // Format the content: make URLs clickable and hide URLs with rich previews
