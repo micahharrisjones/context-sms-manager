@@ -103,13 +103,10 @@ function Router() {
 }
 
 function App() {
-  // Initialize Pendo anonymously on app startup
-  useEffect(() => {
-    pendo.initialize().catch((error) => {
-      console.warn('Failed to initialize Pendo anonymously:', error);
-    });
-  }, []);
-
+  // DO NOT initialize Pendo here - it will be initialized after authentication
+  // in useAuth.ts with the user's phone number as visitor ID
+  // This prevents creating anonymous visitors before login
+  
   return (
     <QueryClientProvider client={queryClient}>
       <Router />
