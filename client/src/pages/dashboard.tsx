@@ -216,7 +216,13 @@ export default function Dashboard() {
           {allBoards.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {allBoards.map((board) => (
-                <Link key={`${board.type}-${board.name}`} href={board.href}>
+                <Link 
+                  key={`${board.type}-${board.name}`} 
+                  href={board.href}
+                  data-pendo="dashboard-board-card"
+                  data-board-type={board.type}
+                  data-board-name={board.name}
+                >
                   <Card className={`cursor-pointer ${boardCardStyle}`}>
                     <CardContent className="p-6 relative flex items-center">
                       <div className="flex-1 space-y-2">
