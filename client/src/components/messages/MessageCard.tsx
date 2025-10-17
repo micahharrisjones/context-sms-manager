@@ -13,6 +13,55 @@ interface MessageCardProps {
   message: Message;
 }
 
+// Twitter Embed Component
+function TwitterEmbed({ tweetId, url }: { tweetId: string; url: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Load Twitter widget script if not already loaded
+    if (!(window as any).twttr) {
+      const script = document.createElement('script');
+      script.src = 'https://platform.twitter.com/widgets.js';
+      script.async = true;
+      script.onload = () => {
+        if (containerRef.current && (window as any).twttr) {
+          (window as any).twttr.widgets.createTweet(tweetId, containerRef.current, {
+            theme: 'light',
+            align: 'center'
+          }).then(() => setIsLoading(false));
+        }
+      };
+      document.body.appendChild(script);
+    } else {
+      // Twitter widget already loaded, just create the embed
+      if (containerRef.current) {
+        (window as any).twttr.widgets.createTweet(tweetId, containerRef.current, {
+          theme: 'light',
+          align: 'center'
+        }).then(() => setIsLoading(false));
+      }
+    }
+  }, [tweetId]);
+
+  return (
+    <div className="w-full">
+      <div ref={containerRef} className="flex justify-center"></div>
+      {isLoading && (
+        <div className="w-full">
+          <div className="border border-[#e3cac0] rounded-lg bg-white p-4">
+            <div className="animate-pulse">
+              <div className="w-full h-48 bg-[#263d57]/10 rounded mb-3"></div>
+              <div className="h-4 bg-[#263d57]/10 rounded w-3/4 mb-2"></div>
+              <div className="h-3 bg-[#263d57]/10 rounded w-1/2"></div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function getInstagramPostId(url: string): string | null {
   // Handle posts, reels, and other Instagram content
   const postMatch = url.match(/instagram\.com\/p\/([^/?]+)/);
@@ -207,6 +256,7 @@ export function MessageCard({ message }: MessageCardProps) {
   
   const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
   const facebookPostId = message.content ? getFacebookPostId(message.content) : null;
+  const twitterPostId = message.content ? getTwitterPostId(message.content) : null;
   const youtubeVideoId = message.content ? getYouTubeVideoId(message.content) : null;
   const tiktokVideoId = message.content ? getTikTokVideoId(message.content) : null;
   const imdbInfo = message.content ? getIMDbInfo(message.content) : null;
@@ -219,6 +269,7 @@ export function MessageCard({ message }: MessageCardProps) {
     const hasUrlSpecificEmbed = !!(
       getInstagramPostId(url) ||
       getFacebookPostId(url) ||
+      getTwitterPostId(url) ||
       getYouTubeVideoId(url) ||
       getTikTokVideoId(url) ||
       getIMDbInfo(url)
@@ -229,8 +280,8 @@ export function MessageCard({ message }: MessageCardProps) {
   // Check if a URL has a rich preview (social media embed, IMDB, Open Graph)
   // IMPORTANT: Only hide URL if preview has actually loaded successfully
   const hasRichPreview = (url: string): boolean => {
-    // Always show social media embeds (Instagram, Facebook, YouTube, TikTok)
-    if (getInstagramPostId(url) || getFacebookPostId(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
+    // Always show social media embeds (Instagram, Facebook, Twitter, YouTube, TikTok)
+    if (getInstagramPostId(url) || getFacebookPostId(url) || getTwitterPostId(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
       return true;
     }
     
@@ -454,7 +505,7 @@ export function MessageCard({ message }: MessageCardProps) {
         {hasDisplayableContent && (
           <>
             {/* Check if this is a plain text message (no rich embeds) */}
-            {!instagramPostId && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
+            {!instagramPostId && !facebookPostId && !twitterPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-[#e3cac0] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                   <MessageSquare className="w-4 h-4 text-white" />
@@ -483,6 +534,9 @@ export function MessageCard({ message }: MessageCardProps) {
               scrolling="no"
             />
           </div>
+        )}
+        {twitterPostId && (
+          <TwitterEmbed tweetId={twitterPostId} url={urls.find(url => getTwitterPostId(url)) || ''} />
         )}
         {youtubeVideoId && (
           <div className="w-full">
@@ -593,7 +647,7 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
-        {message.mediaUrl && !instagramPostId && !facebookPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && (
+        {message.mediaUrl && !instagramPostId && !facebookPostId && !twitterPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && (
           <div className="w-full max-w-lg mx-auto">
             {message.mediaType?.startsWith("image/") ? (
               <img
