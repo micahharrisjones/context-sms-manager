@@ -183,7 +183,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-[#fff2ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-[600px] bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-edit-message">
         <DialogHeader>
           <DialogTitle>Edit Message</DialogTitle>
         </DialogHeader>
@@ -268,7 +268,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
             disabled={updateMessageMutation.isPending}
             className="border-[#e3cac0] hover:bg-[#e3cac0]"
             data-testid="button-cancel"
-            data-pendo="button-cancel-edit-message"
+            data-pendo="modal-cancel-btn"
           >
             Cancel
           </Button>
@@ -277,7 +277,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
             disabled={updateMessageMutation.isPending}
             className="bg-[#b95827] hover:bg-[#a04d1f]"
             data-testid="button-update-message"
-            data-pendo="button-submit-edit-message"
+            data-pendo="modal-save-btn"
           >
             {updateMessageMutation.isPending ? "Updating..." : "Update Message"}
           </Button>

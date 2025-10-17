@@ -140,7 +140,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-add-message">
         <DialogHeader>
           <DialogTitle className="text-center">Add to Aside</DialogTitle>
         </DialogHeader>
@@ -221,7 +221,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
               onClick={handleClose}
               disabled={addMessageMutation.isPending}
               className="flex-1"
-              data-pendo="button-cancel-add-message"
+              data-pendo="modal-cancel-btn"
             >
               Cancel
             </Button>
@@ -229,7 +229,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
               type="submit"
               disabled={addMessageMutation.isPending || !content.trim()}
               className="flex-1 bg-[#b95827] hover:bg-[#a04d1f]"
-              data-pendo="button-submit-add-message"
+              data-pendo="modal-save-btn"
             >
               {addMessageMutation.isPending ? "Adding..." : "Add Message"}
             </Button>

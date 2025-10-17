@@ -60,7 +60,7 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" onInteractOutside={(e) => e.preventDefault()} data-pendo="modal-invite-user">
         <DialogHeader>
           <DialogTitle>Invite to #{boardName}</DialogTitle>
         </DialogHeader>
@@ -89,7 +89,7 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
               onClick={handleClose}
               disabled={inviteUserMutation.isPending}
               className="border-[#e3cac0] hover:bg-[#fff2ea]"
-              data-pendo="button-cancel-invite"
+              data-pendo="modal-cancel-btn"
             >
               Cancel
             </Button>
@@ -97,7 +97,7 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
               type="submit"
               disabled={inviteUserMutation.isPending || !phoneNumber.trim()}
               className="bg-[#b95827] hover:bg-[#a04d1f] text-white"
-              data-pendo="button-submit-invite"
+              data-pendo="modal-save-btn"
             >
               {inviteUserMutation.isPending ? "Inviting..." : "Send Invite"}
             </Button>

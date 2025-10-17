@@ -70,7 +70,7 @@ export function CreateSharedBoardModal({ isOpen, onClose }: CreateSharedBoardMod
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-create-shared-board">
         <DialogHeader>
           <DialogTitle>Create Shared Board</DialogTitle>
           <p className="text-sm text-muted-foreground mt-2">
@@ -99,14 +99,14 @@ export function CreateSharedBoardModal({ isOpen, onClose }: CreateSharedBoardMod
               variant="outline" 
               onClick={handleClose}
               disabled={createBoardMutation.isPending}
-              data-pendo="button-cancel-create-shared-board"
+              data-pendo="modal-cancel-btn"
             >
               Cancel
             </Button>
             <Button 
               type="submit"
               disabled={createBoardMutation.isPending || !boardName.trim()}
-              data-pendo="button-submit-create-shared-board"
+              data-pendo="modal-save-btn"
             >
               {createBoardMutation.isPending ? "Creating..." : "Create Board"}
             </Button>

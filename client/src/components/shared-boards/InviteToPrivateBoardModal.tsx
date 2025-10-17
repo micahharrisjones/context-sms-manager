@@ -73,7 +73,7 @@ export function InviteToPrivateBoardModal({ isOpen, onClose, boardName }: Invite
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-invite-to-private-board">
         <DialogHeader>
           <DialogTitle>Convert #{boardName} to Shared Board</DialogTitle>
         </DialogHeader>
@@ -108,12 +108,14 @@ export function InviteToPrivateBoardModal({ isOpen, onClose, boardName }: Invite
                 variant="outline" 
                 onClick={handleClose}
                 disabled={convertAndInviteMutation.isPending}
+                data-pendo="modal-cancel-btn"
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
                 disabled={convertAndInviteMutation.isPending || !phoneNumber.trim()}
+                data-pendo="modal-save-btn"
               >
                 {convertAndInviteMutation.isPending ? "Converting..." : "Convert & Invite"}
               </Button>

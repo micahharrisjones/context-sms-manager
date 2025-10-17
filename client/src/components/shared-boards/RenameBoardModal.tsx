@@ -90,7 +90,7 @@ export function RenameBoardModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]">
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-rename-board">
         <DialogHeader>
           <DialogTitle>
             Rename {boardType === "shared" ? "Shared" : "Private"} Board
@@ -132,6 +132,7 @@ export function RenameBoardModal({
               variant="outline"
               onClick={handleClose}
               className="border-[#e3cac0] hover:bg-[#e3cac0]/20"
+              data-pendo="modal-cancel-btn"
             >
               Cancel
             </Button>
@@ -139,6 +140,7 @@ export function RenameBoardModal({
               type="submit"
               disabled={renameMutation.isPending || !newName.trim()}
               className="bg-primary hover:bg-primary/90"
+              data-pendo="modal-save-btn"
             >
               {renameMutation.isPending ? "Renaming..." : "Rename Board"}
             </Button>

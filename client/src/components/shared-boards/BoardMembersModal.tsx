@@ -71,7 +71,7 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" onInteractOutside={(e) => e.preventDefault()}>
+      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" onInteractOutside={(e) => e.preventDefault()} data-pendo="modal-board-members">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -133,7 +133,7 @@ export function BoardMembersModal({ isOpen, onClose, boardName }: BoardMembersMo
             <Button 
               variant="outline" 
               onClick={onClose}
-              data-pendo="button-close-members-modal"
+              data-pendo="modal-close-btn"
             >
               Close
             </Button>

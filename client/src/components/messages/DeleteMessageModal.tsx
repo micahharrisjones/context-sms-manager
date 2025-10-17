@@ -81,7 +81,7 @@ export function DeleteMessageModal({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
-      <AlertDialogContent>
+      <AlertDialogContent data-pendo="modal-delete-message">
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Message</AlertDialogTitle>
           <AlertDialogDescription className="space-y-2">
@@ -92,14 +92,14 @@ export function DeleteMessageModal({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={deleteMessageMutation.isPending} data-pendo="button-cancel-delete-message">
+          <AlertDialogCancel disabled={deleteMessageMutation.isPending} data-pendo="modal-cancel-btn">
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleDelete}
             disabled={deleteMessageMutation.isPending}
             className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-            data-pendo="button-confirm-delete-message"
+            data-pendo="modal-delete-confirm-btn"
           >
             {deleteMessageMutation.isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
