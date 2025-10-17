@@ -114,37 +114,52 @@ function normalizePhoneNumber(phoneNumber: string): string {
 function isSearchQuery(content: string): boolean {
   const lower = content.toLowerCase().trim();
   
-  // Has question mark anywhere in the message
-  if (content.includes('?')) {
+  // Only trigger on question mark if it's near the end (within last 10 chars)
+  // This prevents "What a find!" from triggering but allows "did I save this?"
+  const questionMarkIndex = content.lastIndexOf('?');
+  if (questionMarkIndex >= 0 && questionMarkIndex >= content.length - 10) {
     return true;
   }
   
-  // Starts with common question words
+  // Starts with common question words/phrases (must be exact word boundaries)
   const questionStarters = [
     'do i have',
     'did i save',
     'where is',
     'where\'s',
-    'find',
-    'search',
+    'find ',      // Note space to prevent "finding" from matching
+    'search ',    // Note space to prevent "searching" from matching
     'show me',
-    'what',
-    'when',
-    'who',
-    'why',
-    'how',
     'can you find',
     'look for',
-    'any',
     'is there'
   ];
   
-  return questionStarters.some(starter => lower.startsWith(starter));
+  // Only match if the starter is at the beginning and followed by a space or end of string
+  return questionStarters.some(starter => {
+    if (lower.startsWith(starter)) {
+      // Make sure it's a complete word/phrase, not part of a longer word
+      const nextChar = lower.charAt(starter.length);
+      return nextChar === '' || nextChar === ' ' || nextChar === '?';
+    }
+    return false;
+  });
 }
 
 // Detect if a message is a negative response to a search result
 function isNegativeResponse(content: string): boolean {
   const lower = content.toLowerCase().trim();
+  
+  // Only consider very short, clear negative responses to avoid false positives
+  // Messages with hashtags or URLs are never negative responses
+  if (content.includes('#') || content.includes('http')) {
+    return false;
+  }
+  
+  // Must be a short message (under 30 chars) to be a negative response
+  if (lower.length > 30) {
+    return false;
+  }
   
   const negativeIndicators = [
     'no',
@@ -158,7 +173,6 @@ function isNegativeResponse(content: string): boolean {
     'incorrect',
     'different',
     'not the one',
-    'not looking for',
     'try again',
     'next',
     'another'
