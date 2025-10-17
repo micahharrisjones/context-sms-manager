@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,12 @@ export default function Dashboard() {
   const { profile } = useProfile();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [visibleResults, setVisibleResults] = useState(3);
+  
+  // Reset visible results when search query changes
+  useEffect(() => {
+    setVisibleResults(3);
+  }, [debouncedQuery]);
   
   // Debounce search query and track analytics
   useEffect(() => {
@@ -169,7 +176,30 @@ export default function Dashboard() {
               ))}
             </div>
           ) : searchResults && searchResults.length > 0 ? (
-            <MessageList messages={searchResults} isLoading={false} />
+            <div className="space-y-6">
+              <MessageList messages={searchResults.slice(0, visibleResults)} isLoading={false} />
+              {searchResults.length > visibleResults && (
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => {
+                      const newCount = visibleResults + 10;
+                      setVisibleResults(newCount);
+                      pendo.track("Search_Load_More_Clicked", {
+                        query: debouncedQuery,
+                        previousCount: visibleResults,
+                        newCount: Math.min(newCount, searchResults.length),
+                        totalResults: searchResults.length,
+                      });
+                    }}
+                    variant="outline"
+                    className="border-[#b95827] text-[#b95827] hover:bg-[#b95827] hover:text-white transition-colors"
+                    data-testid="button-keep-searching"
+                  >
+                    Keep Searching
+                  </Button>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="text-center py-12">
               <p className="text-[#263d57]/70">No results found for "{debouncedQuery}"</p>
