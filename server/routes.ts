@@ -16,6 +16,7 @@ import { MagicLinkService } from "./magic-link-service";
 import { pendoServerService } from "./pendo-service";
 import { embeddingService } from "./embedding-service";
 import { microlinkQueue } from "./request-queue";
+import { asideAIService } from "./aside-ai-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -76,15 +77,17 @@ interface PendingInviteSignup {
 const pendingInviteSignups = new Map<string, PendingInviteSignup>(); // key: normalized phone number
 const PENDING_SIGNUP_TTL_MS = 3600000; // 1 hour expiry
 
-// Search session tracking - track ongoing search conversations
-interface SearchSession {
-  query: string;
-  results: any[];
-  currentIndex: number;
-  timestamp: number;
-}
-const searchSessions = new Map<string, SearchSession>(); // key: normalized phone number
-const SEARCH_SESSION_TTL_MS = 300000; // 5 minutes expiry
+// ========== OLD SEARCH SESSION TRACKING - NO LONGER USED ==========
+// Search now handled by "Hey Aside [query]" - no session tracking needed
+// interface SearchSession {
+//   query: string;
+//   results: any[];
+//   currentIndex: number;
+//   timestamp: number;
+// }
+// const searchSessions = new Map<string, SearchSession>(); // key: normalized phone number
+// const SEARCH_SESSION_TTL_MS = 300000; // 5 minutes expiry
+// ========== END OLD SEARCH SESSION TRACKING ==========
 
 // Normalize phone number to E.164-like format for consistent deduplication
 // This is a simple normalization without validation - just for comparison purposes
@@ -110,6 +113,11 @@ function normalizePhoneNumber(phoneNumber: string): string {
   return `+${digitsOnly}`;
 }
 
+// ========== OLD SEARCH DETECTION LOGIC - REPLACED BY "HEY ASIDE" ==========
+// These functions are no longer used but kept for reference
+// All search now goes through "Hey Aside [query]" pattern
+
+/*
 // Detect if a message is a search query
 // STRICT DETECTION: Only trigger for very clear search intent to avoid false positives
 function isSearchQuery(content: string): boolean {
@@ -232,6 +240,8 @@ function formatSearchResultsForSMS(results: any[], query: string, isFollowUp: bo
   
   return response;
 }
+*/
+// ========== END OLD SEARCH DETECTION LOGIC ==========
 
 // Function to check and record SMS notification attempts
 // Uses phone number + message hash for deduplication (one notification per user per message)
@@ -634,6 +644,50 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       log(`Found existing user account for phone ${senderId}: User ${user.id}`);
     }
 
+    // ========== HEY ASIDE AI TRIGGER ==========
+    // Check for "Hey Aside" trigger FIRST - this takes precedence over everything
+    const heyAsidePattern = /^hey\s+aside\s*/i;
+    if (heyAsidePattern.test(content)) {
+      const query = content.replace(heyAsidePattern, '').trim();
+      log(`🤖 HEY ASIDE detected! Query: "${query}"`);
+      
+      if (!query) {
+        // User just said "Hey Aside" with no query
+        await twilioService.sendSMS(senderId, "Hi! I'm Aside, your AI assistant. Ask me anything about your saved content!\n\nTry:\n• Hey Aside, find my recipes\n• Hey Aside, show me gift ideas\n• Hey Aside, what have I saved about tech?");
+        return null;
+      }
+      
+      try {
+        // Track Hey Aside query
+        await pendoServerService.trackEvent('Hey_Aside_Query_Submitted', senderId, 'aside', {
+          query: query,
+          queryLength: query.length,
+        });
+        
+        // Process with AsideAI service
+        const aiResponse = await asideAIService.processQuery(query, user.id, storage);
+        
+        // Track response
+        await pendoServerService.trackEvent('Hey_Aside_Response_Sent', senderId, 'aside', {
+          query: query,
+          intent: aiResponse.intent,
+          searchPerformed: aiResponse.searchPerformed || false,
+        });
+        
+        // Send AI response
+        await twilioService.sendSMS(senderId, aiResponse.response);
+        log(`Sent Hey Aside response to ${senderId}`);
+        
+        // Don't save the "Hey Aside" query as a message
+        return null;
+      } catch (error) {
+        log(`Error processing Hey Aside query: ${error instanceof Error ? error.message : String(error)}`);
+        await twilioService.sendSMS(senderId, "Sorry, I had trouble with that. Please try again or text with #tags to save content.");
+        return null;
+      }
+    }
+    // ========== END HEY ASIDE AI TRIGGER ==========
+
     // Check for hashtags FIRST - if present, skip conversational AI and proceed to message processing
     const hasHashtags = extractHashtags(content).length > 0;
     log(`🔍 Hashtag pre-screening: message contains hashtags: ${hasHashtags}`);
@@ -642,95 +696,14 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       // Only check conversational AI if no hashtags are present
       log("No hashtags detected, checking conversational AI...");
       
-      const normalizedPhone = normalizePhoneNumber(senderId);
-      
-      // Check if this is a negative response to an active search session first
-      const activeSession = searchSessions.get(normalizedPhone);
-      if (activeSession && isNegativeResponse(content)) {
-        log(`🔄 Detected negative response from user ${user.id}, serving next result`);
-        
-        // Clean up expired session
-        const isExpired = Date.now() - activeSession.timestamp > SEARCH_SESSION_TTL_MS;
-        if (isExpired) {
-          searchSessions.delete(normalizedPhone);
-          log(`Search session expired for ${normalizedPhone}`);
-        } else {
-          try {
-            // Increment to next result
-            const nextIndex = activeSession.currentIndex + 1;
-            activeSession.currentIndex = nextIndex;
-            activeSession.timestamp = Date.now(); // Refresh TTL
-            
-            // Format and send next result
-            const formattedResults = formatSearchResultsForSMS(
-              activeSession.results, 
-              activeSession.query, 
-              true, // isFollowUp
-              nextIndex
-            );
-            await twilioService.sendSMS(senderId, formattedResults);
-            
-            log(`Sent follow-up search result ${nextIndex + 1} to ${senderId}`);
-            return null;
-          } catch (error) {
-            log(`Error processing follow-up search: ${error instanceof Error ? error.message : String(error)}`);
-            searchSessions.delete(normalizedPhone); // Clear failed session
-          }
-        }
-      }
-      
-      // Check if this is a search query (but ONLY if no hashtags present)
-      // Messages with hashtags should ALWAYS be saved, never treated as search
-      if (!hasHashtags && isSearchQuery(content)) {
-        log(`🔍 Detected search query from user ${user.id}: "${content}"`);
-        try {
-          // Track SMS search query
-          await pendoServerService.trackEvent('SMS_Search_Query_Submitted', senderId, 'aside', {
-            query: content,
-            queryLength: content.length,
-          });
-          
-          // Generate embedding for search query
-          const queryEmbedding = await embeddingService.generateEmbedding(content);
-          
-          if (!queryEmbedding) {
-            throw new Error('Failed to generate query embedding');
-          }
-          
-          // Perform hybrid search
-          const searchResults = await storage.hybridSearch(user.id, content, queryEmbedding, 0.7, 10);
-          
-          log(`SMS search returned ${searchResults.length} results for "${content}"`);
-          
-          // Track search results
-          await pendoServerService.trackEvent('SMS_Search_Results_Returned', senderId, 'aside', {
-            query: content,
-            resultsCount: searchResults.length,
-            hasResults: searchResults.length > 0,
-          });
-          
-          // Store search session for potential follow-ups
-          searchSessions.set(normalizedPhone, {
-            query: content,
-            results: searchResults,
-            currentIndex: 0,
-            timestamp: Date.now()
-          });
-          
-          // Format and send results
-          const formattedResults = formatSearchResultsForSMS(searchResults, content);
-          await twilioService.sendSMS(senderId, formattedResults);
-          
-          log(`Sent SMS search results to ${senderId}`);
-          
-          // Skip storing this message since it was a search query
-          return null;
-        } catch (error) {
-          log(`Error processing SMS search: ${error instanceof Error ? error.message : String(error)}`);
-          await twilioService.sendSMS(senderId, "Sorry, I couldn't search your messages right now. Please try again later.");
-          return null;
-        }
-      }
+      // ========== OLD SEARCH SESSION LOGIC - REMOVED ==========
+      // Search now handled by "Hey Aside [query]" pattern
+      // This old detection logic has been removed to prevent false positives
+      // const normalizedPhone = normalizePhoneNumber(senderId);
+      // const activeSession = searchSessions.get(normalizedPhone);
+      // if (activeSession && isNegativeResponse(content)) { ... }
+      // if (!hasHashtags && isSearchQuery(content)) { ... }
+      // ========== END OLD SEARCH SESSION LOGIC ==========
       
       // Check if this is an invite command
       const normalizedContent = content.toLowerCase().trim();
