@@ -127,15 +127,15 @@ function isSearchQuery(content: string): boolean {
     'did i save',
     'where is',
     'where\'s',
-    'find ',      // Note space to prevent "finding" from matching
-    'search ',    // Note space to prevent "searching" from matching
+    'find',
+    'search',
     'show me',
     'can you find',
     'look for',
     'is there'
   ];
   
-  // Only match if the starter is at the beginning and followed by a space or end of string
+  // Only match if the starter is at the beginning and followed by a space, ?, or end of string
   return questionStarters.some(starter => {
     if (lower.startsWith(starter)) {
       // Make sure it's a complete word/phrase, not part of a longer word
