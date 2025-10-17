@@ -107,9 +107,9 @@ export function Sidebar({ onClose }: SidebarProps) {
         </div>
         
         <div className="px-4 pb-4 space-y-2">
-          {tags?.map((tag, index) => (
+          {tags?.map((tag) => (
             <div key={tag}>
-              <Link href={`/tag/private/${tag}`} data-pendo={`link-private-board-item-${index + 1}`} data-board-name={tag}>
+              <Link href={`/tag/private/${tag}`} data-pendo="sidebar-board-link" data-board-type="private" data-board-name={tag}>
                 <Button
                   variant="ghost"
                   className={cn(
@@ -117,7 +117,8 @@ export function Sidebar({ onClose }: SidebarProps) {
                     location === `/tag/private/${tag}` && "bg-[#e3cac0]/30"
                   )}
                   onClick={onClose}
-                  data-pendo={`button-private-board-item-${index + 1}`}
+                  data-pendo="sidebar-board-link"
+                  data-board-type="private"
                   data-board-name={tag}
                 >
                   <Hash className="w-4 h-4 mr-2" />
@@ -149,9 +150,9 @@ export function Sidebar({ onClose }: SidebarProps) {
         </div>
         {sharedBoards && sharedBoards.length > 0 && (
           <div className="px-4 space-y-2">
-            {sharedBoards.map((board, index) => (
+            {sharedBoards.map((board) => (
               <div key={board.id}>
-                <Link href={`/tag/shared/${board.name}`} data-pendo={`link-shared-board-item-${index + 1}`} data-board-id={board.id} data-board-name={board.name}>
+                <Link href={`/tag/shared/${board.name}`} data-pendo="sidebar-board-link" data-board-type="shared" data-board-id={board.id} data-board-name={board.name}>
                   <Button
                     variant="ghost"
                     className={cn(
@@ -159,7 +160,8 @@ export function Sidebar({ onClose }: SidebarProps) {
                       location === `/tag/shared/${board.name}` && "bg-[#e3cac0]/30"
                     )}
                     onClick={onClose}
-                    data-pendo={`button-shared-board-item-${index + 1}`}
+                    data-pendo="sidebar-board-link"
+                    data-board-type="shared"
                     data-board-id={board.id}
                     data-board-name={board.name}
                   >
