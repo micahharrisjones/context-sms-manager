@@ -148,7 +148,7 @@ function formatSearchResultsForSMS(results: any[], query: string): string {
   // Extract URL if present
   const urlMatch = topResult.content.match(/(https?:\/\/[^\s]+)/);
   
-  let response = `Found "${query}":\n\n${title}`;
+  let response = `I think I found what you're looking for. Is this it?\n\n${title}`;
   if (urlMatch) {
     response += `\n${urlMatch[0]}`;
   }
