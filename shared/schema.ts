@@ -167,7 +167,7 @@ export const invitesRelations = relations(invites, ({ one }) => ({
 // Message embeddings table - stores vector embeddings for hybrid search
 export const messageEmbeddings = pgTable("message_embeddings", {
   id: serial("id").primaryKey(),
-  messageId: integer("message_id").references(() => messages.id).notNull().unique(),
+  messageId: integer("message_id").references(() => messages.id, { onDelete: "cascade" }).notNull().unique(),
   embedding: vector("embedding", { dimensions: 1536 }).notNull(), // OpenAI text-embedding-3-small uses 1536 dimensions
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
