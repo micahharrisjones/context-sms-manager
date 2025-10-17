@@ -282,6 +282,18 @@ export function MessageCard({ message }: MessageCardProps) {
     return part;
   }).filter(part => part !== null); // Remove null entries (hidden URLs)
   
+  // DEBUG: Log rendering decisions for search results debugging
+  if (message.tags.some(tag => tag === 'gifts')) {
+    console.log(`[DEBUG MessageCard #${message.id}]`, {
+      originalContent: message.content,
+      contentWithoutHashtags,
+      formattedContentLength: formattedContent.length,
+      formattedContent: formattedContent,
+      hasDisplayableContent: formattedContent.some(part => typeof part !== 'string' || part.trim().length > 0),
+      hashtags: message.tags
+    });
+  }
+  
   // Format hashtags for display at bottom
   const formattedHashtags = hashtags.map((hashtag, i) => (
     <Link
