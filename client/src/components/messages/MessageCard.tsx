@@ -128,6 +128,16 @@ function getRedditPostInfo(url: string): { subreddit: string; postId: string } |
   return null;
 }
 
+// Helper to detect ANY Reddit URL (for hiding URLs that get previews)
+function isRedditUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.includes('reddit.com');
+  } catch {
+    return false;
+  }
+}
+
 function getFacebookPostId(url: string): string | null {
   const match = url.match(/facebook\.com\/.*\/posts\/(\d+)|facebook\.com\/permalink\.php\?story_fbid=(\d+)/);
   return match ? (match[1] || match[2]) : null;
@@ -313,9 +323,17 @@ export function MessageCard({ message }: MessageCardProps) {
   // Check if a URL has a rich preview (social media embed, IMDB, Open Graph)
   // IMPORTANT: Only hide URL if preview has actually loaded successfully
   const hasRichPreview = (url: string): boolean => {
-    // Always show social media embeds (Instagram, Facebook, Twitter, Reddit, YouTube, TikTok)
-    if (getInstagramPostId(url) || getFacebookPostId(url) || getTwitterPostId(url) || getRedditPostInfo(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
+    // Always hide social media embeds (Instagram, Facebook, Twitter, YouTube, TikTok)
+    if (getInstagramPostId(url) || getFacebookPostId(url) || getTwitterPostId(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
       return true;
+    }
+    
+    // For Reddit: Hide if it's an embeddable URL, OR if it's any Reddit URL with OG preview
+    if (getRedditPostInfo(url)) {
+      return true; // Embeddable Reddit URLs (standard comment URLs)
+    }
+    if (isRedditUrl(url) && previewUrl && url === previewUrl && ogData && ogData.title) {
+      return true; // Reddit share URLs with loaded OG preview
     }
     
     // For IMDB, only hide if movie data has loaded
