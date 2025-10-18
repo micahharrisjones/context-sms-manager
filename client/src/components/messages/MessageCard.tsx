@@ -62,6 +62,37 @@ function TwitterEmbed({ tweetId, url }: { tweetId: string; url: string }) {
   );
 }
 
+// Reddit Embed Component
+function RedditEmbed({ subreddit, postId, url }: { subreddit: string; postId: string; url: string }) {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <div className="w-full">
+      <iframe
+        src={`https://embed.reddit.com/r/${subreddit}/comments/${postId}?theme=light`}
+        className="w-full min-h-[500px] rounded-md border-0"
+        loading="lazy"
+        frameBorder="0"
+        scrolling="no"
+        allowFullScreen
+        onLoad={() => setIsLoading(false)}
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+      />
+      {isLoading && (
+        <div className="w-full absolute inset-0">
+          <div className="border border-[#e3cac0] rounded-lg bg-white p-4">
+            <div className="animate-pulse">
+              <div className="w-full h-48 bg-[#263d57]/10 rounded mb-3"></div>
+              <div className="h-4 bg-[#263d57]/10 rounded w-3/4 mb-2"></div>
+              <div className="h-3 bg-[#263d57]/10 rounded w-1/2"></div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function getInstagramPostId(url: string): string | null {
   // Handle posts, reels, and other Instagram content
   const postMatch = url.match(/instagram\.com\/p\/([^/?]+)/);
@@ -257,6 +288,7 @@ export function MessageCard({ message }: MessageCardProps) {
   const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
   const facebookPostId = message.content ? getFacebookPostId(message.content) : null;
   const twitterPostId = message.content ? getTwitterPostId(message.content) : null;
+  const redditPostInfo = message.content ? getRedditPostInfo(message.content) : null;
   const youtubeVideoId = message.content ? getYouTubeVideoId(message.content) : null;
   const tiktokVideoId = message.content ? getTikTokVideoId(message.content) : null;
   const imdbInfo = message.content ? getIMDbInfo(message.content) : null;
@@ -270,6 +302,7 @@ export function MessageCard({ message }: MessageCardProps) {
       getInstagramPostId(url) ||
       getFacebookPostId(url) ||
       getTwitterPostId(url) ||
+      getRedditPostInfo(url) ||
       getYouTubeVideoId(url) ||
       getTikTokVideoId(url) ||
       getIMDbInfo(url)
@@ -280,8 +313,8 @@ export function MessageCard({ message }: MessageCardProps) {
   // Check if a URL has a rich preview (social media embed, IMDB, Open Graph)
   // IMPORTANT: Only hide URL if preview has actually loaded successfully
   const hasRichPreview = (url: string): boolean => {
-    // Always show social media embeds (Instagram, Facebook, Twitter, YouTube, TikTok)
-    if (getInstagramPostId(url) || getFacebookPostId(url) || getTwitterPostId(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
+    // Always show social media embeds (Instagram, Facebook, Twitter, Reddit, YouTube, TikTok)
+    if (getInstagramPostId(url) || getFacebookPostId(url) || getTwitterPostId(url) || getRedditPostInfo(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
       return true;
     }
     
@@ -505,7 +538,7 @@ export function MessageCard({ message }: MessageCardProps) {
         {hasDisplayableContent && (
           <>
             {/* Check if this is a plain text message (no rich embeds) */}
-            {!instagramPostId && !facebookPostId && !twitterPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
+            {!instagramPostId && !facebookPostId && !twitterPostId && !redditPostInfo && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-[#e3cac0] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                   <MessageSquare className="w-4 h-4 text-white" />
@@ -537,6 +570,13 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         {twitterPostId && (
           <TwitterEmbed tweetId={twitterPostId} url={urls.find(url => getTwitterPostId(url)) || ''} />
+        )}
+        {redditPostInfo && (
+          <RedditEmbed 
+            subreddit={redditPostInfo.subreddit} 
+            postId={redditPostInfo.postId} 
+            url={urls.find(url => getRedditPostInfo(url)) || ''} 
+          />
         )}
         {youtubeVideoId && (
           <div className="w-full">
