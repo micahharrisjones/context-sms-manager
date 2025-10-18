@@ -121,9 +121,9 @@ function getRedditPostInfo(url: string): { subreddit: string; postId: string } |
   const oldMatch = url.match(/old\.reddit\.com\/r\/(\w+)\/comments\/([^/?]+)/);
   if (oldMatch) return { subreddit: oldMatch[1], postId: oldMatch[2] };
   
-  // Handle Reddit share URLs like /r/subreddit/s/shareId
-  const shareMatch = url.match(/reddit\.com\/r\/(\w+)\/s\/([^/?]+)/);
-  if (shareMatch) return { subreddit: shareMatch[1], postId: shareMatch[2] };
+  // Note: Share URLs (/r/subreddit/s/shareId) are NOT supported for embeds
+  // because they use a shareId instead of the actual postId required by the embed API.
+  // These will fall back to Open Graph preview instead.
   
   return null;
 }
