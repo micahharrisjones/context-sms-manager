@@ -328,9 +328,12 @@ export function MessageCard({ message }: MessageCardProps) {
       return true;
     }
     
-    // For Reddit: Always hide all Reddit URLs (they will either get an embed or OG preview)
-    if (isRedditUrl(url)) {
-      return true;
+    // For Reddit: Hide embeddable URLs immediately, but wait for OG preview for share URLs
+    if (getRedditPostInfo(url)) {
+      return true; // Embeddable Reddit comment URLs - hide immediately
+    }
+    if (isRedditUrl(url) && previewUrl && url === previewUrl && ogData && ogData.title) {
+      return true; // Reddit share URLs - only hide after OG preview loads
     }
     
     // For IMDB, only hide if movie data has loaded
