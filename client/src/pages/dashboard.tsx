@@ -313,7 +313,7 @@ export default function Dashboard() {
       */}
 
       {/* Page title and sort controls */}
-      <div className="h-[150px] flex flex-col justify-center">
+      <div className="h-[100px] flex flex-col justify-center">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <h2 className="text-2xl font-bold text-[#263d57]">
             All Boards

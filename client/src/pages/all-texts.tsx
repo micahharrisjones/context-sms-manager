@@ -96,7 +96,7 @@ export default function AllTexts() {
   return (
     <div>
       {/* Header with title and controls */}
-      <div className="h-[150px] flex flex-col justify-center mb-6">
+      <div className="h-[100px] flex flex-col justify-center mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold text-[#263d57]">
