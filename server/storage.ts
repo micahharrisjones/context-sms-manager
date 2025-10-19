@@ -86,6 +86,7 @@ export interface IStorage {
   getUsersForSharedBoardNotification(tags: string[]): Promise<number[]>;
   getBoardMembersPhoneNumbers(boardName: string, excludeUserId?: number): Promise<string[]>;
   getSharedBoardsByNameForUser(boardName: string, userId: number): Promise<SharedBoard[]>;
+  getSharedBoardMessageCounts(userId: number): Promise<{ boardName: string; totalCount: number; thisWeekCount: number }[]>;
   
   // Notification preferences management
   getUserNotificationPreferences(userId: number): Promise<NotificationPreference[]>;
@@ -1065,6 +1066,79 @@ export class DatabaseStorage implements IStorage {
       return filteredMessages;
     } catch (error) {
       log("Error fetching shared messages:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getSharedBoardMessageCounts(userId: number): Promise<{ boardName: string; totalCount: number; thisWeekCount: number }[]> {
+    try {
+      log(`Fetching shared board message counts for user ${userId}`);
+      
+      // Get all boards user has access to
+      const userBoards = await db
+        .select({
+          boardId: boardMemberships.boardId,
+          boardName: sharedBoards.name,
+        })
+        .from(boardMemberships)
+        .innerJoin(sharedBoards, eq(boardMemberships.boardId, sharedBoards.id))
+        .where(eq(boardMemberships.userId, userId));
+      
+      if (userBoards.length === 0) {
+        return [];
+      }
+      
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      
+      // For each board, get all member IDs and count messages efficiently
+      const boardCounts = await Promise.all(
+        userBoards.map(async (board) => {
+          // Get all members of this board
+          const boardMembers = await db
+            .select({ userId: boardMemberships.userId })
+            .from(boardMemberships)
+            .where(eq(boardMemberships.boardId, board.boardId));
+          
+          const memberIds = boardMembers.map(m => m.userId);
+          
+          if (memberIds.length === 0) {
+            return { boardName: board.boardName, totalCount: 0, thisWeekCount: 0 };
+          }
+          
+          // Count total messages (excluding hashtag-only messages)
+          const totalResult = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(messages)
+            .where(and(
+              inArray(messages.userId, memberIds),
+              sql`${messages.tags} @> ARRAY[${board.boardName}]`,
+              sql`trim(${messages.content}) != ${`#${board.boardName}`}`
+            ));
+          
+          // Count messages this week (excluding hashtag-only messages)
+          const thisWeekResult = await db
+            .select({ count: sql<number>`count(*)` })
+            .from(messages)
+            .where(and(
+              inArray(messages.userId, memberIds),
+              sql`${messages.tags} @> ARRAY[${board.boardName}]`,
+              sql`trim(${messages.content}) != ${`#${board.boardName}`}`,
+              sql`${messages.timestamp} >= ${oneWeekAgo}`
+            ));
+          
+          return {
+            boardName: board.boardName,
+            totalCount: Number(totalResult[0]?.count || 0),
+            thisWeekCount: Number(thisWeekResult[0]?.count || 0),
+          };
+        })
+      );
+      
+      log(`Retrieved message counts for ${boardCounts.length} shared boards`);
+      return boardCounts;
+    } catch (error) {
+      log("Error fetching shared board message counts:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

@@ -9,6 +9,7 @@ import { RenameBoardModal } from "@/components/shared-boards/RenameBoardModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
 import { BoardMembersModal } from "@/components/shared-boards/BoardMembersModal";
 import { DeleteSharedBoardModal } from "@/components/shared-boards/DeleteSharedBoardModal";
+import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import {
   Select,
   SelectContent,
@@ -338,6 +339,9 @@ export default function Dashboard() {
         {/* Divider */}
         <div className="w-full h-px bg-[#e3cac0] mt-4"></div>
       </div>
+
+      {/* Dashboard Analytics */}
+      <DashboardStats />
 
       {/* Boards Grid */}
       {allBoards.length > 0 ? (

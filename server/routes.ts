@@ -1513,6 +1513,136 @@ Reply STOP to opt out`;
     }
   });
 
+  // Get dashboard analytics
+  app.get("/api/analytics/dashboard", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      
+      // Get all messages for the user
+      const allMessages = await storage.getMessages(userId);
+      
+      // Get all private tags (boards)
+      let privateTags = await storage.getTags(userId);
+      
+      // Filter out admin-only tags if user is not an admin
+      const userIsAdmin = await isUserAdmin(userId);
+      if (!userIsAdmin) {
+        privateTags = privateTags.filter(tag => !isAdminOnlyHashtag(tag));
+      }
+      
+      // Get all shared boards the user is a member of
+      const sharedBoards = await storage.getSharedBoards(userId);
+      
+      // Fetch shared board message counts efficiently (single aggregated query)
+      const sharedBoardCounts = await storage.getSharedBoardMessageCounts(userId);
+      
+      // Total stats
+      const totalSharedMessages = sharedBoardCounts.reduce((sum, board) => sum + board.totalCount, 0);
+      const totalMessages = allMessages.length + totalSharedMessages;
+      const totalBoards = privateTags.length + sharedBoards.length;
+      
+      // Messages this week - aggregate in one pass
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      const privateMessagesThisWeek = allMessages.filter(msg => new Date(msg.timestamp) >= oneWeekAgo).length;
+      const sharedMessagesThisWeek = sharedBoardCounts.reduce((sum, board) => sum + board.thisWeekCount, 0);
+      const messagesThisWeek = privateMessagesThisWeek + sharedMessagesThisWeek;
+      
+      // Count messages per tag in a single pass - O(messages) instead of O(tags * messages)
+      const privateTagCounts = new Map<string, number>();
+      privateTags.forEach(tag => privateTagCounts.set(tag, 0));
+      
+      allMessages.forEach(msg => {
+        msg.tags.forEach(tag => {
+          if (privateTagCounts.has(tag)) {
+            privateTagCounts.set(tag, (privateTagCounts.get(tag) || 0) + 1);
+          }
+        });
+      });
+      
+      // Build board counts array
+      const boardCounts: { name: string; count: number; type: 'private' | 'shared' }[] = [];
+      
+      // Add private tag counts
+      privateTagCounts.forEach((count, tag) => {
+        boardCounts.push({ name: tag, count, type: 'private' });
+      });
+      
+      // Add shared board counts
+      sharedBoardCounts.forEach((board) => {
+        boardCounts.push({ 
+          name: board.boardName, 
+          count: board.totalCount, 
+          type: 'shared' 
+        });
+      });
+      
+      // Sort by count descending
+      boardCounts.sort((a, b) => b.count - a.count);
+      const mostActiveBoard = boardCounts.length > 0 ? boardCounts[0] : null;
+      
+      // Messages over time (last 30 days, daily breakdown) - aggregate in one pass
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const dailyMessages = new Map<string, number>();
+      
+      // Initialize all days with 0
+      for (let i = 0; i < 30; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        dailyMessages.set(dateStr, 0);
+      }
+      
+      // Count private messages per day
+      allMessages
+        .filter(msg => new Date(msg.timestamp) >= thirtyDaysAgo)
+        .forEach(msg => {
+          const dateStr = new Date(msg.timestamp).toISOString().split('T')[0];
+          dailyMessages.set(dateStr, (dailyMessages.get(dateStr) || 0) + 1);
+        });
+      
+      // For shared messages timeline, we need to fetch the actual messages
+      // This is acceptable since we need timestamp data for the chart
+      const sharedBoardMessages = await Promise.all(
+        sharedBoards.map(board => storage.getSharedMessages(userId, board.name))
+      );
+      
+      sharedBoardMessages.forEach(messages => {
+        messages
+          .filter(msg => new Date(msg.timestamp) >= thirtyDaysAgo)
+          .forEach(msg => {
+            const dateStr = new Date(msg.timestamp).toISOString().split('T')[0];
+            dailyMessages.set(dateStr, (dailyMessages.get(dateStr) || 0) + 1);
+          });
+      });
+      
+      // Convert to array and sort by date
+      const messagesOverTime = Array.from(dailyMessages.entries())
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+      
+      // Top boards by message count (top 10)
+      const topBoards = boardCounts.slice(0, 10);
+      
+      const analytics = {
+        totalMessages,
+        totalBoards,
+        messagesThisWeek,
+        mostActiveBoard,
+        messagesOverTime,
+        topBoards,
+      };
+      
+      log(`Retrieved dashboard analytics for user ${userId}: ${totalMessages} messages, ${totalBoards} boards, ${messagesThisWeek} this week`);
+      res.json(analytics);
+    } catch (error) {
+      log(`Error retrieving dashboard analytics: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to retrieve dashboard analytics" });
+    }
+  });
+
   // Check if current user is admin
   app.get("/api/auth/admin-status", requireAuth, async (req, res) => {
     try {
