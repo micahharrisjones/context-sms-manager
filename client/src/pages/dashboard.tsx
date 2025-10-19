@@ -68,70 +68,118 @@ function BoardCard({ board }: BoardCardProps) {
         onClick={handleNavigate}
       >
         <CardContent className="p-6">
-          {/* Folder Icon - Left Aligned */}
-          <div className="mb-2.5">
-            <Folder className="w-7 h-7 text-[#263d57]" />
-          </div>
-          
-          {/* Board Name with Icon */}
-          <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-semibold text-[#263d57] text-base">
-              #{board.name}
-            </h3>
-            {board.type === 'private' ? (
-              <User className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
-            ) : (
-              <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
-            )}
-          </div>
-          
-          {/* Save Count */}
-          <div className="mb-3">
-            <span className="text-sm text-[#263d57]/50">
-              {board.count} {board.count === 1 ? 'save' : 'saves'}
-            </span>
-          </div>
+          {/* Mobile: horizontal layout, Desktop: vertical layout */}
+          <div className="flex md:flex-col gap-4 md:gap-0">
+            {/* Left side content */}
+            <div className="flex-1">
+              {/* Folder Icon - Left Aligned */}
+              <div className="mb-2.5">
+                <Folder className="w-7 h-7 text-[#263d57]" />
+              </div>
+              
+              {/* Board Name with Icon */}
+              <div className="flex items-center gap-2 mb-0.5">
+                <h3 className="font-semibold text-[#263d57] text-base">
+                  #{board.name}
+                </h3>
+                {board.type === 'private' ? (
+                  <User className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
+                ) : (
+                  <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
+                )}
+              </div>
+              
+              {/* Save Count */}
+              <div className="mb-3 md:mb-3">
+                <span className="text-sm text-[#263d57]/50">
+                  {board.count} {board.count === 1 ? 'save' : 'saves'}
+                </span>
+              </div>
 
-          {/* Divider */}
-          <div className="border-t border-[#263d57]/10 mb-3"></div>
+              {/* Horizontal Divider - Desktop only */}
+              <div className="hidden md:block border-t border-[#263d57]/10 mb-3"></div>
 
-          {/* Board Controls */}
-          <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={handleNavigate}
-              className="text-[#263d57] hover:text-[#b95827] transition-colors"
-              data-testid={`button-add-card-${board.name}`}
-              title="Add Card"
-            >
-              <Plus className="w-4 h-4" />
-            </button>
+              {/* Board Controls - Desktop horizontal */}
+              <div className="hidden md:flex items-center gap-4" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={handleNavigate}
+                  className="text-[#263d57] hover:text-[#b95827] transition-colors"
+                  data-testid={`button-add-card-${board.name}`}
+                  title="Add Card"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
 
-            <button
-              onClick={() => setRenameModalOpen(true)}
-              className="text-[#263d57] hover:text-[#b95827] transition-colors"
-              data-testid={`button-rename-${board.name}`}
-              title="Rename"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
+                <button
+                  onClick={() => setRenameModalOpen(true)}
+                  className="text-[#263d57] hover:text-[#b95827] transition-colors"
+                  data-testid={`button-rename-${board.name}`}
+                  title="Rename"
+                >
+                  <Edit className="w-5 h-5" />
+                </button>
 
-            <button
-              onClick={() => setInviteModalOpen(true)}
-              className="text-[#263d57] hover:text-[#b95827] transition-colors"
-              data-testid={`button-invite-${board.name}`}
-              title="Invite"
-            >
-              <UserPlus className="w-4 h-4" />
-            </button>
+                <button
+                  onClick={() => setInviteModalOpen(true)}
+                  className="text-[#263d57] hover:text-[#b95827] transition-colors"
+                  data-testid={`button-invite-${board.name}`}
+                  title="Invite"
+                >
+                  <UserPlus className="w-5 h-5" />
+                </button>
 
-            <button
-              onClick={() => setDeleteModalOpen(true)}
-              className="text-red-600 hover:text-red-700 transition-colors"
-              data-testid={`button-delete-${board.name}`}
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+                <button
+                  onClick={() => setDeleteModalOpen(true)}
+                  className="text-red-600 hover:text-red-700 transition-colors"
+                  data-testid={`button-delete-${board.name}`}
+                  title="Delete"
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Vertical Divider - Mobile only */}
+            <div className="md:hidden border-l border-[#263d57]/10"></div>
+
+            {/* Board Controls - Mobile vertical */}
+            <div className="md:hidden flex flex-col justify-center gap-5" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={handleNavigate}
+                className="text-[#263d57] hover:text-[#b95827] transition-colors"
+                data-testid={`button-add-card-${board.name}`}
+                title="Add Card"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={() => setRenameModalOpen(true)}
+                className="text-[#263d57] hover:text-[#b95827] transition-colors"
+                data-testid={`button-rename-${board.name}`}
+                title="Rename"
+              >
+                <Edit className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={() => setInviteModalOpen(true)}
+                className="text-[#263d57] hover:text-[#b95827] transition-colors"
+                data-testid={`button-invite-${board.name}`}
+                title="Invite"
+              >
+                <UserPlus className="w-5 h-5" />
+              </button>
+
+              <button
+                onClick={() => setDeleteModalOpen(true)}
+                className="text-red-600 hover:text-red-700 transition-colors"
+                data-testid={`button-delete-${board.name}`}
+                title="Delete"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </CardContent>
       </Card>
