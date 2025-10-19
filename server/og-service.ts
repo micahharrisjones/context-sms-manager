@@ -367,6 +367,7 @@ class OpenGraphService {
       }
 
       const data = await response.json();
+      log(`[OG Debug] Microlink raw response for ${url}:`, JSON.stringify(data, null, 2));
       
       if (data.status !== 'success' || !data.data) {
         log(`Microlink returned non-success status: ${data.status}`);
@@ -382,6 +383,7 @@ class OpenGraphService {
       if (data.data.publisher) ogData.site_name = data.data.publisher;
       if (data.data.url) ogData.url = data.data.url;
 
+      log(`[OG Debug] Extracted ogData from Microlink:`, JSON.stringify(ogData));
       log(`Successfully fetched data from Microlink for ${url}: ${JSON.stringify(ogData)}`);
       return ogData;
     } catch (error) {
