@@ -45,11 +45,30 @@ export function MessagePreviewFan({ messages }: MessagePreviewFanProps) {
     return null;
   }
 
+  // Rotation angles for fan effect
+  const rotations = [-8, 0, 8];
+
   return (
-    <div className="flex gap-2 flex-shrink-0">
-      {messages.map((message, index) => (
-        <MessagePreviewCard key={message.id} message={message} />
-      ))}
+    <div className="relative w-24 h-20 flex items-center justify-center flex-shrink-0">
+      {messages.map((message, index) => {
+        const rotation = rotations[index] || 0;
+        const zIndex = index;
+        const translateX = index * 6; // Slight horizontal spread
+
+        return (
+          <div
+            key={message.id}
+            className="absolute"
+            style={{
+              transform: `rotate(${rotation}deg) translateX(${translateX}px)`,
+              zIndex,
+              transition: 'transform 0.2s ease-in-out'
+            }}
+          >
+            <MessagePreviewCard message={message} />
+          </div>
+        );
+      })}
     </div>
   );
 }

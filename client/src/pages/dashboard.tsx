@@ -149,14 +149,14 @@ export default function Dashboard() {
                     {/* Board Info Section - grows to fill space */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-medium text-[#263d57] text-base truncate">
+                          {board.type === 'private' ? `#${board.name}` : board.name}
+                        </h3>
                         {board.type === 'private' ? (
                           <Lock className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
                         ) : (
                           <Users className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
                         )}
-                        <h3 className="font-medium text-[#263d57] text-base truncate">
-                          {board.type === 'private' ? `#${board.name}` : board.name}
-                        </h3>
                       </div>
                       <div>
                         <span className="text-xs text-[#263d57]/60">
