@@ -102,10 +102,10 @@ export default function Dashboard() {
       </div>
       */}
 
-      {/* Simple greeting header */}
+      {/* Page title */}
       <div className="py-4">
         <h2 className="text-2xl font-light text-[#263d57]">
-          {firstName ? `Hi ${firstName}` : "Your Boards"}
+          All Boards
         </h2>
       </div>
 
