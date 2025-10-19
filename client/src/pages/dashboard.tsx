@@ -2,10 +2,20 @@ import { useQuery } from "@tanstack/react-query";
 import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
+import { MessagePreviewFan } from "@/components/boards/MessagePreviewFan";
+
+interface MessagePreview {
+  id: number;
+  content: string;
+  timestamp: Date;
+  mediaUrl?: string | null;
+  mediaType?: string | null;
+}
 
 interface Tag {
   tag: string;
   count: number;
+  recentMessages: MessagePreview[];
 }
 
 interface SharedBoard {
@@ -15,6 +25,7 @@ interface SharedBoard {
   createdAt: string;
   role: "owner" | "member";
   count: number;
+  recentMessages: MessagePreview[];
 }
 
 interface BoardsData {
@@ -22,8 +33,8 @@ interface BoardsData {
   sharedBoards: SharedBoard[];
 }
 
-// Consistent styling for all board cards
-const boardCardStyle = "bg-[#fff2ea] shadow-md hover:shadow-lg hover:bg-[#e3cac0] transition-all duration-200";
+// Consistent styling for all board cards - white background
+const boardCardStyle = "bg-white shadow-md hover:shadow-lg hover:bg-white transition-all duration-200";
 
 export default function Dashboard() {
   const { profile } = useProfile();
@@ -53,14 +64,16 @@ export default function Dashboard() {
       name: tag.tag, 
       type: 'private' as const, 
       href: `/tag/private/${tag.tag}`,
-      count: tag.count 
+      count: tag.count,
+      recentMessages: tag.recentMessages
     })) || []),
     ...(boardsData?.sharedBoards.map(board => ({ 
       name: board.name, 
       type: 'shared' as const, 
       href: `/tag/shared/${board.name}`,
       role: board.role,
-      count: board.count
+      count: board.count,
+      recentMessages: board.recentMessages
     })) || [])
   ];
 
@@ -124,24 +137,34 @@ export default function Dashboard() {
               data-board-name={board.name}
             >
               <Card className={`cursor-pointer ${boardCardStyle}`}>
-                <CardContent className="p-6 relative flex items-center">
-                  <div className="flex-1 space-y-2">
-                    <h3 className="font-medium text-[#263d57] text-lg">
-                      {board.type === 'private' ? `#${board.name}` : board.name}
-                    </h3>
-                    <div>
-                      <span className="text-sm text-[#263d57]/70">
-                        {board.type === 'private' ? 'Private Board' : 
-                         board.type === 'shared' ? 
-                           (board.role === 'owner' ? 'Shared Board (Owner)' : 'Shared Board') : ''}
+                <CardContent className="p-6 relative">
+                  {/* Preview Fan Section */}
+                  {board.recentMessages && board.recentMessages.length > 0 && (
+                    <div className="mb-4">
+                      <MessagePreviewFan messages={board.recentMessages} />
+                    </div>
+                  )}
+                  
+                  {/* Board Info Section */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 space-y-1">
+                      <h3 className="font-medium text-[#263d57] text-lg">
+                        {board.type === 'private' ? `#${board.name}` : board.name}
+                      </h3>
+                      <div>
+                        <span className="text-sm text-[#263d57]/70">
+                          {board.type === 'private' ? 'Private Board' : 
+                           board.type === 'shared' ? 
+                             (board.role === 'owner' ? 'Shared Board (Owner)' : 'Shared Board') : ''}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Count number */}
+                    <div className="ml-4">
+                      <span className="text-4xl font-light text-[#263d57]">
+                        {'count' in board ? board.count : 0}
                       </span>
                     </div>
-                  </div>
-                  {/* Large count number - vertically centered, right-aligned */}
-                  <div className="ml-4">
-                    <span className="text-6xl font-thin text-[#263d57]">
-                      {'count' in board ? board.count : 0}
-                    </span>
                   </div>
                 </CardContent>
               </Card>
