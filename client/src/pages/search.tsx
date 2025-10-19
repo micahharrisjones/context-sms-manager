@@ -23,9 +23,9 @@ export default function SearchPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-4 md:space-y-8">
       {/* Search Bar */}
-      <div className="py-8">
+      <div className="py-2 md:py-8">
         <div className="max-w-3xl">
           <h2 className="text-2xl font-light text-[#263d57] mb-4">
             Search everything you've saved
@@ -47,8 +47,8 @@ export default function SearchPage() {
 
       {/* Search Results */}
       {searchQuery.trim().length > 0 ? (
-        <div className="space-y-6">
-          <div className="h-[100px] flex flex-col justify-center">
+        <div className="space-y-4 md:space-y-6">
+          <div className="h-[40px] md:h-[100px] flex flex-col justify-center">
             <h2 className="text-2xl font-bold text-[#263d57]">
               Search Results
             </h2>
