@@ -45,30 +45,11 @@ export function MessagePreviewFan({ messages }: MessagePreviewFanProps) {
     return null;
   }
 
-  // Rotation angles for fan effect (left to right)
-  const rotations = [-5, 0, 5];
-
   return (
-    <div className="relative h-32 w-full flex items-center justify-center">
-      {messages.map((message, index) => {
-        const rotation = rotations[index] || 0;
-        const zIndex = index;
-        const translateX = index * 8; // Spread cards horizontally
-
-        return (
-          <div
-            key={message.id}
-            className="absolute"
-            style={{
-              transform: `rotate(${rotation}deg) translateX(${translateX}px)`,
-              zIndex,
-              transition: 'transform 0.2s ease-in-out'
-            }}
-          >
-            <MessagePreviewCard message={message} />
-          </div>
-        );
-      })}
+    <div className="flex gap-2 flex-shrink-0">
+      {messages.map((message, index) => (
+        <MessagePreviewCard key={message.id} message={message} />
+      ))}
     </div>
   );
 }
@@ -88,7 +69,7 @@ function MessagePreviewCard({ message }: MessagePreviewCardProps) {
   // Show image preview if available
   if (hasDirectImage) {
     return (
-      <div className="w-20 h-24 rounded-lg overflow-hidden shadow-md bg-gray-200 border-2 border-white">
+      <div className="w-16 h-16 rounded-md overflow-hidden shadow-sm bg-gray-200 border border-gray-200">
         <img 
           src={message.mediaUrl!} 
           alt="Preview" 
@@ -101,9 +82,9 @@ function MessagePreviewCard({ message }: MessagePreviewCardProps) {
   // Show visual content indicator for messages with social media links
   if (hasVisualUrl) {
     return (
-      <div className="w-20 h-24 rounded-lg shadow-md bg-gradient-to-br from-[#b95827]/20 to-[#263d57]/20 border-2 border-white p-2 flex flex-col items-center justify-center">
+      <div className="w-16 h-16 rounded-md shadow-sm bg-gradient-to-br from-[#b95827] to-[#263d57] border border-gray-200 p-2 flex flex-col items-center justify-center">
         <svg 
-          className="w-8 h-8 text-[#b95827] mb-1" 
+          className="w-6 h-6 text-white mb-0.5" 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -115,19 +96,19 @@ function MessagePreviewCard({ message }: MessagePreviewCardProps) {
             d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" 
           />
         </svg>
-        <p className="text-xs text-[#263d57] text-center">Link</p>
+        <p className="text-xs text-white text-center font-medium">Link</p>
       </div>
     );
   }
 
   // Text-only card
-  const truncatedText = message.content.slice(0, 50);
+  const truncatedText = message.content.slice(0, 40);
   
   return (
-    <div className="w-20 h-24 rounded-lg shadow-md bg-[#fff2ea] border-2 border-white p-2 flex items-start overflow-hidden">
-      <p className="text-xs text-[#263d57] line-clamp-4 overflow-hidden break-words">
+    <div className="w-16 h-16 rounded-md shadow-sm bg-[#fff2ea] border border-gray-200 p-1.5 flex items-start overflow-hidden">
+      <p className="text-xs text-[#263d57] line-clamp-3 overflow-hidden break-words leading-tight">
         {truncatedText}
-        {message.content.length > 50 && '...'}
+        {message.content.length > 40 && '...'}
       </p>
     </div>
   );

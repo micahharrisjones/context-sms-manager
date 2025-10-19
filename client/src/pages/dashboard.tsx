@@ -3,6 +3,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import { MessagePreviewFan } from "@/components/boards/MessagePreviewFan";
+import { Lock, Users } from "lucide-react";
 
 interface MessagePreview {
   id: number;
@@ -137,31 +138,38 @@ export default function Dashboard() {
               data-board-name={board.name}
             >
               <Card className={`cursor-pointer ${boardCardStyle}`}>
-                <CardContent className="p-6 relative">
-                  {/* Preview Fan Section */}
-                  {board.recentMessages && board.recentMessages.length > 0 && (
-                    <div className="mb-4">
+                <CardContent className="p-4 relative">
+                  {/* Horizontal Layout: Previews | Board Info | Count */}
+                  <div className="flex items-center gap-4">
+                    {/* Preview Section */}
+                    {board.recentMessages && board.recentMessages.length > 0 && (
                       <MessagePreviewFan messages={board.recentMessages} />
-                    </div>
-                  )}
-                  
-                  {/* Board Info Section */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 space-y-1">
-                      <h3 className="font-medium text-[#263d57] text-lg">
-                        {board.type === 'private' ? `#${board.name}` : board.name}
-                      </h3>
+                    )}
+                    
+                    {/* Board Info Section - grows to fill space */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        {board.type === 'private' ? (
+                          <Lock className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
+                        ) : (
+                          <Users className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
+                        )}
+                        <h3 className="font-medium text-[#263d57] text-base truncate">
+                          {board.type === 'private' ? `#${board.name}` : board.name}
+                        </h3>
+                      </div>
                       <div>
-                        <span className="text-sm text-[#263d57]/70">
-                          {board.type === 'private' ? 'Private Board' : 
+                        <span className="text-xs text-[#263d57]/60">
+                          {board.type === 'private' ? 'Private' : 
                            board.type === 'shared' ? 
-                             (board.role === 'owner' ? 'Shared Board (Owner)' : 'Shared Board') : ''}
+                             (board.role === 'owner' ? 'Shared (Owner)' : 'Shared') : ''}
                         </span>
                       </div>
                     </div>
+                    
                     {/* Count number */}
-                    <div className="ml-4">
-                      <span className="text-4xl font-light text-[#263d57]">
+                    <div className="flex-shrink-0">
+                      <span className="text-3xl font-light text-[#263d57]">
                         {'count' in board ? board.count : 0}
                       </span>
                     </div>
