@@ -104,7 +104,7 @@ export default function Dashboard() {
 
       {/* Page title */}
       <div className="py-4">
-        <h2 className="text-2xl font-light text-[#263d57]">
+        <h2 className="text-2xl font-bold text-[#263d57]">
           All Boards
         </h2>
       </div>

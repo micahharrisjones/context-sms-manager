@@ -65,7 +65,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57] font-bold",
+                "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57]",
                 location === "/" && "bg-[#e3cac0]/30"
               )}
               onClick={onClose}
