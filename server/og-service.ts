@@ -22,8 +22,15 @@ interface CacheEntry {
 class OpenGraphService {
   private cache = new Map<string, CacheEntry>();
   private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
-  private readonly FAILURE_CACHE_TTL = 60 * 60 * 1000; // 1 hour for failures
+  private readonly FAILURE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for failures (reduced from 1 hour)
   private readonly MAX_RETRIES = 3;
+  
+  constructor() {
+    // Clear cache on startup to prevent stale failures from persisting across deployments
+    const microlinkApiKey = process.env.MICROLINK_API_KEY;
+    const endpoint = microlinkApiKey ? 'pro.microlink.io' : 'api.microlink.io';
+    log(`🔧 OpenGraphService initialized - Using Microlink endpoint: ${endpoint} (API key: ${microlinkApiKey ? 'present' : 'not set'})`);
+  }
 
   // Public method to clear the entire cache (useful when API key is added/changed)
   clearCache(): void {
@@ -359,6 +366,7 @@ class OpenGraphService {
         headers['x-api-key'] = microlinkApiKey;
       }
       
+      log(`Fetching from ${microlinkEndpoint} for: ${url}`);
       const response = await fetch(microlinkUrl.toString(), {
         headers,
         signal: AbortSignal.timeout(10000), // 10 second timeout
@@ -366,7 +374,7 @@ class OpenGraphService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        log(`Microlink API error: ${response.status} ${response.statusText}`);
+        log(`Microlink API error (${microlinkEndpoint}): ${response.status} ${response.statusText} - ${errorText}`);
         return null;
       }
 
