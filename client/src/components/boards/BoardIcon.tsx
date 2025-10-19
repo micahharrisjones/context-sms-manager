@@ -124,23 +124,22 @@ export function BoardIcon({ boardName, size = 60 }: BoardIconProps) {
   };
 
   return (
-    <div className="flex items-center justify-center flex-shrink-0">
-      <svg 
-        width={size} 
-        height={size} 
-        viewBox={`0 0 ${size} ${size}`}
-      >
-        {/* Background circle with solid color */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={(size / 2) - 2}
-          fill={colors.secondary}
-        />
-        
-        {/* Inner shape */}
-        {renderShape()}
-      </svg>
-    </div>
+    <svg 
+      width={size} 
+      height={size} 
+      viewBox={`0 0 ${size} ${size}`}
+      className="flex-shrink-0"
+    >
+      {/* Background circle with solid color */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={(size / 2) - 2}
+        fill={colors.secondary}
+      />
+      
+      {/* Inner shape */}
+      {renderShape()}
+    </svg>
   );
 }

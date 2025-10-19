@@ -54,9 +54,11 @@ function BoardCard({ board }: BoardCardProps) {
       data-board-name={board.name}
       onClick={handleClick}
     >
-      <CardContent className="p-6 space-y-3">
-        {/* AI-Generated Abstract Icon */}
-        <BoardIcon boardName={board.name} size={56} />
+      <CardContent className="p-4 space-y-2.5">
+        {/* AI-Generated Abstract Icon - Left Aligned */}
+        <div className="flex justify-start">
+          <BoardIcon boardName={board.name} size={48} />
+        </div>
         
         {/* Board Name with Icon */}
         <div className="flex items-center gap-2">
