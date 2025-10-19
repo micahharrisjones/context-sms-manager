@@ -437,18 +437,23 @@ export function MessageCard({ message }: MessageCardProps) {
         return;
       }
       
+      console.log(`[OG Fetch] Fetching preview for URL: ${previewUrl}`);
       setIsLoadingOg(true);
       
       try {
         const response = await fetch(`/api/og-preview?url=${encodeURIComponent(previewUrl)}`);
+        console.log(`[OG Fetch] Response status: ${response.status} ${response.statusText}`);
         if (response.ok) {
           const data = await response.json();
+          console.log('[OG Fetch] Response data:', data);
           if (!data.skip && !data.error) {
             setOgData(data);
+          } else {
+            console.log('[OG Fetch] Data skipped or error:', data);
           }
         }
       } catch (error) {
-        console.error('Error fetching Open Graph data:', error);
+        console.error('[OG Fetch] Error fetching Open Graph data:', error);
       } finally {
         setIsLoadingOg(false);
       }
