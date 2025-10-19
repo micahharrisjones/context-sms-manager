@@ -3,15 +3,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { BoardIcon } from "@/components/boards/BoardIcon";
-import { Lock, Users, ArrowRight, MoreVertical, Edit, UserPlus, Trash2, Share2 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { Folder, Lock, Users, Plus, Edit, UserPlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { RenameBoardModal } from "@/components/shared-boards/RenameBoardModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
@@ -69,15 +61,16 @@ function BoardCard({ board }: BoardCardProps) {
   return (
     <>
       <Card 
-        className={boardCardStyle}
+        className={`${boardCardStyle} cursor-pointer`}
         data-pendo="dashboard-board-card"
         data-board-type={board.type}
         data-board-name={board.name}
+        onClick={handleNavigate}
       >
         <CardContent className="p-6">
-          {/* AI-Generated Abstract Icon - Left Aligned */}
+          {/* Folder Icon - Left Aligned */}
           <div className="mb-2.5">
-            <BoardIcon boardName={board.name} size={48} />
+            <Folder className="w-12 h-12 text-[#b95827]" />
           </div>
           
           {/* Board Name with Icon */}
@@ -93,74 +86,53 @@ function BoardCard({ board }: BoardCardProps) {
           </div>
           
           {/* Save Count */}
-          <div className="mb-3">
+          <div className="mb-4">
             <span className="text-sm text-[#263d57]/50">
               {board.count} {board.count === 1 ? 'save' : 'saves'}
             </span>
           </div>
 
-          {/* Actions: Arrow button + Menu */}
-          <div className="flex items-center gap-2">
-            <Button
+          {/* Board Controls */}
+          <div className="flex items-center gap-3 text-sm" onClick={(e) => e.stopPropagation()}>
+            <button
               onClick={handleNavigate}
-              size="sm"
-              className="h-8 px-3 bg-[#b95827] hover:bg-[#a04d1f] text-white"
-              data-testid={`button-view-board-${board.name}`}
+              className="flex items-center gap-1.5 text-[#263d57] hover:text-[#b95827] transition-colors"
+              data-testid={`button-add-card-${board.name}`}
             >
-              <ArrowRight className="w-4 h-4" />
-            </Button>
+              <Plus className="w-4 h-4" />
+              <span>Add Card</span>
+            </button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={handleMenuClick}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0 border-[#263d57]/20 hover:bg-[#263d57]/5"
-                  data-testid={`button-menu-${board.name}`}
+            <button
+              onClick={() => setRenameModalOpen(true)}
+              className="flex items-center gap-1.5 text-[#263d57] hover:text-[#b95827] transition-colors"
+              data-testid={`button-rename-${board.name}`}
+            >
+              <Edit className="w-4 h-4" />
+              <span>Rename</span>
+            </button>
+
+            {board.type === 'shared' && board.role === 'owner' && (
+              <>
+                <button
+                  onClick={() => setInviteModalOpen(true)}
+                  className="flex items-center gap-1.5 text-[#263d57] hover:text-[#b95827] transition-colors"
+                  data-testid={`button-invite-${board.name}`}
                 >
-                  <MoreVertical className="w-4 h-4 text-[#263d57]" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-white">
-                <DropdownMenuItem onClick={() => setRenameModalOpen(true)}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Rename
-                </DropdownMenuItem>
+                  <UserPlus className="w-4 h-4" />
+                  <span>Invite</span>
+                </button>
 
-                {board.type === 'shared' && (
-                  <>
-                    <DropdownMenuItem onClick={() => setMembersModalOpen(true)}>
-                      <Users className="w-4 h-4 mr-2" />
-                      View Members
-                    </DropdownMenuItem>
-                    
-                    {board.role === 'owner' && (
-                      <>
-                        <DropdownMenuItem onClick={() => setInviteModalOpen(true)}>
-                          <UserPlus className="w-4 h-4 mr-2" />
-                          Invite User
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => setDeleteModalOpen(true)}
-                          className="text-red-600 focus:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete Board
-                        </DropdownMenuItem>
-                      </>
-                    )}
-                  </>
-                )}
-
-                {board.type === 'private' && (
-                  <DropdownMenuItem onClick={() => setLocation(`/tag/private/${board.name}`)}>
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Convert to Shared
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                <button
+                  onClick={() => setDeleteModalOpen(true)}
+                  className="flex items-center gap-1.5 text-red-600 hover:text-red-700 transition-colors"
+                  data-testid={`button-delete-${board.name}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete</span>
+                </button>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
