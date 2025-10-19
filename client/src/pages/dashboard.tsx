@@ -3,7 +3,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { Folder, Lock, Users, Plus, Edit, UserPlus, Trash2 } from "lucide-react";
+import { Folder, User, Users, Plus, Edit, UserPlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { RenameBoardModal } from "@/components/shared-boards/RenameBoardModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
@@ -79,7 +79,7 @@ function BoardCard({ board }: BoardCardProps) {
               #{board.name}
             </h3>
             {board.type === 'private' ? (
-              <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
+              <User className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
             ) : (
               <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
             )}
