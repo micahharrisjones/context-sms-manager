@@ -70,7 +70,7 @@ function BoardCard({ board }: BoardCardProps) {
         <CardContent className="p-6">
           {/* Folder Icon - Left Aligned */}
           <div className="mb-2.5">
-            <Folder className="w-12 h-12 text-[#b95827]" />
+            <Folder className="w-8 h-8 text-[#b95827]" />
           </div>
           
           {/* Board Name with Icon */}
@@ -79,9 +79,9 @@ function BoardCard({ board }: BoardCardProps) {
               {board.type === 'private' ? `#${board.name}` : board.name}
             </h3>
             {board.type === 'private' ? (
-              <Lock className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0" />
+              <Lock className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
             ) : (
-              <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0" />
+              <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
             )}
           </div>
           
@@ -93,43 +93,43 @@ function BoardCard({ board }: BoardCardProps) {
           </div>
 
           {/* Board Controls */}
-          <div className="flex items-center gap-3 text-sm" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={handleNavigate}
-              className="flex items-center gap-1.5 text-[#263d57] hover:text-[#b95827] transition-colors"
+              className="text-[#263d57] hover:text-[#b95827] transition-colors"
               data-testid={`button-add-card-${board.name}`}
+              title="Add Card"
             >
               <Plus className="w-4 h-4" />
-              <span>Add Card</span>
             </button>
 
             <button
               onClick={() => setRenameModalOpen(true)}
-              className="flex items-center gap-1.5 text-[#263d57] hover:text-[#b95827] transition-colors"
+              className="text-[#263d57] hover:text-[#b95827] transition-colors"
               data-testid={`button-rename-${board.name}`}
+              title="Rename"
             >
               <Edit className="w-4 h-4" />
-              <span>Rename</span>
             </button>
 
             {board.type === 'shared' && board.role === 'owner' && (
               <>
                 <button
                   onClick={() => setInviteModalOpen(true)}
-                  className="flex items-center gap-1.5 text-[#263d57] hover:text-[#b95827] transition-colors"
+                  className="text-[#263d57] hover:text-[#b95827] transition-colors"
                   data-testid={`button-invite-${board.name}`}
+                  title="Invite"
                 >
                   <UserPlus className="w-4 h-4" />
-                  <span>Invite</span>
                 </button>
 
                 <button
                   onClick={() => setDeleteModalOpen(true)}
-                  className="flex items-center gap-1.5 text-red-600 hover:text-red-700 transition-colors"
+                  className="text-red-600 hover:text-red-700 transition-colors"
                   data-testid={`button-delete-${board.name}`}
+                  title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
-                  <span>Delete</span>
                 </button>
               </>
             )}
