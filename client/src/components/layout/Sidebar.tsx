@@ -2,10 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X, Users, User, Plus, LogOut, Settings, Bell, Trash2 } from "lucide-react";
+import { Hash, X, Users, User, Plus, LogOut, Settings, Bell, Trash2, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
-import { SearchBar } from "./SearchBar";
 import { useAuth } from "@/hooks/useAuth";
 import { useState } from "react";
 import { AdminButton } from "./AdminButton";
@@ -61,8 +60,24 @@ export function Sidebar({ onClose }: SidebarProps) {
       <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden">
       {/* Scrollable Content */}
       <ScrollArea className="flex-1 min-h-0 lg:overflow-auto">
-        {/* All Boards and All Texts */}
+        {/* Search, All Boards and All Texts */}
         <div className="px-4 pt-4 pb-2 space-y-2">
+          {/* Search Button */}
+          <Link href="/search" data-pendo="link-search">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start hover:bg-[#e3cac0]/20 text-[#263d57]",
+                location === "/search" && "bg-[#e3cac0]/30"
+              )}
+              onClick={onClose}
+              data-pendo="button-search"
+            >
+              <Search className="w-4 h-4 mr-2" />
+              Search
+            </Button>
+          </Link>
+          
           {/* All Boards Button */}
           <Link href="/" data-pendo="link-all-boards">
             <Button

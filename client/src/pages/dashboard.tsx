@@ -2,17 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useLocation } from "wouter";
-import { Folder, User, Users, Plus, Edit, UserPlus, Trash2, ArrowUpDown, Search } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Folder, User, Users, Plus, Edit, UserPlus, Trash2, ArrowUpDown } from "lucide-react";
+import { useState } from "react";
 import { RenameBoardModal } from "@/components/shared-boards/RenameBoardModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
 import { BoardMembersModal } from "@/components/shared-boards/BoardMembersModal";
 import { DeleteSharedBoardModal } from "@/components/shared-boards/DeleteSharedBoardModal";
-import { MessageCard } from "@/components/messages/MessageCard";
-import { Message } from "@shared/schema";
-import Masonry from "react-masonry-css";
 import {
   Select,
   SelectContent,
@@ -231,7 +227,6 @@ function BoardCard({ board }: BoardCardProps) {
 export default function Dashboard() {
   const { profile } = useProfile();
   const [sortOrder, setSortOrder] = useState<"a-z" | "z-a">("a-z");
-  const [searchQuery, setSearchQuery] = useState("");
   
   // Get private tags with counts
   const { data: tagsWithCounts, isLoading: tagsLoading } = useQuery<Tag[]>({
@@ -242,13 +237,6 @@ export default function Dashboard() {
   // Get shared boards with counts
   const { data: sharedBoards, isLoading: sharedLoading } = useQuery<SharedBoard[]>({
     queryKey: ["/api/shared-boards-with-counts"],
-    retry: false,
-  });
-
-  // Search functionality - only query when there's a search term
-  const { data: searchResults, isLoading: searchLoading } = useQuery<Message[]>({
-    queryKey: [`/api/messages/hybrid-search?q=${encodeURIComponent(searchQuery.trim())}`],
-    enabled: searchQuery.trim().length > 0,
     retry: false,
   });
 
@@ -299,122 +287,50 @@ export default function Dashboard() {
     );
   }
 
-  const firstName = profile?.firstName;
-  const showSearchResults = searchQuery.trim().length > 0;
-
-  const breakpointColumnsObj = {
-    default: 3,
-    1100: 2,
-    700: 1
-  };
-
   return (
     <div className="space-y-8">
-      {/* Search Bar */}
-      <div className="py-8">
-        <div className="max-w-3xl">
-          <h2 className="text-2xl font-light text-[#263d57] mb-4">
-            {firstName ? `Hi ${firstName}, ` : ""}find anything you've saved
+      {/* Page title and sort controls */}
+      <div className="h-[100px] flex flex-col justify-center">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-2xl font-bold text-[#263d57]">
+            All Boards
           </h2>
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-[#263d57]/50" />
-            <Input
-              type="text"
-              placeholder="Search by meaning, not just keywords... (e.g., 'recipes for dinner' or 'that article about AI')"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 pr-4 py-6 text-lg bg-white border-2 border-[#e3cac0] focus:border-[#b95827] focus:ring-0"
-              data-testid="input-homescreen-search"
-            />
-          </div>
+          
+          {allBoards.length > 0 && (
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-4 h-4 text-[#263d57]/60" />
+              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "a-z" | "z-a")}>
+                <SelectTrigger className="w-[160px] bg-white border-[#e3cac0] focus:border-[#b95827]" data-testid="select-sort-boards">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="a-z">A to Z</SelectItem>
+                  <SelectItem value="z-a">Z to A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
+        
+        {/* Divider */}
+        <div className="w-full h-px bg-[#e3cac0] mt-4"></div>
       </div>
 
-      {/* Search Results */}
-      {showSearchResults ? (
-        <div className="space-y-6">
-          <div className="h-[100px] flex flex-col justify-center">
-            <h2 className="text-2xl font-bold text-[#263d57]">
-              Search Results
-            </h2>
-            <div className="w-full h-px bg-[#e3cac0] mt-4"></div>
-          </div>
-
-          {searchLoading ? (
-            <Masonry
-              breakpointCols={breakpointColumnsObj}
-              className="masonry-grid"
-              columnClassName="masonry-grid_column"
-            >
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-32 bg-[#263d57]/10 rounded-lg animate-pulse mb-4"></div>
-              ))}
-            </Masonry>
-          ) : searchResults && searchResults.length > 0 ? (
-            <Masonry
-              breakpointCols={breakpointColumnsObj}
-              className="masonry-grid"
-              columnClassName="masonry-grid_column"
-            >
-              {searchResults.map((message) => (
-                <div key={message.id} className="mb-4">
-                  <MessageCard message={message} />
-                </div>
-              ))}
-            </Masonry>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-[#263d57]/70 text-lg">No results found for "{searchQuery}"</p>
-              <p className="text-[#263d57]/50 text-sm mt-2">Try different keywords or search by topic</p>
-            </div>
-          )}
+      {/* Boards Grid */}
+      {allBoards.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {allBoards.map((board) => (
+            <BoardCard
+              key={`${board.type}-${board.name}`}
+              board={board}
+            />
+          ))}
         </div>
       ) : (
-        <>
-          {/* Page title and sort controls */}
-          <div className="h-[100px] flex flex-col justify-center">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h2 className="text-2xl font-bold text-[#263d57]">
-                All Boards
-              </h2>
-              
-              {allBoards.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <ArrowUpDown className="w-4 h-4 text-[#263d57]/60" />
-                  <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "a-z" | "z-a")}>
-                    <SelectTrigger className="w-[160px] bg-white border-[#e3cac0] focus:border-[#b95827]" data-testid="select-sort-boards">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="a-z">A to Z</SelectItem>
-                      <SelectItem value="z-a">Z to A</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-            
-            {/* Divider */}
-            <div className="w-full h-px bg-[#e3cac0] mt-4"></div>
-          </div>
-
-          {/* Boards Grid */}
-          {allBoards.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {allBoards.map((board) => (
-                <BoardCard
-                  key={`${board.type}-${board.name}`}
-                  board={board}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <p className="text-[#263d57]/70 text-lg">No boards yet. Start by sending a message with a hashtag!</p>
-              <p className="text-[#663d57]/50 text-sm mt-2">Text +1 (458) 218-8508 with #example to create your first board.</p>
-            </div>
-          )}
-        </>
+        <div className="text-center py-12">
+          <p className="text-[#263d57]/70 text-lg">No boards yet. Start by sending a message with a hashtag!</p>
+          <p className="text-[#663d57]/50 text-sm mt-2">Text +1 (458) 218-8508 with #example to create your first board.</p>
+        </div>
       )}
     </div>
   );
