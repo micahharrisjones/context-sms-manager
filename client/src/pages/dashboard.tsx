@@ -3,12 +3,19 @@ import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { Folder, User, Users, Plus, Edit, UserPlus, Trash2 } from "lucide-react";
+import { Folder, User, Users, Plus, Edit, UserPlus, Trash2, ArrowUpDown } from "lucide-react";
 import { useState } from "react";
 import { RenameBoardModal } from "@/components/shared-boards/RenameBoardModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
 import { BoardMembersModal } from "@/components/shared-boards/BoardMembersModal";
 import { DeleteSharedBoardModal } from "@/components/shared-boards/DeleteSharedBoardModal";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Tag {
   tag: string;
@@ -219,6 +226,7 @@ function BoardCard({ board }: BoardCardProps) {
 
 export default function Dashboard() {
   const { profile } = useProfile();
+  const [sortOrder, setSortOrder] = useState<"a-z" | "z-a">("a-z");
   
   // Get private tags with counts
   const { data: tagsWithCounts, isLoading: tagsLoading } = useQuery<Tag[]>({
@@ -240,7 +248,7 @@ export default function Dashboard() {
   };
 
   const firstName = profile?.firstName;
-  const allBoards = [
+  const unsortedBoards = [
     ...(boardsData?.privateTags.map(tag => ({ 
       name: tag.tag, 
       type: 'private' as const, 
@@ -256,6 +264,15 @@ export default function Dashboard() {
       id: board.id
     })) || [])
   ];
+
+  // Apply sorting
+  const allBoards = [...unsortedBoards].sort((a, b) => {
+    if (sortOrder === "a-z") {
+      return a.name.localeCompare(b.name);
+    } else {
+      return b.name.localeCompare(a.name);
+    }
+  });
 
   if (isLoading) {
     return (
@@ -295,11 +312,26 @@ export default function Dashboard() {
       </div>
       */}
 
-      {/* Page title */}
-      <div className="py-4">
+      {/* Page title and sort controls */}
+      <div className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h2 className="text-2xl font-bold text-[#263d57]">
           All Boards
         </h2>
+        
+        {allBoards.length > 0 && (
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-[#263d57]/60" />
+            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "a-z" | "z-a")}>
+              <SelectTrigger className="w-[160px] bg-white border-[#e3cac0] focus:border-[#b95827]" data-testid="select-sort-boards">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="a-z">A to Z</SelectItem>
+                <SelectItem value="z-a">Z to A</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </div>
 
       {/* Divider */}

@@ -2,8 +2,8 @@ import { MessageList } from "@/components/messages/MessageList";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Edit, UserPlus, X, Eye, Trash2, Plus } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Edit, UserPlus, X, Eye, Trash2, Plus, ArrowUpDown } from "lucide-react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { DeleteTagModal } from "@/components/layout/DeleteTagModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
 import { InviteToPrivateBoardModal } from "@/components/shared-boards/InviteToPrivateBoardModal";
@@ -11,13 +11,21 @@ import { BoardMembersModal } from "@/components/shared-boards/BoardMembersModal"
 import { DeleteSharedBoardModal } from "@/components/shared-boards/DeleteSharedBoardModal";
 import { RenameBoardModal } from "@/components/shared-boards/RenameBoardModal";
 import { AddMessageModal } from "@/components/messages/AddMessageModal";
-import { SharedBoard } from "@shared/schema";
+import { SharedBoard, Message } from "@shared/schema";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function AllTexts() {
   const params = useParams();
   const tag = params.tag;
   const boardName = params.boardName;
   const currentTagRef = useRef<string>("");
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest" | "a-z" | "z-a">("newest");
   
   // Keep ref updated with current tag
   useEffect(() => {
@@ -41,6 +49,37 @@ export default function AllTexts() {
 
   const currentBoard = sharedBoards?.find(board => board.name === boardName);
   const isOwner = currentBoard?.role === "owner";
+
+  // Fetch messages based on context
+  const getQueryKey = () => {
+    if (boardName) return [`/api/shared-boards/${boardName}/messages`];
+    if (tag) return [`/api/messages/tag/${tag}`];
+    return ["/api/messages"];
+  };
+
+  const { data: messages, isLoading } = useQuery<Message[]>({
+    queryKey: getQueryKey(),
+    refetchInterval: 2000,
+    refetchIntervalInBackground: false,
+    staleTime: 1000,
+  });
+
+  // Apply sorting
+  const sortedMessages = useMemo(() => {
+    if (!messages) return [];
+    
+    const sorted = [...messages];
+    
+    if (sortOrder === "newest") {
+      return sorted.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    } else if (sortOrder === "oldest") {
+      return sorted.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    } else if (sortOrder === "a-z") {
+      return sorted.sort((a, b) => a.content.localeCompare(b.content));
+    } else {
+      return sorted.sort((a, b) => b.content.localeCompare(a.content));
+    }
+  }, [messages, sortOrder]);
 
   const getTitle = () => {
     if (boardName) return `#${boardName}`;
@@ -70,8 +109,27 @@ export default function AllTexts() {
             )}
           </div>
 
-          {/* Board Controls */}
-          {(tag || boardName) && (
+          <div className="flex items-center gap-3">
+            {/* Sort Control */}
+            {messages && messages.length > 0 && (
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="w-4 h-4 text-[#263d57]/60" />
+                <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "newest" | "oldest" | "a-z" | "z-a")}>
+                  <SelectTrigger className="w-[160px] bg-white border-[#e3cac0] focus:border-[#b95827]" data-testid="select-sort-messages">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="a-z">A to Z</SelectItem>
+                    <SelectItem value="z-a">Z to A</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Board Controls */}
+            {(tag || boardName) && (
             <div className="flex items-center gap-1 sm:gap-2">
               {/* Add Card Button */}
               <Button
@@ -195,15 +253,16 @@ export default function AllTexts() {
                   )}
                 </>
               )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Extended horizontal line below title */}
         <div className="border-b border-[#e3cac0]"></div>
       </div>
 
-      <MessageList tag={tag} sharedBoard={boardName} />
+      <MessageList tag={tag} sharedBoard={boardName} messages={sortedMessages} isLoading={isLoading} />
 
       {/* Modals */}
       <AddMessageModal
