@@ -340,7 +340,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : searchResults && searchResults.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-4 max-w-4xl mx-auto">
               {searchResults.map((message) => (
                 <MessageCard key={message.id} message={message} />
               ))}
