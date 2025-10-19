@@ -138,11 +138,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         console.log('Verification response:', data);
         
         if (data.success) {
-          toast({
-            title: "Login successful",
-            description: "Welcome to Aside!",
-          });
-          
           // Call onLogin first (this initializes Pendo)
           await onLogin(data.user);
           
