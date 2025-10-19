@@ -1,22 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { useProfile } from "@/hooks/useProfile";
 import { Card, CardContent } from "@/components/ui/card";
-import { Link } from "wouter";
-import { MessagePreviewFan } from "@/components/boards/MessagePreviewFan";
-import { Lock, Users } from "lucide-react";
-
-interface MessagePreview {
-  id: number;
-  content: string;
-  timestamp: Date;
-  mediaUrl?: string | null;
-  mediaType?: string | null;
-}
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
+import { BoardIcon } from "@/components/boards/BoardIcon";
+import { Lock, Users, ArrowRight } from "lucide-react";
 
 interface Tag {
   tag: string;
   count: number;
-  recentMessages: MessagePreview[];
 }
 
 interface SharedBoard {
@@ -26,7 +18,6 @@ interface SharedBoard {
   createdAt: string;
   role: "owner" | "member";
   count: number;
-  recentMessages: MessagePreview[];
 }
 
 interface BoardsData {
@@ -36,6 +27,69 @@ interface BoardsData {
 
 // Consistent styling for all board cards - white background
 const boardCardStyle = "bg-white shadow-md hover:shadow-lg hover:bg-white transition-all duration-200";
+
+interface BoardCardProps {
+  board: {
+    name: string;
+    type: 'private' | 'shared';
+    href: string;
+    count: number;
+    role?: 'owner' | 'member';
+  };
+}
+
+function BoardCard({ board }: BoardCardProps) {
+  const [, setLocation] = useLocation();
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setLocation(board.href);
+  };
+
+  return (
+    <Card 
+      className={boardCardStyle}
+      data-pendo="dashboard-board-card"
+      data-board-type={board.type}
+      data-board-name={board.name}
+    >
+      <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
+        {/* AI-Generated Abstract Icon */}
+        <BoardIcon boardName={board.name} size={100} />
+        
+        {/* Board Name with Icon */}
+        <div className="flex items-center gap-2">
+          <h3 className="font-medium text-[#263d57] text-lg">
+            {board.type === 'private' ? `#${board.name}` : board.name}
+          </h3>
+          {board.type === 'private' ? (
+            <Lock className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
+          ) : (
+            <Users className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
+          )}
+        </div>
+        
+        {/* Save Count */}
+        <div>
+          <span className="text-xs text-[#263d57]/60">
+            {board.count} {board.count === 1 ? 'save' : 'saves'}
+          </span>
+        </div>
+        
+        {/* Click Through Button */}
+        <Button
+          onClick={handleClick}
+          variant="outline"
+          className="w-full border-[#b95827] text-[#b95827] hover:bg-[#b95827] hover:text-white transition-colors"
+          data-testid={`button-view-board-${board.name}`}
+        >
+          View Board
+          <ArrowRight className="ml-2 w-4 h-4" />
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Dashboard() {
   const { profile } = useProfile();
@@ -65,16 +119,14 @@ export default function Dashboard() {
       name: tag.tag, 
       type: 'private' as const, 
       href: `/tag/private/${tag.tag}`,
-      count: tag.count,
-      recentMessages: tag.recentMessages
+      count: tag.count
     })) || []),
     ...(boardsData?.sharedBoards.map(board => ({ 
       name: board.name, 
       type: 'shared' as const, 
       href: `/tag/shared/${board.name}`,
       role: board.role,
-      count: board.count,
-      recentMessages: board.recentMessages
+      count: board.count
     })) || [])
   ];
 
@@ -130,53 +182,10 @@ export default function Dashboard() {
       {allBoards.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {allBoards.map((board) => (
-            <Link 
-              key={`${board.type}-${board.name}`} 
-              href={board.href}
-              data-pendo="dashboard-board-card"
-              data-board-type={board.type}
-              data-board-name={board.name}
-            >
-              <Card className={`cursor-pointer ${boardCardStyle}`}>
-                <CardContent className="p-4 relative">
-                  {/* Horizontal Layout: Previews | Board Info | Count */}
-                  <div className="flex items-center gap-4">
-                    {/* Preview Section */}
-                    {board.recentMessages && board.recentMessages.length > 0 && (
-                      <MessagePreviewFan messages={board.recentMessages} />
-                    )}
-                    
-                    {/* Board Info Section - grows to fill space */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-medium text-[#263d57] text-base truncate">
-                          {board.type === 'private' ? `#${board.name}` : board.name}
-                        </h3>
-                        {board.type === 'private' ? (
-                          <Lock className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
-                        ) : (
-                          <Users className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
-                        )}
-                      </div>
-                      <div>
-                        <span className="text-xs text-[#263d57]/60">
-                          {board.type === 'private' ? 'Private' : 
-                           board.type === 'shared' ? 
-                             (board.role === 'owner' ? 'Shared (Owner)' : 'Shared') : ''}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Count number */}
-                    <div className="flex-shrink-0">
-                      <span className="text-3xl font-light text-[#263d57]">
-                        {'count' in board ? board.count : 0}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+            <BoardCard
+              key={`${board.type}-${board.name}`}
+              board={board}
+            />
           ))}
         </div>
       ) : (
