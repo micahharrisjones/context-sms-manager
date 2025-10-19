@@ -54,7 +54,7 @@ function BoardCard({ board }: BoardCardProps) {
       data-board-name={board.name}
       onClick={handleClick}
     >
-      <CardContent className="p-4">
+      <CardContent className="p-6">
         {/* AI-Generated Abstract Icon - Left Aligned */}
         <div className="mb-2.5">
           <BoardIcon boardName={board.name} size={48} />
