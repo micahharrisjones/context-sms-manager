@@ -313,29 +313,31 @@ export default function Dashboard() {
       */}
 
       {/* Page title and sort controls */}
-      <div className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-2xl font-bold text-[#263d57]">
-          All Boards
-        </h2>
+      <div className="h-[150px] flex flex-col justify-center">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h2 className="text-2xl font-bold text-[#263d57]">
+            All Boards
+          </h2>
+          
+          {allBoards.length > 0 && (
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-4 h-4 text-[#263d57]/60" />
+              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "a-z" | "z-a")}>
+                <SelectTrigger className="w-[160px] bg-white border-[#e3cac0] focus:border-[#b95827]" data-testid="select-sort-boards">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="a-z">A to Z</SelectItem>
+                  <SelectItem value="z-a">Z to A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
         
-        {allBoards.length > 0 && (
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="w-4 h-4 text-[#263d57]/60" />
-            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as "a-z" | "z-a")}>
-              <SelectTrigger className="w-[160px] bg-white border-[#e3cac0] focus:border-[#b95827]" data-testid="select-sort-boards">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="a-z">A to Z</SelectItem>
-                <SelectItem value="z-a">Z to A</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Divider */}
+        <div className="w-full h-px bg-[#e3cac0] mt-4"></div>
       </div>
-
-      {/* Divider */}
-      <div className="w-full h-px bg-[#e3cac0]"></div>
 
       {/* Boards Grid */}
       {allBoards.length > 0 ? (

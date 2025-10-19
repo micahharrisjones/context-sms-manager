@@ -96,8 +96,8 @@ export default function AllTexts() {
   return (
     <div>
       {/* Header with title and controls */}
-      <div className="mb-6">
-        <div className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="h-[150px] flex flex-col justify-center mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold text-[#263d57]">
               {getTitle()}
@@ -257,10 +257,10 @@ export default function AllTexts() {
             )}
           </div>
         </div>
+        
+        {/* Divider */}
+        <div className="w-full h-px bg-[#e3cac0] mt-4"></div>
       </div>
-
-      {/* Divider */}
-      <div className="w-full h-px bg-[#e3cac0] mb-6"></div>
 
       <MessageList tag={tag} sharedBoard={boardName} messages={sortedMessages} isLoading={isLoading} />
 
