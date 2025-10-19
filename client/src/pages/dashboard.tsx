@@ -52,40 +52,30 @@ function BoardCard({ board }: BoardCardProps) {
       data-pendo="dashboard-board-card"
       data-board-type={board.type}
       data-board-name={board.name}
+      onClick={handleClick}
     >
-      <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
+      <CardContent className="p-6 space-y-3">
         {/* AI-Generated Abstract Icon */}
-        <BoardIcon boardName={board.name} size={100} />
+        <BoardIcon boardName={board.name} size={56} />
         
         {/* Board Name with Icon */}
         <div className="flex items-center gap-2">
-          <h3 className="font-medium text-[#263d57] text-lg">
+          <h3 className="font-semibold text-[#263d57] text-base">
             {board.type === 'private' ? `#${board.name}` : board.name}
           </h3>
           {board.type === 'private' ? (
-            <Lock className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
+            <Lock className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0" />
           ) : (
-            <Users className="w-4 h-4 text-[#263d57]/50 flex-shrink-0" />
+            <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0" />
           )}
         </div>
         
         {/* Save Count */}
         <div>
-          <span className="text-xs text-[#263d57]/60">
+          <span className="text-sm text-[#263d57]/50">
             {board.count} {board.count === 1 ? 'save' : 'saves'}
           </span>
         </div>
-        
-        {/* Click Through Button */}
-        <Button
-          onClick={handleClick}
-          variant="outline"
-          className="w-full border-[#b95827] text-[#b95827] hover:bg-[#b95827] hover:text-white transition-colors"
-          data-testid={`button-view-board-${board.name}`}
-        >
-          View Board
-          <ArrowRight className="ml-2 w-4 h-4" />
-        </Button>
       </CardContent>
     </Card>
   );

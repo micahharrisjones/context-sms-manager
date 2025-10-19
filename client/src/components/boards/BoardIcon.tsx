@@ -18,13 +18,13 @@ function hashString(str: string): number {
 function generateColors(boardName: string): { primary: string; secondary: string } {
   const hash = hashString(boardName);
   
-  // Generate hue values (0-360) for vibrant colors
+  // Generate hue values (0-360) for soft, pastel colors
   const hue1 = hash % 360;
   const hue2 = (hash * 137) % 360; // Golden angle for good color separation
   
-  // Use high saturation and medium-high lightness for vibrant, friendly colors
-  const primary = `hsl(${hue1}, 75%, 55%)`;
-  const secondary = `hsl(${hue2}, 70%, 60%)`;
+  // Use low saturation and high lightness for soft, subtle colors
+  const primary = `hsl(${hue1}, 35%, 85%)`;
+  const secondary = `hsl(${hue2}, 30%, 80%)`;
   
   return { primary, secondary };
 }
@@ -38,19 +38,19 @@ function generateShape(boardName: string): 'circle' | 'square' | 'triangle' | 'h
   return shapes[hash % shapes.length];
 }
 
-export function BoardIcon({ boardName, size = 80 }: BoardIconProps) {
+export function BoardIcon({ boardName, size = 60 }: BoardIconProps) {
   const colors = generateColors(boardName);
   const shape = generateShape(boardName);
   const hash = hashString(boardName);
   
   // Use hash to determine rotation and position variations
-  const rotation = (hash % 180) - 90; // -90 to 90 degrees
-  const scale = 0.6 + ((hash % 40) / 100); // 0.6 to 1.0 scale
+  const rotation = (hash % 60) - 30; // -30 to 30 degrees (less rotation)
+  const scale = 0.5 + ((hash % 20) / 100); // 0.5 to 0.7 scale (smaller shapes)
 
   const renderShape = () => {
     const centerX = size / 2;
     const centerY = size / 2;
-    const shapeSize = (size * 0.4) * scale;
+    const shapeSize = (size * 0.35) * scale;
 
     switch (shape) {
       case 'circle':
@@ -59,7 +59,7 @@ export function BoardIcon({ boardName, size = 80 }: BoardIconProps) {
             cx={centerX}
             cy={centerY}
             r={shapeSize}
-            fill={colors.secondary}
+            fill={colors.primary}
             transform={`rotate(${rotation} ${centerX} ${centerY})`}
           />
         );
@@ -71,9 +71,9 @@ export function BoardIcon({ boardName, size = 80 }: BoardIconProps) {
             y={centerY - shapeSize}
             width={shapeSize * 2}
             height={shapeSize * 2}
-            fill={colors.secondary}
+            fill={colors.primary}
             transform={`rotate(${rotation} ${centerX} ${centerY})`}
-            rx={shapeSize * 0.2}
+            rx={shapeSize * 0.25}
           />
         );
       
@@ -83,7 +83,7 @@ export function BoardIcon({ boardName, size = 80 }: BoardIconProps) {
         return (
           <polygon
             points={`${centerX},${centerY - h} ${centerX - w},${centerY + h/2} ${centerX + w},${centerY + h/2}`}
-            fill={colors.secondary}
+            fill={colors.primary}
             transform={`rotate(${rotation} ${centerX} ${centerY})`}
           />
         );
@@ -99,7 +99,7 @@ export function BoardIcon({ boardName, size = 80 }: BoardIconProps) {
         return (
           <polygon
             points={points}
-            fill={colors.secondary}
+            fill={colors.primary}
             transform={`rotate(${rotation} ${centerX} ${centerY})`}
           />
         );
@@ -116,7 +116,7 @@ export function BoardIcon({ boardName, size = 80 }: BoardIconProps) {
         return (
           <polygon
             points={starPoints}
-            fill={colors.secondary}
+            fill={colors.primary}
             transform={`rotate(${rotation} ${centerX} ${centerY})`}
           />
         );
@@ -124,27 +124,18 @@ export function BoardIcon({ boardName, size = 80 }: BoardIconProps) {
   };
 
   return (
-    <div className="flex items-center justify-center">
+    <div className="flex items-center justify-center flex-shrink-0">
       <svg 
         width={size} 
         height={size} 
         viewBox={`0 0 ${size} ${size}`}
-        className="drop-shadow-sm"
       >
-        {/* Background circle with gradient */}
-        <defs>
-          <linearGradient id={`gradient-${hashString(boardName)}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style={{ stopColor: colors.primary, stopOpacity: 1 }} />
-            <stop offset="100%" style={{ stopColor: colors.secondary, stopOpacity: 1 }} />
-          </linearGradient>
-        </defs>
-        
-        {/* Outer circle with gradient */}
+        {/* Background circle with solid color */}
         <circle
           cx={size / 2}
           cy={size / 2}
           r={(size / 2) - 2}
-          fill={`url(#gradient-${hashString(boardName)})`}
+          fill={colors.secondary}
         />
         
         {/* Inner shape */}
