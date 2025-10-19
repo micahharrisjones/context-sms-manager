@@ -59,7 +59,10 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden">
-        <div className="p-4 flex-shrink-0 space-y-2">
+      {/* Scrollable Content */}
+      <ScrollArea className="flex-1 min-h-0 lg:overflow-auto">
+        {/* All Boards and All Texts */}
+        <div className="px-4 pt-4 pb-2 space-y-2">
           {/* All Boards Button */}
           <Link href="/" data-pendo="link-all-boards">
             <Button
@@ -92,8 +95,13 @@ export function Sidebar({ onClose }: SidebarProps) {
             </Button>
           </Link>
         </div>
-      {/* Scrollable Tags and Shared Boards */}
-      <ScrollArea className="flex-1 min-h-0 lg:overflow-auto">
+        
+        {/* Divider */}
+        <div className="px-4 py-2">
+          <div className="border-t border-[#e3cac0]"></div>
+        </div>
+        
+        
         {/* Private Boards Section */}
         <div className="px-4 pt-2 pb-0">
           <div className="flex items-center justify-between text-sm font-medium text-[#263d57]/70 mb-2">
