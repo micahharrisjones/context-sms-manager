@@ -356,13 +356,16 @@ class OpenGraphService {
         headers['x-api-key'] = microlinkApiKey;
       }
       
+      log(`[OG Debug] Calling Microlink API: ${microlinkUrl.toString()}`);
       const response = await fetch(microlinkUrl.toString(), {
         headers,
         signal: AbortSignal.timeout(10000), // 10 second timeout
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
         log(`Microlink API error: ${response.status} ${response.statusText}`);
+        log(`[OG Debug] Microlink error response:`, errorText);
         return null;
       }
 
