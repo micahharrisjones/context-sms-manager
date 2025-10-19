@@ -107,7 +107,7 @@ function BoardCard({ board }: BoardCardProps) {
                   data-testid={`button-add-card-${board.name}`}
                   title="Add Card"
                 >
-                  <Plus className="w-5 h-5" />
+                  <Plus className="w-4 h-4" />
                 </button>
 
                 <button
@@ -116,7 +116,7 @@ function BoardCard({ board }: BoardCardProps) {
                   data-testid={`button-rename-${board.name}`}
                   title="Rename"
                 >
-                  <Edit className="w-5 h-5" />
+                  <Edit className="w-4 h-4" />
                 </button>
 
                 <button
@@ -125,7 +125,7 @@ function BoardCard({ board }: BoardCardProps) {
                   data-testid={`button-invite-${board.name}`}
                   title="Invite"
                 >
-                  <UserPlus className="w-5 h-5" />
+                  <UserPlus className="w-4 h-4" />
                 </button>
 
                 <button
@@ -134,13 +134,13 @@ function BoardCard({ board }: BoardCardProps) {
                   data-testid={`button-delete-${board.name}`}
                   title="Delete"
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             {/* Vertical Divider - Mobile only */}
-            <div className="md:hidden border-l border-[#263d57]/10"></div>
+            <div className="md:hidden border-l border-[#263d57]/10 -ml-2.5"></div>
 
             {/* Board Controls - Mobile 2x2 grid */}
             <div className="md:hidden grid grid-cols-2 gap-4 content-center" onClick={(e) => e.stopPropagation()}>
