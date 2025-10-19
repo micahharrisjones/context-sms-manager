@@ -143,7 +143,7 @@ function BoardCard({ board }: BoardCardProps) {
             <div className="md:hidden border-l border-[#263d57]/10 -ml-2.5"></div>
 
             {/* Board Controls - Mobile 2x2 grid */}
-            <div className="md:hidden grid grid-cols-2 gap-4 content-center" onClick={(e) => e.stopPropagation()}>
+            <div className="md:hidden grid grid-cols-2 gap-5 content-center" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={handleNavigate}
                 className="text-[#263d57] hover:text-[#b95827] transition-colors"
