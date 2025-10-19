@@ -60,7 +60,7 @@ export function Layout({ children }: LayoutProps) {
   const currentBoardName = getBoardName();
 
   return (
-    <div className="flex min-h-screen min-h-[100dvh] relative bg-[#fff2ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
+    <div className="flex h-screen relative bg-[#fff2ea]">
       {/* Sidebar with mobile overlay */}
       <div className={`
         fixed inset-0 lg:relative lg:h-screen
@@ -72,10 +72,10 @@ export function Layout({ children }: LayoutProps) {
       </div>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
-        {/* Mobile sticky header with hamburger and board name - hide when sidebar is open */}
+      <main className="flex-1 flex flex-col overflow-hidden lg:h-screen">
+        {/* Mobile header with hamburger and board name - hide when sidebar is open */}
         {!sidebarOpen && (
-          <div className="lg:hidden sticky top-0 z-50 bg-[#fff2ea]/95 backdrop-blur supports-[backdrop-filter]:bg-[#fff2ea]/60 border-b border-[#e3cac0]">
+          <div className="lg:hidden flex-shrink-0 bg-[#fff2ea] border-b border-[#e3cac0]">
             <div className="p-4 flex items-center justify-between gap-3">
               {/* Hamburger button */}
               <Button
@@ -106,9 +106,11 @@ export function Layout({ children }: LayoutProps) {
           </div>
         )}
         
-        {/* Content area */}
-        <div className="p-6">
-          {children}
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {children}
+          </div>
         </div>
       </main>
 
