@@ -73,11 +73,11 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <main className="flex-1 overflow-auto">
-        {/* Mobile sticky header with hamburger and board name */}
-        <div className="lg:hidden sticky top-0 z-50 bg-[#fff2ea]/95 backdrop-blur supports-[backdrop-filter]:bg-[#fff2ea]/60 border-b border-[#e3cac0]">
-          <div className="p-4 flex items-center justify-between gap-3">
-            {/* Hamburger button - only show when sidebar is closed */}
-            {!sidebarOpen && (
+        {/* Mobile sticky header with hamburger and board name - hide when sidebar is open */}
+        {!sidebarOpen && (
+          <div className="lg:hidden sticky top-0 z-50 bg-[#fff2ea]/95 backdrop-blur supports-[backdrop-filter]:bg-[#fff2ea]/60 border-b border-[#e3cac0]">
+            <div className="p-4 flex items-center justify-between gap-3">
+              {/* Hamburger button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -88,25 +88,23 @@ export function Layout({ children }: LayoutProps) {
               >
                 <Menu className="h-6 w-6" />
               </Button>
-            )}
-            
-            {/* Board name or logo */}
-            {currentBoardName ? (
-              <h1 className="flex-1 text-lg font-semibold text-[#263d57] truncate text-center" data-testid="text-board-name">
-                #{currentBoardName}
-              </h1>
-            ) : (
-              <Link href="/" className="flex-1 flex justify-center">
-                <Logo className="w-auto h-8" />
-              </Link>
-            )}
-            
-            {/* Spacer to balance the layout when hamburger is shown */}
-            {!sidebarOpen && (
+              
+              {/* Board name or logo */}
+              {currentBoardName ? (
+                <h1 className="flex-1 text-lg font-semibold text-[#263d57] truncate text-center" data-testid="text-board-name">
+                  #{currentBoardName}
+                </h1>
+              ) : (
+                <Link href="/" className="flex-1 flex justify-center">
+                  <Logo className="w-auto h-8" />
+                </Link>
+              )}
+              
+              {/* Spacer to balance the layout */}
               <div className="w-10 flex-shrink-0" />
-            )}
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Content area */}
         <div className="p-6">
