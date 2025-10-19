@@ -86,11 +86,14 @@ function BoardCard({ board }: BoardCardProps) {
           </div>
           
           {/* Save Count */}
-          <div className="mb-4">
+          <div className="mb-3">
             <span className="text-sm text-[#263d57]/50">
               {board.count} {board.count === 1 ? 'save' : 'saves'}
             </span>
           </div>
+
+          {/* Divider */}
+          <div className="border-t border-[#263d57]/10 mb-3"></div>
 
           {/* Board Controls */}
           <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
