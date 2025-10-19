@@ -140,7 +140,7 @@ function BoardCard({ board }: BoardCardProps) {
             </div>
 
             {/* Vertical Divider - Mobile only */}
-            <div className="md:hidden border-l border-[#263d57]/20 self-stretch"></div>
+            <div className="md:hidden border-l border-[#263d57]/20 self-stretch -ml-2.5"></div>
 
             {/* Board Controls - Mobile 2x2 grid */}
             <div className="md:hidden grid grid-cols-2 gap-5 content-center" onClick={(e) => e.stopPropagation()}>
