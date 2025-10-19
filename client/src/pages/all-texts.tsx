@@ -97,7 +97,7 @@ export default function AllTexts() {
     <div>
       {/* Header with title and controls */}
       <div className="mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <div className="py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-semibold text-[#263d57]">
               {getTitle()}
@@ -257,10 +257,10 @@ export default function AllTexts() {
             )}
           </div>
         </div>
-
-        {/* Extended horizontal line below title */}
-        <div className="border-b border-[#e3cac0]"></div>
       </div>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-[#e3cac0] mb-6"></div>
 
       <MessageList tag={tag} sharedBoard={boardName} messages={sortedMessages} isLoading={isLoading} />
 
