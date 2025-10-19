@@ -1497,23 +1497,11 @@ Reply STOP to opt out`;
         tags = tags.filter(tag => !isAdminOnlyHashtag(tag));
       }
       
-      // Get message counts and recent messages for each tag
+      // Get message counts for each tag
       const tagsWithCounts = await Promise.all(
         tags.map(async (tag) => {
           const messages = await storage.getMessagesByTag(userId, tag);
-          // Sort by timestamp descending to get most recent messages first
-          const sortedMessages = messages.sort((a, b) => 
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          );
-          // Get last 3 messages for preview
-          const recentMessages = sortedMessages.slice(0, 3).map(msg => ({
-            id: msg.id,
-            content: msg.content,
-            timestamp: msg.timestamp,
-            mediaUrl: msg.mediaUrl,
-            mediaType: msg.mediaType
-          }));
-          return { tag, count: messages.length, recentMessages };
+          return { tag, count: messages.length };
         })
       );
       
@@ -2138,26 +2126,13 @@ Reply STOP to opt out`;
         }
       }
       
-      // Get message counts and recent messages for each shared board
+      // Get message counts for each shared board
       const boardsWithCounts = await Promise.all(
         allBoards.map(async (board) => {
           const messages = await storage.getSharedMessages(userId, board.name);
-          // Sort by timestamp descending to get most recent messages first
-          const sortedMessages = messages.sort((a, b) => 
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-          );
-          // Get last 3 messages for preview
-          const recentMessages = sortedMessages.slice(0, 3).map(msg => ({
-            id: msg.id,
-            content: msg.content,
-            timestamp: msg.timestamp,
-            mediaUrl: msg.mediaUrl,
-            mediaType: msg.mediaType
-          }));
           return { 
             ...board, 
-            count: messages.length,
-            recentMessages
+            count: messages.length
           };
         })
       );
