@@ -61,54 +61,36 @@ export function Sidebar({ onClose }: SidebarProps) {
       <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden">
         <div className="p-4 flex-shrink-0 space-y-2">
           {/* All Boards Button */}
-          <div className={cn(
-            "rounded-lg transition-all shadow-md",
-            location === "/" 
-              ? "bg-primary/5 shadow-lg" 
-              : "bg-[#e3cac0]/10"
-          )}>
-            <Link href="/" data-pendo="link-all-boards">
-              <Button 
-                variant="ghost" 
-                className={cn(
-                  "w-full justify-start m-1",
-                  location === "/" 
-                    ? "bg-transparent text-primary font-medium hover:bg-transparent" 
-                    : "hover:bg-[#e3cac0]/30 text-[#263d57]"
-                )}
-                size="lg"
-                onClick={onClose}
-                data-pendo="button-all-boards"
-              >
-                All Boards
-              </Button>
-            </Link>
-          </div>
+          <Link href="/" data-pendo="link-all-boards">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57]",
+                location === "/" && "bg-[#e3cac0]/30"
+              )}
+              onClick={onClose}
+              data-pendo="button-all-boards"
+            >
+              <Hash className="w-4 h-4 mr-2" />
+              All Boards
+            </Button>
+          </Link>
           
           {/* All Texts Button */}
-          <div className={cn(
-            "rounded-lg transition-all shadow-md",
-            location === "/all-texts" 
-              ? "bg-primary/5 shadow-lg" 
-              : "bg-[#e3cac0]/10"
-          )}>
-            <Link href="/all-texts" data-pendo="link-all-texts">
-              <Button 
-                variant="ghost" 
-                className={cn(
-                  "w-full justify-start m-1",
-                  location === "/all-texts" 
-                    ? "bg-transparent text-primary font-medium hover:bg-transparent" 
-                    : "hover:bg-[#e3cac0]/30 text-[#263d57]"
-                )}
-                size="lg"
-                onClick={onClose}
-                data-pendo="button-all-texts"
-              >
-                All Texts
-              </Button>
-            </Link>
-          </div>
+          <Link href="/all-texts" data-pendo="link-all-texts">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57]",
+                location === "/all-texts" && "bg-[#e3cac0]/30"
+              )}
+              onClick={onClose}
+              data-pendo="button-all-texts"
+            >
+              <Hash className="w-4 h-4 mr-2" />
+              All Texts
+            </Button>
+          </Link>
         </div>
       {/* Scrollable Tags and Shared Boards */}
       <ScrollArea className="flex-1 min-h-0 lg:overflow-auto">
