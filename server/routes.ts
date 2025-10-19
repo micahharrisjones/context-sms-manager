@@ -2377,29 +2377,20 @@ Reply STOP to opt out`;
         return res.status(400).json({ error: 'Invalid URL format' });
       }
 
-      log(`[OG Debug] og-preview endpoint called for: ${url}`);
-
       // Check if we should fetch Open Graph data for this URL
       if (!openGraphService.shouldFetchOpenGraph(url)) {
-        log(`[OG Debug] shouldFetchOpenGraph returned false for ${url}`);
         return res.json({ skip: true });
       }
 
-      log(`[OG Debug] Adding to microlink queue for ${url}`);
       // Use request queue to limit concurrent Microlink.io API calls (max 3 at a time)
       const ogData = await microlinkQueue.add(() => openGraphService.fetchOpenGraph(url));
       
-      log(`[OG Debug] Queue returned data for ${url}: ${JSON.stringify(ogData)}`);
-      
       if (!ogData) {
-        log(`[OG Debug] ogData is null, returning error`);
         return res.json({ error: 'Failed to fetch Open Graph data' });
       }
 
-      log(`[OG Debug] Returning successful ogData for ${url}`);
       res.json(ogData);
     } catch (error) {
-      log('[OG Debug] Exception caught in og-preview endpoint:', error instanceof Error ? error.message : String(error));
       log('Error fetching Open Graph data:', error instanceof Error ? error.message : String(error));
       res.status(500).json({ error: 'Failed to fetch Open Graph data' });
     }

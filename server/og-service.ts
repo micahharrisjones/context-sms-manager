@@ -359,7 +359,6 @@ class OpenGraphService {
         headers['x-api-key'] = microlinkApiKey;
       }
       
-      log(`[OG Debug] Calling Microlink API: ${microlinkUrl.toString()}`);
       const response = await fetch(microlinkUrl.toString(), {
         headers,
         signal: AbortSignal.timeout(10000), // 10 second timeout
@@ -368,12 +367,10 @@ class OpenGraphService {
       if (!response.ok) {
         const errorText = await response.text();
         log(`Microlink API error: ${response.status} ${response.statusText}`);
-        log(`[OG Debug] Microlink error response:`, errorText);
         return null;
       }
 
       const data = await response.json();
-      log(`[OG Debug] Microlink raw response for ${url}:`, JSON.stringify(data, null, 2));
       
       if (data.status !== 'success' || !data.data) {
         log(`Microlink returned non-success status: ${data.status}`);
@@ -389,7 +386,6 @@ class OpenGraphService {
       if (data.data.publisher) ogData.site_name = data.data.publisher;
       if (data.data.url) ogData.url = data.data.url;
 
-      log(`[OG Debug] Extracted ogData from Microlink:`, JSON.stringify(ogData));
       log(`Successfully fetched data from Microlink for ${url}: ${JSON.stringify(ogData)}`);
       return ogData;
     } catch (error) {
@@ -400,36 +396,25 @@ class OpenGraphService {
 
   // Main function to fetch Open Graph data
   async fetchOpenGraph(url: string): Promise<OpenGraphData | null> {
-    log(`[OG Debug] fetchOpenGraph called for: ${url}`);
-    
     // Check cache first
     const cached = this.cache.get(url);
     if (cached && this.isCacheValid(cached)) {
-      log(`[OG Debug] Found valid cache entry for ${url}: isFailure=${cached.isFailure}, data=${JSON.stringify(cached.data)}`);
       // For failures, check if we should retry
       if (cached.isFailure && (cached.retryCount || 0) < this.MAX_RETRIES) {
-        log(`[OG Debug] Cache is a failure but allowing retry`);
         // Allow retry for failed URLs after some time
       } else {
-        log(`[OG Debug] Returning cached data`);
         return cached.data;
       }
-    } else {
-      log(`[OG Debug] No valid cache found for ${url}`);
     }
 
     // Try Microlink first (handles bot protection)
-    log(`[OG Debug] Calling fetchFromMicrolink for ${url}`);
     const microlinkData = await this.fetchFromMicrolink(url);
-    log(`[OG Debug] Microlink returned: ${JSON.stringify(microlinkData)}`);
     
     if (microlinkData && (microlinkData.title || microlinkData.description || microlinkData.image)) {
-      log(`[OG Debug] Microlink data is valid, caching and returning`);
       this.cacheSuccess(url, microlinkData);
       return microlinkData;
     }
 
-    log(`[OG Debug] Microlink data was null or empty, falling back to direct fetch`);
     // Fallback to direct fetch if Microlink fails or isn't configured
     const retryCount = cached?.retryCount || 0;
     return this.fetchWithRetry(url, retryCount);
