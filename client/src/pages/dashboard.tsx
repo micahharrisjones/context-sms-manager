@@ -69,9 +69,9 @@ function BoardCard({ board }: BoardCardProps) {
       >
         <CardContent className="p-6">
           {/* Mobile: horizontal layout, Desktop: vertical layout */}
-          <div className="flex md:flex-col gap-4 md:gap-0">
+          <div className="flex md:flex-col gap-4 md:gap-0 items-center md:items-start">
             {/* Left side content */}
-            <div className="flex-1 self-center md:self-auto">
+            <div className="flex-1">
               {/* Folder Icon - Left Aligned */}
               <div className="mb-2.5">
                 <Folder className="w-7 h-7 text-[#263d57]" />
