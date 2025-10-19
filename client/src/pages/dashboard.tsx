@@ -12,6 +12,7 @@ import { BoardMembersModal } from "@/components/shared-boards/BoardMembersModal"
 import { DeleteSharedBoardModal } from "@/components/shared-boards/DeleteSharedBoardModal";
 import { MessageCard } from "@/components/messages/MessageCard";
 import { Message } from "@shared/schema";
+import Masonry from "react-masonry-css";
 import {
   Select,
   SelectContent,
@@ -301,6 +302,12 @@ export default function Dashboard() {
   const firstName = profile?.firstName;
   const showSearchResults = searchQuery.trim().length > 0;
 
+  const breakpointColumnsObj = {
+    default: 3,
+    1100: 2,
+    700: 1
+  };
+
   return (
     <div className="space-y-8">
       {/* Search Bar */}
@@ -334,17 +341,27 @@ export default function Dashboard() {
           </div>
 
           {searchLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-32 bg-[#263d57]/10 rounded-lg animate-pulse"></div>
+            <Masonry
+              breakpointCols={breakpointColumnsObj}
+              className="masonry-grid"
+              columnClassName="masonry-grid_column"
+            >
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-32 bg-[#263d57]/10 rounded-lg animate-pulse mb-4"></div>
               ))}
-            </div>
+            </Masonry>
           ) : searchResults && searchResults.length > 0 ? (
-            <div className="space-y-4 max-w-[360px]">
+            <Masonry
+              breakpointCols={breakpointColumnsObj}
+              className="masonry-grid"
+              columnClassName="masonry-grid_column"
+            >
               {searchResults.map((message) => (
-                <MessageCard key={message.id} message={message} />
+                <div key={message.id} className="mb-4">
+                  <MessageCard message={message} />
+                </div>
               ))}
-            </div>
+            </Masonry>
           ) : (
             <div className="text-center py-12">
               <p className="text-[#263d57]/70 text-lg">No results found for "{searchQuery}"</p>
