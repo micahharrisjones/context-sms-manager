@@ -2,7 +2,7 @@ import { MessageList } from "@/components/messages/MessageList";
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Edit, UserPlus, X, Eye, Trash2, Plus, ArrowUpDown } from "lucide-react";
+import { Edit, UserPlus, X, Eye, Trash2, Plus, ArrowUpDown, User, Users } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { DeleteTagModal } from "@/components/layout/DeleteTagModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
@@ -87,9 +87,9 @@ export default function AllTexts() {
     return "All Texts";
   };
 
-  const getBoardType = () => {
-    if (boardName) return "Shared Board";
-    if (tag) return "Private Board";
+  const getBoardIcon = () => {
+    if (boardName) return <Users className="w-4 h-4 text-[#263d57]/60" />;
+    if (tag) return <User className="w-4 h-4 text-[#263d57]/60" />;
     return null;
   };
 
@@ -98,15 +98,11 @@ export default function AllTexts() {
       {/* Header with title and controls */}
       <div className="h-[100px] flex flex-col justify-center mb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold text-[#263d57]">
               {getTitle()}
             </h1>
-            {getBoardType() && (
-              <span className="text-sm text-[#263d57]/60 mt-1">
-                {getBoardType()}
-              </span>
-            )}
+            {getBoardIcon()}
           </div>
 
           <div className="flex items-center gap-3">
@@ -139,13 +135,13 @@ export default function AllTexts() {
                   setModalCurrentTag(currentTagRef.current);
                   setAddMessageModalOpen(true);
                 }}
-                className="h-8 px-2 sm:px-3 hover:bg-[#b95827]/10 hover:text-[#b95827]"
+                className="h-8 px-2 lg:px-3 hover:bg-[#b95827]/10 hover:text-[#b95827]"
                 aria-label="Add card"
                 data-pendo="button-add-card"
                 data-board-name={tag || boardName}
               >
-                <Plus className="h-4 w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Add Card</span>
+                <Plus className="h-4 w-4 lg:mr-2" />
+                <span className="hidden lg:inline">Add Card</span>
               </Button>
 
               {/* Private board controls */}
@@ -158,37 +154,37 @@ export default function AllTexts() {
                       setRenameBoardType("private");
                       setRenameBoardModalOpen(true);
                     }}
-                    className="h-8 px-2 sm:px-3 hover:bg-blue-50 hover:text-blue-600"
+                    className="h-8 px-2 lg:px-3 hover:bg-blue-50 hover:text-blue-600"
                     aria-label={`Rename tag ${tag}`}
                     data-pendo="button-rename-private-board"
                     data-board-name={tag}
                   >
-                    <Edit className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Rename</span>
+                    <Edit className="h-4 w-4 lg:mr-2" />
+                    <span className="hidden lg:inline">Rename</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setInviteToPrivateBoardModalOpen(true)}
-                    className="h-8 px-2 sm:px-3 hover:bg-green-50 hover:text-green-600"
+                    className="h-8 px-2 lg:px-3 hover:bg-green-50 hover:text-green-600"
                     aria-label={`Invite users to ${tag}`}
                     data-pendo="button-invite-to-private-board"
                     data-board-name={tag}
                   >
-                    <UserPlus className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Invite</span>
+                    <UserPlus className="h-4 w-4 lg:mr-2" />
+                    <span className="hidden lg:inline">Invite</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setDeleteTagModalOpen(true)}
-                    className="h-8 px-2 sm:px-3 hover:bg-red-50 hover:text-red-600"
+                    className="h-8 px-2 lg:px-3 hover:bg-red-50 hover:text-red-600"
                     aria-label={`Delete tag ${tag}`}
                     data-pendo="button-delete-private-board"
                     data-board-name={tag}
                   >
-                    <Trash2 className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Delete</span>
+                    <Trash2 className="h-4 w-4 lg:mr-2" />
+                    <span className="hidden lg:inline">Delete</span>
                   </Button>
                 </>
               )}
@@ -200,13 +196,13 @@ export default function AllTexts() {
                     variant="ghost"
                     size="sm"
                     onClick={() => setMembersModalOpen(true)}
-                    className="h-8 px-2 sm:px-3 hover:bg-green-50 hover:text-green-600"
+                    className="h-8 px-2 lg:px-3 hover:bg-green-50 hover:text-green-600"
                     aria-label={`View members of ${boardName}`}
                     data-pendo="button-view-members"
                     data-board-name={boardName}
                   >
-                    <Eye className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Members</span>
+                    <Eye className="h-4 w-4 lg:mr-2" />
+                    <span className="hidden lg:inline">Members</span>
                   </Button>
                   {isOwner && (
                     <>
@@ -217,37 +213,37 @@ export default function AllTexts() {
                           setRenameBoardType("shared");
                           setRenameBoardModalOpen(true);
                         }}
-                        className="h-8 px-2 sm:px-3 hover:bg-purple-50 hover:text-purple-600"
+                        className="h-8 px-2 lg:px-3 hover:bg-purple-50 hover:text-purple-600"
                         aria-label={`Rename board ${boardName}`}
                         data-pendo="button-rename-shared-board"
                         data-board-name={boardName}
                       >
-                        <Edit className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Rename</span>
+                        <Edit className="h-4 w-4 lg:mr-2" />
+                        <span className="hidden lg:inline">Rename</span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setInviteModalOpen(true)}
-                        className="h-8 px-2 sm:px-3 hover:bg-blue-50 hover:text-blue-600"
+                        className="h-8 px-2 lg:px-3 hover:bg-blue-50 hover:text-blue-600"
                         aria-label={`Invite users to ${boardName}`}
                         data-pendo="button-invite-to-shared-board"
                         data-board-name={boardName}
                       >
-                        <UserPlus className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Invite</span>
+                        <UserPlus className="h-4 w-4 lg:mr-2" />
+                        <span className="hidden lg:inline">Invite</span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setDeleteBoardModalOpen(true)}
-                        className="h-8 px-2 sm:px-3 hover:bg-red-50 hover:text-red-600"
+                        className="h-8 px-2 lg:px-3 hover:bg-red-50 hover:text-red-600"
                         aria-label={`Delete board ${boardName}`}
                         data-pendo="button-delete-shared-board"
                         data-board-name={boardName}
                       >
-                        <Trash2 className="h-4 w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">Delete</span>
+                        <Trash2 className="h-4 w-4 lg:mr-2" />
+                        <span className="hidden lg:inline">Delete</span>
                       </Button>
                     </>
                   )}
