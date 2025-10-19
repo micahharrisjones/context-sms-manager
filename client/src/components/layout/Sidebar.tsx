@@ -197,20 +197,12 @@ export function Sidebar({ onClose }: SidebarProps) {
           </div>
         )}
 
-        {/* Search and Logout Section - Inside ScrollArea */}
+        {/* Admin Section - Inside ScrollArea */}
         <div className="px-4 py-4 space-y-3">
           <div className="border-t border-[#e3cac0] mb-4"></div>
           
-          {/* Search Bar */}
-          <SearchBar onClose={onClose} />
-          
-          {/* Separator Line */}
-          <div className="border-t border-[#e3cac0]"></div>
-          
           {/* Admin Button - Only show for admin users */}
           <AdminButton onClose={onClose} location={location} />
-          
-          {/* Account Management Buttons */}
         </div>
       </ScrollArea>
       
