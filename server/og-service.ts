@@ -342,12 +342,15 @@ class OpenGraphService {
   // Fetch Open Graph data from Microlink.io API
   private async fetchFromMicrolink(url: string): Promise<OpenGraphData | null> {
     try {
-      const microlinkUrl = new URL('https://api.microlink.io');
+      // API key is optional - free tier works without it (250 requests/day)
+      const microlinkApiKey = process.env.MICROLINK_API_KEY;
+      
+      // Use pro.microlink.io endpoint when using API key, otherwise use api.microlink.io
+      const microlinkEndpoint = microlinkApiKey ? 'https://pro.microlink.io' : 'https://api.microlink.io';
+      const microlinkUrl = new URL(microlinkEndpoint);
       microlinkUrl.searchParams.set('url', url);
       microlinkUrl.searchParams.set('meta', 'true');
       
-      // API key is optional - free tier works without it (250 requests/day)
-      const microlinkApiKey = process.env.MICROLINK_API_KEY;
       const headers: HeadersInit = {
         'Accept': 'application/json',
       };
