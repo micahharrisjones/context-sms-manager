@@ -79,7 +79,7 @@ function BoardCard({ board }: BoardCardProps) {
               
               {/* Board Name with Icon */}
               <div className="flex items-center gap-2 mb-0.5">
-                <h3 className="font-semibold text-[#263d57] text-base">
+                <h3 className="font-semibold text-[#263d57] text-lg md:text-base">
                   #{board.name}
                 </h3>
                 {board.type === 'private' ? (
@@ -140,7 +140,7 @@ function BoardCard({ board }: BoardCardProps) {
             </div>
 
             {/* Vertical Divider - Mobile only */}
-            <div className="md:hidden border-l border-[#263d57]/10 -ml-2.5"></div>
+            <div className="md:hidden border-l border-[#263d57]/20 self-stretch"></div>
 
             {/* Board Controls - Mobile 2x2 grid */}
             <div className="md:hidden grid grid-cols-2 gap-5 content-center" onClick={(e) => e.stopPropagation()}>
