@@ -9,7 +9,7 @@ const openai = new OpenAI({
 
 export interface AsideAIResponse {
   response: string;
-  intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'unknown';
+  intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'login' | 'unknown';
   searchPerformed?: boolean;
 }
 
@@ -44,6 +44,9 @@ class AsideAIService {
         case 'analyze':
           return await this.handleAnalyzeQuery(query, userId, storage);
         
+        case 'login':
+          return await this.handleLoginQuery(userId);
+        
         default:
           // For unknown intents, provide a helpful response
           return {
@@ -63,7 +66,7 @@ class AsideAIService {
   /**
    * Analyze user's intent using OpenAI
    */
-  private async analyzeIntent(query: string): Promise<{ intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'unknown', extractedQuery?: string }> {
+  private async analyzeIntent(query: string): Promise<{ intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'login' | 'unknown', extractedQuery?: string }> {
     try {
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -77,14 +80,17 @@ Users can ask you to:
 - SUMMARIZE: Get overview of saved content ("what have I saved about cooking?", "summarize my tech articles")
 - RECOMMEND: Get recommendations ("what's the best gift idea I saved?", "recommend something to read")
 - ANALYZE: Get insights ("what topics do I save the most?", "analyze my interests")
+- LOGIN: Request a login link for the web dashboard ("how do I login?", "send me a login link", "I need to access the website")
 
-Respond with ONLY a JSON object: {"intent": "search|summarize|recommend|analyze|unknown", "query": "cleaned up search query"}
+Respond with ONLY a JSON object: {"intent": "search|summarize|recommend|analyze|login|unknown", "query": "cleaned up search query"}
 
 Examples:
 "find my recipes" → {"intent": "search", "query": "recipes"}
 "what have I saved about AI?" → {"intent": "summarize", "query": "AI content"}
 "recommend a good restaurant" → {"intent": "recommend", "query": "restaurants"}
-"what do I save most?" → {"intent": "analyze", "query": "saved topics"}`,
+"what do I save most?" → {"intent": "analyze", "query": "saved topics"}
+"how do I login?" → {"intent": "login", "query": "login"}
+"send me a login link" → {"intent": "login", "query": "login link"}`,
           },
           {
             role: "user",
@@ -215,6 +221,38 @@ Examples:
       response: "Content analysis coming soon! For now, check out your boards at textaside.app to see what you've saved.",
       intent: 'analyze',
     };
+  }
+
+  /**
+   * Handle login requests - generate and return magic link
+   */
+  private async handleLoginQuery(userId: number): Promise<AsideAIResponse> {
+    // Import MagicLinkService dynamically to avoid circular dependency
+    const { MagicLinkService } = await import('./magic-link-service');
+    
+    try {
+      // Generate magic link
+      const { url } = await MagicLinkService.createMagicLink(userId);
+      
+      return {
+        response: `Here's your login link:\n\n${url}\n\nThis link expires in 30 minutes and can only be used once.`,
+        intent: 'login',
+      };
+    } catch (error) {
+      // Handle rate limiting or other errors
+      if (error instanceof Error && error.message.includes('Too many')) {
+        return {
+          response: "You've requested too many login links recently. Please try again in an hour or use your existing link.",
+          intent: 'login',
+        };
+      }
+      
+      log(`Error generating login link: ${error instanceof Error ? error.message : String(error)}`);
+      return {
+        response: "Sorry, I couldn't generate a login link right now. Please try again in a moment.",
+        intent: 'login',
+      };
+    }
   }
 }
 
