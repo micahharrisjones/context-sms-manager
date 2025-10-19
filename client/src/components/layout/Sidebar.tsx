@@ -68,7 +68,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57]",
+                "w-full justify-start hover:bg-[#e3cac0]/20 text-[#263d57]",
                 location === "/" && "bg-[#e3cac0]/30"
               )}
               onClick={onClose}
@@ -84,7 +84,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57]",
+                "w-full justify-start hover:bg-[#e3cac0]/20 text-[#263d57]",
                 location === "/all-texts" && "bg-[#e3cac0]/30"
               )}
               onClick={onClose}
@@ -112,7 +112,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-[#e3cac0]/30"
+              className="h-6 w-6 p-0 hover:bg-[#e3cac0]/20"
               onClick={() => setCreatePrivateBoardModalOpen(true)}
               data-pendo="button-create-private-board"
             >
@@ -128,7 +128,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57]",
+                    "w-full justify-start hover:bg-[#e3cac0]/20 text-[#263d57]",
                     location === `/tag/private/${tag}` && "bg-[#e3cac0]/30"
                   )}
                   onClick={onClose}
@@ -155,7 +155,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 w-6 p-0 hover:bg-[#e3cac0]/30"
+              className="h-6 w-6 p-0 hover:bg-[#e3cac0]/20"
               onClick={() => setCreateBoardModalOpen(true)}
               data-pendo="button-create-shared-board"
             >
@@ -171,7 +171,7 @@ export function Sidebar({ onClose }: SidebarProps) {
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start hover:bg-[#e3cac0]/30 text-[#263d57]",
+                      "w-full justify-start hover:bg-[#e3cac0]/20 text-[#263d57]",
                       location === `/tag/shared/${board.name}` && "bg-[#e3cac0]/30"
                     )}
                     onClick={onClose}
