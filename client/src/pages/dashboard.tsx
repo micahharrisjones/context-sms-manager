@@ -142,8 +142,8 @@ function BoardCard({ board }: BoardCardProps) {
             {/* Vertical Divider - Mobile only */}
             <div className="md:hidden border-l border-[#263d57]/10"></div>
 
-            {/* Board Controls - Mobile vertical */}
-            <div className="md:hidden flex flex-col justify-center gap-5" onClick={(e) => e.stopPropagation()}>
+            {/* Board Controls - Mobile 2x2 grid */}
+            <div className="md:hidden grid grid-cols-2 gap-4 content-center" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={handleNavigate}
                 className="text-[#263d57] hover:text-[#b95827] transition-colors"
