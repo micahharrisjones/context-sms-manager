@@ -70,16 +70,16 @@ function BoardCard({ board }: BoardCardProps) {
         <CardContent className="p-6">
           {/* Folder Icon - Left Aligned */}
           <div className="mb-2.5">
-            <Folder className="w-8 h-8 text-[#b95827]" />
+            <Folder className="w-7 h-7 text-[#263d57]" />
           </div>
           
           {/* Board Name with Icon */}
           <div className="flex items-center gap-2 mb-0.5">
             <h3 className="font-semibold text-[#263d57] text-base">
-              {board.type === 'private' ? `#${board.name}` : board.name}
+              #{board.name}
             </h3>
             {board.type === 'private' ? (
-              <Lock className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
+              <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
             ) : (
               <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0 fill-none" />
             )}
@@ -112,27 +112,23 @@ function BoardCard({ board }: BoardCardProps) {
               <Edit className="w-4 h-4" />
             </button>
 
-            {board.type === 'shared' && board.role === 'owner' && (
-              <>
-                <button
-                  onClick={() => setInviteModalOpen(true)}
-                  className="text-[#263d57] hover:text-[#b95827] transition-colors"
-                  data-testid={`button-invite-${board.name}`}
-                  title="Invite"
-                >
-                  <UserPlus className="w-4 h-4" />
-                </button>
+            <button
+              onClick={() => setInviteModalOpen(true)}
+              className="text-[#263d57] hover:text-[#b95827] transition-colors"
+              data-testid={`button-invite-${board.name}`}
+              title="Invite"
+            >
+              <UserPlus className="w-4 h-4" />
+            </button>
 
-                <button
-                  onClick={() => setDeleteModalOpen(true)}
-                  className="text-red-600 hover:text-red-700 transition-colors"
-                  data-testid={`button-delete-${board.name}`}
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => setDeleteModalOpen(true)}
+              className="text-red-600 hover:text-red-700 transition-colors"
+              data-testid={`button-delete-${board.name}`}
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
           </div>
         </CardContent>
       </Card>
@@ -146,29 +142,25 @@ function BoardCard({ board }: BoardCardProps) {
         boardId={board.id}
       />
 
-      {board.type === 'shared' && (
-        <>
-          <InviteUserModal
-            isOpen={inviteModalOpen}
-            onClose={() => setInviteModalOpen(false)}
-            boardName={board.name}
-          />
+      <InviteUserModal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        boardName={board.name}
+      />
 
-          <BoardMembersModal
-            isOpen={membersModalOpen}
-            onClose={() => setMembersModalOpen(false)}
-            boardName={board.name}
-          />
+      <BoardMembersModal
+        isOpen={membersModalOpen}
+        onClose={() => setMembersModalOpen(false)}
+        boardName={board.name}
+      />
 
-          {board.role === 'owner' && board.id && (
-            <DeleteSharedBoardModal
-              isOpen={deleteModalOpen}
-              onClose={() => setDeleteModalOpen(false)}
-              boardName={board.name}
-              boardId={board.id}
-            />
-          )}
-        </>
+      {board.type === 'shared' && board.role === 'owner' && board.id && (
+        <DeleteSharedBoardModal
+          isOpen={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          boardName={board.name}
+          boardId={board.id}
+        />
       )}
     </>
   );
