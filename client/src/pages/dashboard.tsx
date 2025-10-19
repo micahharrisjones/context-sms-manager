@@ -246,7 +246,7 @@ export default function Dashboard() {
 
   // Search functionality - only query when there's a search term
   const { data: searchResults, isLoading: searchLoading } = useQuery<Message[]>({
-    queryKey: ["/api/messages/hybrid-search", { q: searchQuery.trim() }],
+    queryKey: [`/api/messages/hybrid-search?q=${encodeURIComponent(searchQuery.trim())}`],
     enabled: searchQuery.trim().length > 0,
     retry: false,
   });
