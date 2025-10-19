@@ -4,7 +4,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { BoardIcon } from "@/components/boards/BoardIcon";
-import { Lock, Users, ArrowRight } from "lucide-react";
+import { Lock, Users, ArrowRight, MoreVertical, Edit, UserPlus, Trash2, Share2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { useState } from "react";
+import { RenameBoardModal } from "@/components/shared-boards/RenameBoardModal";
+import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
+import { BoardMembersModal } from "@/components/shared-boards/BoardMembersModal";
+import { DeleteSharedBoardModal } from "@/components/shared-boards/DeleteSharedBoardModal";
 
 interface Tag {
   tag: string;
@@ -35,51 +47,158 @@ interface BoardCardProps {
     href: string;
     count: number;
     role?: 'owner' | 'member';
+    id?: number;
   };
 }
 
 function BoardCard({ board }: BoardCardProps) {
   const [, setLocation] = useLocation();
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [membersModalOpen, setMembersModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleNavigate = () => {
     setLocation(board.href);
   };
 
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <Card 
-      className={boardCardStyle}
-      data-pendo="dashboard-board-card"
-      data-board-type={board.type}
-      data-board-name={board.name}
-      onClick={handleClick}
-    >
-      <CardContent className="p-6">
-        {/* AI-Generated Abstract Icon - Left Aligned */}
-        <div className="mb-2.5">
-          <BoardIcon boardName={board.name} size={48} />
-        </div>
-        
-        {/* Board Name with Icon */}
-        <div className="flex items-center gap-2 mb-0.5">
-          <h3 className="font-semibold text-[#263d57] text-base">
-            {board.type === 'private' ? `#${board.name}` : board.name}
-          </h3>
-          {board.type === 'private' ? (
-            <Lock className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0" />
-          ) : (
-            <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0" />
+    <>
+      <Card 
+        className={boardCardStyle}
+        data-pendo="dashboard-board-card"
+        data-board-type={board.type}
+        data-board-name={board.name}
+      >
+        <CardContent className="p-6">
+          {/* AI-Generated Abstract Icon - Left Aligned */}
+          <div className="mb-2.5">
+            <BoardIcon boardName={board.name} size={48} />
+          </div>
+          
+          {/* Board Name with Icon */}
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="font-semibold text-[#263d57] text-base">
+              {board.type === 'private' ? `#${board.name}` : board.name}
+            </h3>
+            {board.type === 'private' ? (
+              <Lock className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0" />
+            ) : (
+              <Users className="w-3.5 h-3.5 text-[#263d57]/40 flex-shrink-0" />
+            )}
+          </div>
+          
+          {/* Save Count */}
+          <div className="mb-3">
+            <span className="text-sm text-[#263d57]/50">
+              {board.count} {board.count === 1 ? 'save' : 'saves'}
+            </span>
+          </div>
+
+          {/* Actions: Arrow button + Menu */}
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleNavigate}
+              size="sm"
+              className="h-8 px-3 bg-[#b95827] hover:bg-[#a04d1f] text-white"
+              data-testid={`button-view-board-${board.name}`}
+            >
+              <ArrowRight className="w-4 h-4" />
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={handleMenuClick}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 w-8 p-0 border-[#263d57]/20 hover:bg-[#263d57]/5"
+                  data-testid={`button-menu-${board.name}`}
+                >
+                  <MoreVertical className="w-4 h-4 text-[#263d57]" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-white">
+                <DropdownMenuItem onClick={() => setRenameModalOpen(true)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Rename
+                </DropdownMenuItem>
+
+                {board.type === 'shared' && (
+                  <>
+                    <DropdownMenuItem onClick={() => setMembersModalOpen(true)}>
+                      <Users className="w-4 h-4 mr-2" />
+                      View Members
+                    </DropdownMenuItem>
+                    
+                    {board.role === 'owner' && (
+                      <>
+                        <DropdownMenuItem onClick={() => setInviteModalOpen(true)}>
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          Invite User
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => setDeleteModalOpen(true)}
+                          className="text-red-600 focus:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete Board
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {board.type === 'private' && (
+                  <DropdownMenuItem onClick={() => setLocation(`/tag/private/${board.name}`)}>
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Convert to Shared
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Modals */}
+      <RenameBoardModal
+        isOpen={renameModalOpen}
+        onClose={() => setRenameModalOpen(false)}
+        boardType={board.type}
+        currentName={board.name}
+        boardId={board.id}
+      />
+
+      {board.type === 'shared' && (
+        <>
+          <InviteUserModal
+            isOpen={inviteModalOpen}
+            onClose={() => setInviteModalOpen(false)}
+            boardName={board.name}
+          />
+
+          <BoardMembersModal
+            isOpen={membersModalOpen}
+            onClose={() => setMembersModalOpen(false)}
+            boardName={board.name}
+          />
+
+          {board.role === 'owner' && board.id && (
+            <DeleteSharedBoardModal
+              isOpen={deleteModalOpen}
+              onClose={() => setDeleteModalOpen(false)}
+              boardName={board.name}
+              boardId={board.id}
+            />
           )}
-        </div>
-        
-        {/* Save Count */}
-        <div>
-          <span className="text-sm text-[#263d57]/50">
-            {board.count} {board.count === 1 ? 'save' : 'saves'}
-          </span>
-        </div>
-      </CardContent>
-    </Card>
+        </>
+      )}
+    </>
   );
 }
 
@@ -118,7 +237,8 @@ export default function Dashboard() {
       type: 'shared' as const, 
       href: `/tag/shared/${board.name}`,
       role: board.role,
-      count: board.count
+      count: board.count,
+      id: board.id
     })) || [])
   ];
 
