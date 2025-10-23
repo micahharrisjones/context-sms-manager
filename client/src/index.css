@@ -78,3 +78,12 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Modal backdrop fix for Pendo tagging */
+[data-radix-dialog-overlay] {
+  pointer-events: none !important;
+}
+
+[data-radix-dialog-content] {
+  pointer-events: auto !important;
+}
