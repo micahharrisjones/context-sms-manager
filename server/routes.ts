@@ -2801,6 +2801,16 @@ Reply STOP to opt out`;
         log('Pendo tracking failed for SMS message:', error instanceof Error ? error.message : String(error));
       });
       
+      // Track Content Added via SMS event in Pendo
+      pendoServerService.trackContentAddedViaSMS(
+        smsData.senderId,
+        created.id,
+        smsData.tags || [],
+        created.timestamp
+      ).catch(error => {
+        log('Pendo tracking failed for content added via SMS:', error instanceof Error ? error.message : String(error));
+      });
+      
       // Track new private board creation via SMS in Pendo
       if (newTags.length > 0) {
         for (const newTag of newTags) {

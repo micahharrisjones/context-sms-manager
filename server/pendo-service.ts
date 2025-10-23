@@ -194,6 +194,30 @@ class PendoServerService {
       }
     );
   }
+
+  async trackContentAddedViaSMS(
+    phoneNumber: string,
+    contentId: number,
+    tags: string[],
+    timestamp: Date
+  ): Promise<void> {
+    const nonUntaggedTags = tags.filter(tag => tag !== 'untagged');
+    const boardName = nonUntaggedTags.length > 0 ? nonUntaggedTags[0] : 'untagged';
+    
+    await this.trackEvent(
+      'Content Added via SMS',
+      phoneNumber,
+      'aside',
+      {
+        contentId,
+        boardName,
+        boardType: 'private',
+        tagCount: tags.length,
+        tags: tags.join(', '),
+        timestamp: timestamp.toISOString()
+      }
+    );
+  }
 }
 
 export const pendoServerService = new PendoServerService();
