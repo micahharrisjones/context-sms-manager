@@ -394,15 +394,21 @@ export function MessageCard({ message }: MessageCardProps) {
   });
   
   // Format hashtags for display at bottom
-  const formattedHashtags = hashtags.map((hashtag, i) => (
-    <Link
-      key={i}
-      href={`/tag/${hashtag.slice(1)}`}
-      className="text-primary hover:underline"
-    >
-      {hashtag}
-    </Link>
-  ));
+  const formattedHashtags = hashtags.map((hashtag, i) => {
+    const tagName = hashtag.slice(1);
+    return (
+      <Link
+        key={i}
+        href={`/tag/private/${tagName}`}
+        className="text-primary hover:underline"
+        data-pendo="content-board-tag-link"
+        data-board-name={tagName}
+        data-board-type="private"
+      >
+        {hashtag}
+      </Link>
+    );
+  });
   
   // Fetch movie data from TMDB when IMDB link is detected
   useEffect(() => {
