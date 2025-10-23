@@ -155,6 +155,7 @@ export default function JoinPage() {
                 disabled={isSubmitting}
                 className="text-lg"
                 data-testid="input-phone-number"
+                data-pendo="input-phone-signup"
               />
               <p className="text-xs text-[#263d57]/50 mt-2">
                 We'll send you a text to confirm
@@ -166,6 +167,7 @@ export default function JoinPage() {
               className="w-full bg-[#b95827] hover:bg-[#a04820] text-white text-lg py-6"
               disabled={isSubmitting}
               data-testid="button-submit-phone"
+              data-pendo="button-get-started-signup"
             >
               {isSubmitting ? (
                 <>
