@@ -39,6 +39,7 @@ export default function SearchPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-12 pr-4 py-6 text-lg bg-white border-2 border-[#e3cac0] focus:border-[#b95827] focus:ring-0"
               data-testid="input-search-page"
+              data-pendo="input-search"
               autoFocus
             />
           </div>
