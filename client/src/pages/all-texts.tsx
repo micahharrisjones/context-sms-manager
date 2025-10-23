@@ -115,10 +115,38 @@ export default function AllTexts() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="newest">Newest First</SelectItem>
-                    <SelectItem value="oldest">Oldest First</SelectItem>
-                    <SelectItem value="a-z">A to Z</SelectItem>
-                    <SelectItem value="z-a">Z to A</SelectItem>
+                    <SelectItem 
+                      value="newest"
+                      data-pendo="board-sort-option"
+                      data-sort-type="newest"
+                      data-board-type={boardName ? "shared" : "private"}
+                    >
+                      Newest First
+                    </SelectItem>
+                    <SelectItem 
+                      value="oldest"
+                      data-pendo="board-sort-option"
+                      data-sort-type="oldest"
+                      data-board-type={boardName ? "shared" : "private"}
+                    >
+                      Oldest First
+                    </SelectItem>
+                    <SelectItem 
+                      value="a-z"
+                      data-pendo="board-sort-option"
+                      data-sort-type="alphabetical"
+                      data-board-type={boardName ? "shared" : "private"}
+                    >
+                      A to Z
+                    </SelectItem>
+                    <SelectItem 
+                      value="z-a"
+                      data-pendo="board-sort-option"
+                      data-sort-type="alphabetical-reverse"
+                      data-board-type={boardName ? "shared" : "private"}
+                    >
+                      Z to A
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>

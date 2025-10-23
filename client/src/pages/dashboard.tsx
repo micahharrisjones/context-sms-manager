@@ -328,8 +328,20 @@ export default function Dashboard() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="a-z">A to Z</SelectItem>
-                  <SelectItem value="z-a">Z to A</SelectItem>
+                  <SelectItem 
+                    value="a-z"
+                    data-pendo="all-boards-sort-option"
+                    data-sort-type="alphabetical"
+                  >
+                    A to Z
+                  </SelectItem>
+                  <SelectItem 
+                    value="z-a"
+                    data-pendo="all-boards-sort-option"
+                    data-sort-type="alphabetical-reverse"
+                  >
+                    Z to A
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
