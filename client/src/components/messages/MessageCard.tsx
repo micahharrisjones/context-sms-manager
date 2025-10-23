@@ -45,7 +45,7 @@ function TwitterEmbed({ tweetId, url }: { tweetId: string; url: string }) {
   }, [tweetId]);
 
   return (
-    <div className="w-full">
+    <div className="w-full" data-pendo="content-twitter-embed" data-tweet-id={tweetId}>
       <div ref={containerRef} className="flex justify-center"></div>
       {isLoading && (
         <div className="w-full">
@@ -67,7 +67,7 @@ function RedditEmbed({ subreddit, postId, url }: { subreddit: string; postId: st
   const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <div className="w-full">
+    <div className="w-full" data-pendo="content-reddit-embed" data-subreddit={subreddit} data-post-id={postId}>
       <iframe
         src={`https://embed.reddit.com/r/${subreddit}/comments/${postId}?theme=light`}
         className="w-full min-h-[500px] rounded-md border-0"
@@ -551,7 +551,7 @@ export function MessageCard({ message }: MessageCardProps) {
         
         
         {instagramPostId && (
-          <div className="w-full">
+          <div className="w-full" data-pendo="content-instagram-embed" data-post-id={instagramPostId}>
             <iframe
               src={`https://www.instagram.com/p/${instagramPostId}/embed/captioned/`}
               className="w-full h-[600px] rounded-md border-0"
@@ -587,7 +587,7 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         {facebookPostId && (
-          <div className="w-full">
+          <div className="w-full" data-pendo="content-facebook-embed" data-post-id={facebookPostId}>
             <iframe
               src={`https://www.facebook.com/plugins/post.php?href=https://www.facebook.com/permalink.php?story_fbid=${facebookPostId}&width=500&show_text=true&height=500`}
               className="w-full h-[500px] rounded-md shadow-md"
@@ -608,7 +608,7 @@ export function MessageCard({ message }: MessageCardProps) {
           />
         )}
         {youtubeVideoId && (
-          <div className="w-full">
+          <div className="w-full" data-pendo="content-youtube-embed" data-video-id={youtubeVideoId}>
             <iframe
               src={`https://www.youtube.com/embed/${youtubeVideoId}`}
               className="w-full h-[315px] rounded-md border-0"
@@ -620,7 +620,7 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         {tiktokVideoId && (
-          <div className="w-full">
+          <div className="w-full" data-pendo="content-tiktok-embed" data-video-id={tiktokVideoId}>
             {/* For numeric video IDs, use iframe embed */}
             {/^\d+$/.test(tiktokVideoId) ? (
               <iframe
@@ -640,6 +640,8 @@ export function MessageCard({ message }: MessageCardProps) {
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="text-white hover:text-[#263d57]/70 transition-colors flex items-center gap-3 text-lg font-medium hover:underline"
+                    data-pendo="content-external-link-btn"
+                    data-link-type="tiktok-short"
                   >
                     <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
@@ -655,12 +657,14 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         {imdbInfo && movieData && (
-          <div className="w-full">
+          <div className="w-full" data-pendo="content-imdb-embed" data-imdb-id={imdbInfo.id}>
             <a 
               href={urls.find(url => url.includes('imdb.com')) || '#'}
               target="_blank" 
               rel="noopener noreferrer"
               className="block rounded-lg bg-white p-4 hover:shadow-lg transition-shadow"
+              data-pendo="content-external-link-btn"
+              data-link-type="imdb"
             >
               <div className="flex flex-col">
                 {movieData.posterUrl && (
