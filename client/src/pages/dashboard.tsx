@@ -112,6 +112,9 @@ function BoardCard({ board }: BoardCardProps) {
                   onClick={handleNavigate}
                   className="text-[#263d57] hover:text-[#b95827] transition-colors"
                   data-testid={`button-add-card-${board.name}`}
+                  data-pendo="board-card-add-btn"
+                  data-board-name={board.name}
+                  data-board-type={board.type}
                   title="Add Card"
                 >
                   <Plus className="w-4 h-4" />
@@ -121,6 +124,9 @@ function BoardCard({ board }: BoardCardProps) {
                   onClick={() => setRenameModalOpen(true)}
                   className="text-[#263d57] hover:text-[#b95827] transition-colors"
                   data-testid={`button-rename-${board.name}`}
+                  data-pendo="board-card-rename-btn"
+                  data-board-name={board.name}
+                  data-board-type={board.type}
                   title="Rename"
                 >
                   <Edit className="w-4 h-4" />
@@ -130,6 +136,9 @@ function BoardCard({ board }: BoardCardProps) {
                   onClick={() => setInviteModalOpen(true)}
                   className="text-[#263d57] hover:text-[#b95827] transition-colors"
                   data-testid={`button-invite-${board.name}`}
+                  data-pendo="board-card-invite-btn"
+                  data-board-name={board.name}
+                  data-board-type={board.type}
                   title="Invite"
                 >
                   <UserPlus className="w-4 h-4" />
@@ -139,6 +148,9 @@ function BoardCard({ board }: BoardCardProps) {
                   onClick={() => setDeleteModalOpen(true)}
                   className="text-red-600 hover:text-red-700 transition-colors"
                   data-testid={`button-delete-${board.name}`}
+                  data-pendo="board-card-delete-btn"
+                  data-board-name={board.name}
+                  data-board-type={board.type}
                   title="Delete"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -155,6 +167,9 @@ function BoardCard({ board }: BoardCardProps) {
                 onClick={handleNavigate}
                 className="text-[#263d57] hover:text-[#b95827] transition-colors"
                 data-testid={`button-add-card-${board.name}`}
+                data-pendo="board-card-add-btn"
+                data-board-name={board.name}
+                data-board-type={board.type}
                 title="Add Card"
               >
                 <Plus className="w-5 h-5" />
@@ -164,6 +179,9 @@ function BoardCard({ board }: BoardCardProps) {
                 onClick={() => setRenameModalOpen(true)}
                 className="text-[#263d57] hover:text-[#b95827] transition-colors"
                 data-testid={`button-rename-${board.name}`}
+                data-pendo="board-card-rename-btn"
+                data-board-name={board.name}
+                data-board-type={board.type}
                 title="Rename"
               >
                 <Edit className="w-5 h-5" />
@@ -173,6 +191,9 @@ function BoardCard({ board }: BoardCardProps) {
                 onClick={() => setInviteModalOpen(true)}
                 className="text-[#263d57] hover:text-[#b95827] transition-colors"
                 data-testid={`button-invite-${board.name}`}
+                data-pendo="board-card-invite-btn"
+                data-board-name={board.name}
+                data-board-type={board.type}
                 title="Invite"
               >
                 <UserPlus className="w-5 h-5" />
@@ -182,6 +203,9 @@ function BoardCard({ board }: BoardCardProps) {
                 onClick={() => setDeleteModalOpen(true)}
                 className="text-red-600 hover:text-red-700 transition-colors"
                 data-testid={`button-delete-${board.name}`}
+                data-pendo="board-card-delete-btn"
+                data-board-name={board.name}
+                data-board-type={board.type}
                 title="Delete"
               >
                 <Trash2 className="w-5 h-5" />
