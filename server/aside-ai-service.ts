@@ -126,10 +126,10 @@ Examples:
       let searchResults: any[] = [];
       let searchMethod = 'keyword';
 
-      // STEP 1: Try keyword search first
-      log(`🔍 Trying keyword search for: "${query}"`);
-      searchResults = await storage.searchMessages(userId, query);
-      log(`Keyword search returned ${searchResults.length} results`);
+      // STEP 1: Try enhanced keyword search first (searches content, og_title, og_description, tags)
+      log(`🔍 Trying enhanced keyword search for: "${query}"`);
+      searchResults = await storage.keywordSearch(userId, query, 50);
+      log(`Enhanced keyword search returned ${searchResults.length} results`);
 
       // STEP 2: If keyword search returns < 3 results, fall back to semantic search
       if (searchResults.length < 3) {
@@ -149,11 +149,26 @@ Examples:
       }
 
       if (searchResults.length === 0) {
-        return {
-          response: `I couldn't find anything matching "${query}". Try a different search or browse your boards at textaside.app`,
-          intent: 'search',
-          searchPerformed: true,
-        };
+        // Create search link with query pre-populated
+        const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'textaside.app';
+        const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+        const searchUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
+        
+        try {
+          const shortCode = await shortLinkService.createShortLink(searchUrl);
+          return {
+            response: `I couldn't find anything matching "${query}". Try a different search here: ${baseUrl}/s/${shortCode}`,
+            intent: 'search',
+            searchPerformed: true,
+          };
+        } catch (error) {
+          log(`Failed to create short link for no results: ${error instanceof Error ? error.message : String(error)}`);
+          return {
+            response: `I couldn't find anything matching "${query}". Try a different search at: ${searchUrl}`,
+            intent: 'search',
+            searchPerformed: true,
+          };
+        }
       }
 
       log(`✅ Using ${searchMethod} search results (${searchResults.length} total)`);
