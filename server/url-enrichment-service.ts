@@ -388,6 +388,15 @@ export class UrlEnrichmentService {
       'legal notice'
     ];
     
+    // Check for generic title patterns
+    const genericTitles = [
+      'product gallery',
+      'page not found',
+      'error',
+      '404',
+      'loading'
+    ];
+    
     // Check if title is just the site name (e.g., "Amazon.com", "Wayfair")
     const siteName = data.siteName?.toLowerCase() || '';
     if (siteName && title === siteName) return true;
@@ -395,6 +404,13 @@ export class UrlEnrichmentService {
     
     // Check if title is suspiciously short (likely not real content)
     if (data.title.length <= 2) return true;
+    
+    // Check for generic titles
+    for (const pattern of genericTitles) {
+      if (title === pattern || title.startsWith(pattern + ' ') || title.endsWith(' ' + pattern)) {
+        return true;
+      }
+    }
     
     // Check for blocked patterns in title or description
     for (const pattern of blockedPatterns) {
@@ -461,6 +477,13 @@ export class UrlEnrichmentService {
         if (/^\d+$/.test(segment)) continue;
         if (segment.includes('?') || segment.includes('=')) continue;
         
+        // Skip Amazon-style product IDs (e.g., "B0F9FNW8G5" - starts with B and has alphanumeric)
+        if (/^[A-Z][A-Z0-9]{8,}$/i.test(segment)) continue;
+        
+        // Skip common URL segments that aren't product names
+        const skipSegments = ['dp', 'p', 'pd', 'product', 'item', 'ref', 'gp'];
+        if (skipSegments.includes(segment.toLowerCase())) continue;
+        
         // Prefer longer segments with hyphens/underscores (likely product names)
         if (segment.length > bestSegment.length && /[-_]/.test(segment)) {
           bestSegment = segment;
@@ -471,7 +494,11 @@ export class UrlEnrichmentService {
       
       if (!bestSegment) {
         // Fallback to first non-trivial segment
-        bestSegment = segments.find(s => s.length > 5 && !/^\d+$/.test(s)) || segments[0];
+        bestSegment = segments.find(s => 
+          s.length > 5 && 
+          !/^\d+$/.test(s) && 
+          !/^[A-Z][A-Z0-9]{8,}$/i.test(s)
+        ) || segments[0];
       }
       
       if (!bestSegment) return null;
