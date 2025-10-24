@@ -1904,34 +1904,62 @@ export class DatabaseStorage implements IStorage {
 
   async keywordSearch(userId: number, query: string, limit: number = 50): Promise<Message[]> {
     try {
-      log(`Performing keyword search for user ${userId} with query: "${query}"`);
+      log(`Performing enhanced keyword search for user ${userId} with query: "${query}"`);
       
-      // Search across content, ogTitle, ogDescription, and tags using PostgreSQL full-text search
-      // Use combined text vector for both ranking and filtering to support multi-word queries
+      // Enhanced search with exact matching, prefix matching, and fuzzy matching
+      // Exact matches score highest, prefix matches medium, fuzzy/similarity matches lower
+      const prefixQuery = query.split(/\s+/).map(word => `${word}:*`).join(' & ');
+      
       const results = await db.execute(sql`
-        SELECT m.*, 
-               ts_rank(
-                 to_tsvector('english', 
-                   COALESCE(m.content, '') || ' ' || 
-                   COALESCE(m.og_title, '') || ' ' || 
-                   COALESCE(m.og_description, '') || ' ' ||
-                   COALESCE(array_to_string(m.tags, ' '), '')
-                 ),
-                 plainto_tsquery('english', ${query})
-               ) as rank
-        FROM ${messages} m
-        WHERE m.user_id = ${userId}
-          AND to_tsvector('english', 
+        WITH combined_text AS (
+          SELECT 
+            m.*,
             COALESCE(m.content, '') || ' ' || 
             COALESCE(m.og_title, '') || ' ' || 
             COALESCE(m.og_description, '') || ' ' ||
-            COALESCE(array_to_string(m.tags, ' '), '')
-          ) @@ plainto_tsquery('english', ${query})
-        ORDER BY rank DESC, m.timestamp DESC
+            COALESCE(array_to_string(m.tags, ' '), '') as full_text
+          FROM ${messages} m
+          WHERE m.user_id = ${userId}
+        ),
+        scored_results AS (
+          SELECT 
+            ct.*,
+            -- Exact match score (highest priority)
+            ts_rank(
+              to_tsvector('english', ct.full_text),
+              plainto_tsquery('english', ${query})
+            ) * 10 as exact_score,
+            -- Prefix match score (medium priority)
+            ts_rank(
+              to_tsvector('english', ct.full_text),
+              to_tsquery('english', ${prefixQuery})
+            ) * 5 as prefix_score,
+            -- Fuzzy/similarity score (lower priority, handles typos)
+            GREATEST(
+              similarity(ct.content, ${query}),
+              similarity(ct.og_title, ${query}),
+              similarity(ct.og_description, ${query})
+            ) * 2 as fuzzy_score
+          FROM combined_text ct
+          WHERE 
+            -- Match if any scoring method finds it
+            to_tsvector('english', ct.full_text) @@ plainto_tsquery('english', ${query})
+            OR to_tsvector('english', ct.full_text) @@ to_tsquery('english', ${prefixQuery})
+            OR similarity(ct.full_text, ${query}) > 0.1
+        )
+        SELECT 
+          id, content, sender_id, user_id, timestamp, tags, media_url, 
+          media_type, message_sid, sender_first_name, sender_last_name,
+          sender_avatar_url, sender_display_name, og_title, og_description,
+          og_image, og_site_name, enrichment_status, enriched_at,
+          (exact_score + prefix_score + fuzzy_score) as total_score
+        FROM scored_results
+        WHERE (exact_score + prefix_score + fuzzy_score) > 0
+        ORDER BY total_score DESC, timestamp DESC
         LIMIT ${limit}
       `);
       
-      log(`Keyword search returned ${results.rows.length} results`);
+      log(`Enhanced keyword search returned ${results.rows.length} results`);
       return results.rows as Message[];
     } catch (error) {
       log(`Error performing keyword search:`, error instanceof Error ? error.message : String(error));
