@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { log } from "./vite";
 import { embeddingService } from "./embedding-service";
 import type { IStorage } from "./storage";
+import { shortLinkService } from "./short-link-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -157,28 +158,41 @@ Examples:
 
       log(`✅ Using ${searchMethod} search results (${searchResults.length} total)`);
 
-      // Format top result for SMS
-      const topResult = searchResults[0];
-      let title = topResult.content.split('\n')[0].substring(0, 60);
-      if (topResult.content.length > 60) title += '...';
+      // Format results as numbered list (limit to 3-4 results for SMS readability)
+      const maxResults = Math.min(searchResults.length, 4);
+      const displayResults = searchResults.slice(0, maxResults);
+
+      let response = `Found ${searchResults.length} result${searchResults.length !== 1 ? 's' : ''}:\n\n`;
+
+      // Add numbered list of results
+      for (let i = 0; i < displayResults.length; i++) {
+        const result = displayResults[i];
+        
+        // Extract title (first line or first 50 chars)
+        let title = result.content.split('\n')[0].trim();
+        if (title.length > 50) {
+          title = title.substring(0, 50) + '...';
+        }
+        if (!title) {
+          title = 'Saved message';
+        }
+
+        response += `${i + 1}. ${title}\n`;
+      }
+
+      // Create "View all" short link to search page with query
+      const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'textaside.app';
+      const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+      const searchUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
       
-      // Extract URL if present
-      const urlMatch = topResult.content.match(/(https?:\/\/[^\s]+)/);
-      const tags = topResult.tags?.filter((t: string) => t !== 'untagged').map((t: string) => `#${t}`).join(' ') || '';
-
-      let response = `I found this:\n\n${title}`;
-      if (urlMatch) {
-        response += `\n${urlMatch[0]}`;
+      try {
+        const viewAllShortLink = await shortLinkService.createShortLink(searchUrl);
+        response += `\nView all: ${baseUrl}/s/${viewAllShortLink.code}`;
+      } catch (error) {
+        log(`Failed to create View all short link: ${error instanceof Error ? error.message : String(error)}`);
+        // Fallback to regular URL
+        response += `\nView all: ${searchUrl}`;
       }
-      if (tags) {
-        response += `\n${tags}`;
-      }
-
-      if (searchResults.length > 1) {
-        response += `\n\n+ ${searchResults.length - 1} more result${searchResults.length > 2 ? 's' : ''}`;
-      }
-
-      response += `\n\nView all: textaside.app`;
 
       return {
         response,
