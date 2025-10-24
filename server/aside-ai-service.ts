@@ -114,6 +114,7 @@ Examples:
 
   /**
    * Handle search queries - find specific content
+   * Uses keyword-first approach: try keyword matching first, fall back to semantic search if needed
    */
   private async handleSearchQuery(
     query: string,
@@ -121,17 +122,30 @@ Examples:
     storage: IStorage
   ): Promise<AsideAIResponse> {
     try {
-      // Generate embedding for search
-      const queryEmbedding = await embeddingService.generateEmbedding(query);
-      
-      if (!queryEmbedding) {
-        throw new Error('Failed to generate query embedding');
-      }
+      let searchResults: any[] = [];
+      let searchMethod = 'keyword';
 
-      // Perform hybrid search
-      const searchResults = await storage.hybridSearch(userId, query, queryEmbedding, 0.7, 5);
-      
-      log(`AsideAI search returned ${searchResults.length} results`);
+      // STEP 1: Try keyword search first
+      log(`🔍 Trying keyword search for: "${query}"`);
+      searchResults = await storage.searchMessages(userId, query);
+      log(`Keyword search returned ${searchResults.length} results`);
+
+      // STEP 2: If keyword search returns < 3 results, fall back to semantic search
+      if (searchResults.length < 3) {
+        log(`⚡ Keyword search returned < 3 results, falling back to semantic search`);
+        
+        // Generate embedding for semantic search
+        const queryEmbedding = await embeddingService.generateEmbedding(query);
+        
+        if (queryEmbedding) {
+          // Perform hybrid search (70% semantic + 30% keyword)
+          searchResults = await storage.hybridSearch(userId, query, queryEmbedding, 0.7, 5);
+          searchMethod = 'hybrid';
+          log(`Hybrid/semantic search returned ${searchResults.length} results`);
+        } else {
+          log(`⚠️ Failed to generate embedding, sticking with keyword results`);
+        }
+      }
 
       if (searchResults.length === 0) {
         return {
@@ -140,6 +154,8 @@ Examples:
           searchPerformed: true,
         };
       }
+
+      log(`✅ Using ${searchMethod} search results (${searchResults.length} total)`);
 
       // Format top result for SMS
       const topResult = searchResults[0];
