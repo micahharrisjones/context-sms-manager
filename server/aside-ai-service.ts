@@ -186,8 +186,8 @@ Examples:
       const searchUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
       
       try {
-        const viewAllShortLink = await shortLinkService.createShortLink(searchUrl);
-        response += `\nView all: ${baseUrl}/s/${viewAllShortLink.code}`;
+        const shortCode = await shortLinkService.createShortLink(searchUrl);
+        response += `\nView all: ${baseUrl}/s/${shortCode}`;
       } catch (error) {
         log(`Failed to create View all short link: ${error instanceof Error ? error.message : String(error)}`);
         // Fallback to regular URL

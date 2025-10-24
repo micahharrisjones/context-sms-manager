@@ -24,10 +24,62 @@ export class ShortLinkService {
   }
 
   /**
+   * Validate URL is safe for redirection
+   * Only allows http/https schemes and approved domains to prevent open redirect abuse
+   */
+  private validateUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      
+      // Only allow http and https schemes to prevent javascript:, data:, file:, etc.
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        log(`Invalid URL scheme rejected: ${parsed.protocol}`);
+        return false;
+      }
+
+      // Allowlist of approved domains (our own domain and localhost for development)
+      const allowedDomains = [
+        'textaside.app',
+        'localhost',
+        '127.0.0.1',
+      ];
+
+      // Also allow Replit development domains
+      if (process.env.REPLIT_DOMAINS) {
+        const replitDomains = process.env.REPLIT_DOMAINS.split(',');
+        allowedDomains.push(...replitDomains);
+      }
+
+      // Check if hostname matches any allowed domain (including subdomains)
+      const hostname = parsed.hostname.toLowerCase();
+      const isAllowed = allowedDomains.some(domain => {
+        const normalizedDomain = domain.toLowerCase();
+        return hostname === normalizedDomain || hostname.endsWith(`.${normalizedDomain}`);
+      });
+
+      if (!isAllowed) {
+        log(`Domain not in allowlist rejected: ${hostname}`);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      log(`Invalid URL format: ${url}`);
+      return false;
+    }
+  }
+
+  /**
    * Create a short link for a given URL
    * Returns the short code (not the full URL)
+   * Validates URL to prevent open redirect vulnerabilities
    */
   async createShortLink(targetUrl: string): Promise<string> {
+    // Validate URL before creating short link
+    if (!this.validateUrl(targetUrl)) {
+      throw new Error(`Invalid or unsafe URL: ${targetUrl}`);
+    }
+
     // Generate a unique code (retry if collision occurs)
     let code = this.generateCode();
     let attempts = 0;
