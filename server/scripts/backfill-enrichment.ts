@@ -2,8 +2,12 @@ import { db } from "../db";
 import { messages, messageEmbeddings } from "@shared/schema";
 import { isNull, or, sql } from "drizzle-orm";
 import { log } from "../vite";
-import { urlEnrichmentService } from "../url-enrichment-service";
+import { UrlEnrichmentService } from "../url-enrichment-service";
+import { openGraphService } from "../og-service";
 import { embeddingService } from "../embedding-service";
+
+// Create an instance of the URL enrichment service
+const urlEnrichmentService = new UrlEnrichmentService(openGraphService);
 
 /**
  * Backfill script to enrich existing messages with URLs
