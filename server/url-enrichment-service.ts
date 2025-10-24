@@ -5,6 +5,8 @@ export interface EnrichmentData {
   description?: string;
   image?: string;
   siteName?: string;
+  isBlocked?: boolean; // Indicates preview was blocked by the site
+  isFallback?: boolean; // Indicates we used domain-based fallback data
 }
 
 export class UrlEnrichmentService {
@@ -56,6 +58,18 @@ export class UrlEnrichmentService {
             siteName: microlinkData.site_name
           });
           this.logDataStatus(result, 'Microlink');
+          
+          // Check if the response indicates a blocked/access denied scenario
+          if (this.isBlockedResponse(result)) {
+            log(`[Enrichment] ⚠ Detected blocked/access denied response - using domain fallback`);
+            const fallbackData = this.extractDomainFallback(url);
+            result = this.mergeData(fallbackData, result); // Use fallback for missing fields
+            result.isBlocked = true;
+            result.isFallback = true;
+            log(`[Enrichment] ✓ Using domain fallback: ${result.title}`);
+            return result;
+          }
+          
           if (this.isComplete(result)) {
             log(`[Enrichment] ✓✓✓ COMPLETE data from Microlink - stopping`);
             return result;
@@ -77,9 +91,14 @@ export class UrlEnrichmentService {
         }
       }
 
-      // Final result - return whatever we found, even if incomplete
+      // STEP 4: If we still have no useful data or only blocked data, use domain fallback
       if (!result.title && !result.description && !result.image) {
-        log(`[Enrichment] ✗✗✗ FAILED - No metadata found after trying all methods`);
+        log(`[Enrichment] → No metadata found - using domain fallback`);
+        const fallbackData = this.extractDomainFallback(url);
+        if (fallbackData) {
+          return { ...fallbackData, isFallback: true };
+        }
+        log(`[Enrichment] ✗✗✗ FAILED - Could not extract even domain info`);
         return null;
       }
 
@@ -96,6 +115,11 @@ export class UrlEnrichmentService {
       return result;
     } catch (error) {
       log(`[Enrichment] EXCEPTION enriching ${url}:`, error instanceof Error ? error.message : String(error));
+      // Try domain fallback on exception
+      const fallbackData = this.extractDomainFallback(url);
+      if (fallbackData) {
+        return { ...fallbackData, isFallback: true };
+      }
       return null;
     }
   }
@@ -330,5 +354,64 @@ export class UrlEnrichmentService {
     return text.replace(/&[a-zA-Z0-9#]+;/g, (entity) => {
       return entityMap[entity] || entity;
     });
+  }
+
+  private isBlockedResponse(data: EnrichmentData): boolean {
+    if (!data.title) return false;
+    
+    const title = data.title.toLowerCase();
+    const description = data.description?.toLowerCase() || '';
+    
+    // Check for common block/error patterns
+    const blockedPatterns = [
+      'access denied',
+      'access forbidden',
+      'bot protection',
+      'just a moment',
+      'please wait',
+      'checking your browser',
+      'cloudflare',
+      'ray id',
+      'reference #'
+    ];
+    
+    // Check if title is suspiciously short (likely not real content)
+    if (data.title.length <= 2) return true;
+    
+    // Check for blocked patterns in title or description
+    for (const pattern of blockedPatterns) {
+      if (title.includes(pattern) || description.includes(pattern)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  private extractDomainFallback(url: string): EnrichmentData | null {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+      
+      // Remove www. prefix
+      const cleanDomain = hostname.replace(/^www\./, '');
+      
+      // Extract the main domain name (e.g., "lowes.com" → "Lowe's")
+      const domainParts = cleanDomain.split('.');
+      const mainDomain = domainParts[0];
+      
+      // Capitalize first letter for display
+      const displayName = mainDomain.charAt(0).toUpperCase() + mainDomain.slice(1);
+      
+      return {
+        title: displayName,
+        description: `Link from ${cleanDomain}`,
+        siteName: cleanDomain,
+        isFallback: true
+      };
+    } catch (error) {
+      log('[Enrichment] Failed to extract domain fallback:', error instanceof Error ? error.message : String(error));
+      return null;
+    }
   }
 }
