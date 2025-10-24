@@ -1810,6 +1810,71 @@ Reply STOP to opt out`;
       // Immediately respond to user while background tasks run
       res.status(201).json(created);
 
+      // Generate initial embedding for hybrid search (async, non-blocking)
+      // Note: This will be regenerated with enriched content if URLs are found
+      (async () => {
+        try {
+          log(`Generating initial embedding for UI message ${created.id}`);
+          const embedding = await embeddingService.generateEmbedding(created.content);
+          await storage.saveMessageEmbedding(created.id, embedding);
+          log(`Initial embedding saved for UI message ${created.id}`);
+        } catch (error) {
+          log(`Error generating/saving embedding for UI message ${created.id}:`, error instanceof Error ? error.message : String(error));
+          // Don't fail the whole request if embedding generation fails
+        }
+      })();
+      
+      // URL enrichment: Extract OG metadata for better searchability (async, non-blocking)
+      (async () => {
+        try {
+          const urls = urlEnrichmentService.extractUrls(created.content);
+          if (urls.length === 0) {
+            log(`No URLs found in UI message ${created.id}, skipping enrichment`);
+            return;
+          }
+          
+          log(`Found ${urls.length} URL(s) in UI message ${created.id}, starting enrichment`);
+          
+          // Mark as pending enrichment
+          await storage.updateMessageEnrichmentStatus(created.id, 'pending');
+          
+          // Enrich the first URL (for now, could extend to handle multiple URLs)
+          const enrichmentData = await urlEnrichmentService.enrichUrl(urls[0]);
+          
+          if (enrichmentData && (enrichmentData.title || enrichmentData.description)) {
+            log(`Enrichment successful for UI message ${created.id}: ${enrichmentData.title || 'No title'}`);
+            
+            // Update message with enrichment data
+            await storage.updateMessageEnrichment(created.id, {
+              ogTitle: enrichmentData.title || null,
+              ogDescription: enrichmentData.description || null,
+              ogImage: enrichmentData.image || null,
+              ogSiteName: enrichmentData.siteName || null,
+              enrichmentStatus: 'completed'
+            });
+            
+            // Regenerate embedding with enriched content for better search
+            const enrichedContent = [
+              created.content,
+              enrichmentData.title,
+              enrichmentData.description
+            ].filter(Boolean).join(' ');
+            
+            log(`Regenerating embedding with enriched content for UI message ${created.id}`);
+            const enrichedEmbedding = await embeddingService.generateEmbedding(enrichedContent);
+            await storage.saveMessageEmbedding(created.id, enrichedEmbedding);
+            log(`✓ Enriched embedding saved for UI message ${created.id}`);
+          } else {
+            log(`No enrichment data found for UI message ${created.id}`);
+            await storage.updateMessageEnrichmentStatus(created.id, 'failed');
+          }
+        } catch (error) {
+          log(`Error enriching UI message ${created.id}:`, error instanceof Error ? error.message : String(error));
+          await storage.updateMessageEnrichmentStatus(created.id, 'failed').catch(() => {});
+          // Don't fail the whole request if enrichment fails
+        }
+      })();
+
       // Run WebSocket broadcasts and SMS notifications asynchronously for faster response
       setImmediate(async () => {
         try {
