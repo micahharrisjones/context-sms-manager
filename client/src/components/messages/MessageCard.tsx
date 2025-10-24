@@ -443,6 +443,21 @@ export function MessageCard({ message }: MessageCardProps) {
         return;
       }
       
+      // First, check if we already have enriched OG data from the database
+      if (message.ogTitle || message.ogDescription || message.ogImage) {
+        console.log(`[OG Fetch] Using cached enriched data for URL: ${previewUrl}`);
+        setOgData({
+          title: message.ogTitle || undefined,
+          description: message.ogDescription || undefined,
+          image: message.ogImage || undefined,
+          site_name: message.ogSiteName || undefined,
+          url: previewUrl
+        });
+        setIsLoadingOg(false);
+        return;
+      }
+      
+      // No enriched data yet - fall back to API (will happen for old messages or during enrichment)
       console.log(`[OG Fetch] Fetching preview for URL: ${previewUrl}`);
       setIsLoadingOg(true);
       
@@ -466,7 +481,7 @@ export function MessageCard({ message }: MessageCardProps) {
     }
 
     fetchOpenGraphData();
-  }, [previewUrl]);
+  }, [previewUrl, message.ogTitle, message.ogDescription, message.ogImage, message.ogSiteName]);
 
   return (
     <>
