@@ -1945,8 +1945,11 @@ export class DatabaseStorage implements IStorage {
       log(`Query analysis: ${queryWords.length} words, ${hasStopWords ? 'contains' : 'no'} stop words, weight multiplier: ${stopWordMultiplier}`);
       
       // Use 'simple' config to search ALL words (no filtering)
-      // But apply smart scoring to downweight common words
-      const prefixQuery = query.split(/\s+/).map(word => `${word}:*`).join(' & ');
+      // Use OR logic (|) so multi-word queries find posts with ANY of the words
+      const prefixQuery = query.split(/\s+/).map(word => `${word}:*`).join(' | ');
+      
+      // Create OR query for exact matching too
+      const orQuery = query.split(/\s+/).join(' | ');
       
       const results = await db.execute(sql`
         WITH combined_text AS (
@@ -1963,10 +1966,10 @@ export class DatabaseStorage implements IStorage {
           SELECT 
             ct.*,
             -- Exact match score with smart weighting
-            -- Use 'simple' config to match ALL words, then apply weight based on content
+            -- Use OR logic so "cookie bones" finds posts with either word
             ts_rank(
               to_tsvector('simple', ct.full_text),
-              plainto_tsquery('simple', ${query})
+              to_tsquery('simple', ${orQuery})
             ) * 10 as base_exact_score,
             -- Prefix match score
             ts_rank(
@@ -1981,8 +1984,8 @@ export class DatabaseStorage implements IStorage {
             ) * 2 as fuzzy_score
           FROM combined_text ct
           WHERE 
-            -- Match if any scoring method finds it
-            to_tsvector('simple', ct.full_text) @@ plainto_tsquery('simple', ${query})
+            -- Match if any scoring method finds it (using OR logic for multi-word queries)
+            to_tsvector('simple', ct.full_text) @@ to_tsquery('simple', ${orQuery})
             OR to_tsvector('simple', ct.full_text) @@ to_tsquery('simple', ${prefixQuery})
             OR similarity(ct.full_text, ${query}) > 0.1
         )
