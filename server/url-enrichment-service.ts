@@ -175,6 +175,35 @@ export class UrlEnrichmentService {
     }
   }
 
+  private extractTweetTextFromHtml(html: string): string | undefined {
+    try {
+      // Twitter oEmbed returns HTML like: <blockquote class="twitter-tweet"><p>Tweet text here</p>...</blockquote>
+      // Extract the text content from the <p> tag
+      const pTagMatch = html.match(/<p[^>]*>(.*?)<\/p>/s);
+      if (pTagMatch && pTagMatch[1]) {
+        // Decode HTML entities and strip any remaining tags (br, a, etc)
+        let text = pTagMatch[1]
+          .replace(/<br\s*\/?>/gi, ' ') // Replace <br> with space
+          .replace(/<a[^>]*>.*?<\/a>/gi, '') // Remove links but keep the text before it
+          .replace(/<[^>]+>/g, '') // Remove any remaining HTML tags
+          .replace(/&quot;/g, '"')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&mdash;/g, '—')
+          .replace(/\s+/g, ' ') // Collapse multiple spaces
+          .trim();
+        
+        return text || undefined;
+      }
+      return undefined;
+    } catch (error) {
+      log('[Enrichment] Failed to extract tweet text from HTML:', error instanceof Error ? error.message : String(error));
+      return undefined;
+    }
+  }
+
   private async tryPlatformOembed(url: string, platform: string): Promise<EnrichmentData | null> {
     try {
       let oembedEndpoint: string;
@@ -226,10 +255,25 @@ export class UrlEnrichmentService {
 
       const data = await response.json();
       
+      // Special handling for Twitter to extract tweet text from HTML
+      let description = data.description;
+      if (platform === 'twitter' && data.html) {
+        const tweetText = this.extractTweetTextFromHtml(data.html);
+        if (tweetText) {
+          description = tweetText;
+          log(`[Enrichment] Extracted tweet text: ${tweetText.substring(0, 100)}...`);
+        } else {
+          // Fallback to author name if extraction fails
+          description = data.author_name ? `By ${data.author_name}` : undefined;
+        }
+      } else if (!description && data.author_name) {
+        description = `By ${data.author_name}`;
+      }
+      
       // Map oEmbed response to our EnrichmentData format
       return {
         title: data.title || data.name,
-        description: data.description || (data.author_name ? `By ${data.author_name}` : undefined),
+        description: description,
         image: data.thumbnail_url || data.image || data.url,
         siteName: data.provider_name || platform
       };
