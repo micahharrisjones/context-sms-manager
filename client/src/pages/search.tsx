@@ -8,13 +8,16 @@ import Masonry from "react-masonry-css";
 import { useLocation } from "wouter";
 
 export default function SearchPage() {
-  const [location] = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // Parse URL query parameter ?q=... and auto-populate search box
-  const urlParams = new URLSearchParams(location.split('?')[1] || '');
-  const queryParam = urlParams.get('q') || '';
-  
-  const [searchQuery, setSearchQuery] = useState(queryParam);
+  // Parse URL query parameter ?q=... and auto-populate search box on mount and URL changes
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryParam = urlParams.get('q') || '';
+    if (queryParam) {
+      setSearchQuery(queryParam);
+    }
+  }, []);
   
   // Search functionality - only query when there's a search term
   const { data: searchResults, isLoading: searchLoading } = useQuery<Message[]>({
