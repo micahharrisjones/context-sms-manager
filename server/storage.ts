@@ -1896,10 +1896,12 @@ export class DatabaseStorage implements IStorage {
           FULL OUTER JOIN vector_scores vs ON ks.id = vs.id
         )
         SELECT 
-          m.id, m.content, m.sender_id, m.user_id, m.timestamp, m.tags, 
-          m.media_url, m.media_type, m.message_sid, m.og_title, m.og_description,
-          m.og_image, m.og_site_name, m.og_is_blocked, m.og_is_fallback, 
-          m.enrichment_status, m.enriched_at
+          m.id, m.content, m.sender_id AS "senderId", m.user_id AS "userId", 
+          m.timestamp, m.tags, m.media_url AS "mediaUrl", m.media_type AS "mediaType", 
+          m.message_sid AS "messageSid", m.og_title AS "ogTitle", m.og_description AS "ogDescription",
+          m.og_image AS "ogImage", m.og_site_name AS "ogSiteName", m.og_is_blocked AS "ogIsBlocked", 
+          m.og_is_fallback AS "ogIsFallback", m.enrichment_status AS "enrichmentStatus", 
+          m.enriched_at AS "enrichedAt"
         FROM ${messages} m
         INNER JOIN combined_scores cs ON m.id = cs.id
         WHERE cs.hybrid_score > 0.4
@@ -1964,10 +1966,12 @@ export class DatabaseStorage implements IStorage {
             OR similarity(ct.full_text, ${query}) > 0.1
         )
         SELECT 
-          id, content, sender_id, user_id, timestamp, tags, media_url, 
-          media_type, message_sid, og_title, og_description,
-          og_image, og_site_name, og_is_blocked, og_is_fallback, 
-          enrichment_status, enriched_at,
+          id, content, sender_id AS "senderId", user_id AS "userId", timestamp, tags, 
+          media_url AS "mediaUrl", media_type AS "mediaType", message_sid AS "messageSid", 
+          og_title AS "ogTitle", og_description AS "ogDescription",
+          og_image AS "ogImage", og_site_name AS "ogSiteName", og_is_blocked AS "ogIsBlocked", 
+          og_is_fallback AS "ogIsFallback", enrichment_status AS "enrichmentStatus", 
+          enriched_at AS "enrichedAt",
           (exact_score + prefix_score + fuzzy_score) as total_score
         FROM scored_results
         WHERE (exact_score + prefix_score + fuzzy_score) > 0
