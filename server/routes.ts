@@ -2048,6 +2048,61 @@ Reply STOP to opt out`;
     }
   });
 
+  // Admin endpoint to manually re-enrich a message (useful for testing/debugging)
+  app.post("/api/admin/re-enrich/:messageId", requireAdmin, async (req, res) => {
+    try {
+      const messageId = parseInt(req.params.messageId);
+      
+      if (isNaN(messageId)) {
+        return res.status(400).json({ error: "Invalid message ID" });
+      }
+
+      log(`Admin manually triggering re-enrichment for message ${messageId}`);
+
+      // Get the message
+      const message = await storage.getMessageById(messageId);
+      if (!message) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+
+      // Extract URLs
+      const urls = urlEnrichmentService.extractUrls(message.content);
+      if (urls.length === 0) {
+        return res.status(400).json({ error: "No URLs found in message" });
+      }
+
+      log(`Found ${urls.length} URL(s) in message ${messageId}: ${urls.join(', ')}`);
+
+      // Clear cache for this URL first
+      openGraphService.clearCache();
+
+      // Set status to pending
+      await storage.updateMessageEnrichmentStatus(messageId, 'pending');
+
+      // Enrich the first URL
+      const enrichmentData = await urlEnrichmentService.enrichUrl(urls[0]);
+
+      if (enrichmentData && (enrichmentData.title || enrichmentData.description)) {
+        log(`Re-enrichment successful for message ${messageId}: ${enrichmentData.title || 'No title'}`);
+        await storage.updateMessageEnrichment(messageId, enrichmentData.title || null, enrichmentData.description || null, enrichmentData.image || null, enrichmentData.siteName || null);
+        await storage.updateMessageEnrichmentStatus(messageId, 'completed');
+        
+        res.json({
+          success: true,
+          message: "Re-enrichment completed successfully",
+          data: enrichmentData
+        });
+      } else {
+        log(`Re-enrichment failed for message ${messageId} - no data returned`);
+        await storage.updateMessageEnrichmentStatus(messageId, 'failed');
+        res.status(500).json({ error: "Re-enrichment failed - no data returned" });
+      }
+    } catch (error) {
+      log(`Error re-enriching message ${req.params.messageId}: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to re-enrich message" });
+    }
+  });
+
   // Admin users endpoint
   app.get("/api/admin/users", requireAdmin, async (req, res) => {
     try {

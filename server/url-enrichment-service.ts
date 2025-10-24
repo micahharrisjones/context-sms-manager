@@ -22,45 +22,94 @@ export class UrlEnrichmentService {
 
   async enrichUrl(url: string): Promise<EnrichmentData | null> {
     try {
-      log(`[Enrichment] Starting enrichment for: ${url}`);
+      log(`[Enrichment] ========== Starting enrichment for: ${url} ==========`);
+
+      // For social media and sites that block bots, use Microlink first
+      const shouldUseMicrolinkFirst = this.shouldUseMicrolinkFirst(url);
+      
+      if (shouldUseMicrolinkFirst) {
+        log(`[Enrichment] → Trying Microlink FIRST for bot-blocking platform: ${url}`);
+        const microlinkData = await this.openGraphService.fetchOpenGraph(url);
+        if (microlinkData && (microlinkData.title || microlinkData.description)) {
+          log(`[Enrichment] ✓ Microlink succeeded for ${url}: title="${microlinkData.title?.substring(0, 50)}"`);
+          return {
+            title: microlinkData.title,
+            description: microlinkData.description,
+            image: microlinkData.image,
+            siteName: microlinkData.site_name
+          };
+        }
+        log(`[Enrichment] ✗ Microlink failed for ${url}, falling back to other methods`);
+      }
 
       // Step 1: Try platform-specific extraction
+      log(`[Enrichment] → Trying platform-specific extraction for ${url}`);
       const platformData = await this.tryPlatformSpecific(url);
       if (platformData) {
         log(`[Enrichment] ✓ Platform-specific data found for ${url}`);
         return platformData;
       }
+      log(`[Enrichment] ✗ Platform-specific extraction failed`);
 
       // Step 2: Try oEmbed discovery
+      log(`[Enrichment] → Trying oEmbed discovery for ${url}`);
       const oembedData = await this.tryOembed(url);
       if (oembedData) {
         log(`[Enrichment] ✓ oEmbed data found for ${url}`);
         return oembedData;
       }
+      log(`[Enrichment] ✗ oEmbed discovery failed`);
 
       // Step 3: Try direct HTML parsing
+      log(`[Enrichment] → Trying direct HTML parsing for ${url}`);
       const htmlData = await this.tryDirectParsing(url);
       if (htmlData) {
         log(`[Enrichment] ✓ Direct HTML parsing succeeded for ${url}`);
         return htmlData;
       }
+      log(`[Enrichment] ✗ Direct HTML parsing failed`);
 
-      // Step 4: Fallback to Microlink (existing OG service)
-      log(`[Enrichment] → Falling back to Microlink for ${url}`);
-      const microlinkData = await this.openGraphService.fetchOpenGraph(url);
-      if (microlinkData) {
-        return {
-          title: microlinkData.title,
-          description: microlinkData.description,
-          image: microlinkData.image,
-          siteName: microlinkData.site_name
-        };
+      // Step 4: Fallback to Microlink (if not already tried)
+      if (!shouldUseMicrolinkFirst) {
+        log(`[Enrichment] → Falling back to Microlink for ${url}`);
+        const microlinkData = await this.openGraphService.fetchOpenGraph(url);
+        if (microlinkData) {
+          log(`[Enrichment] ✓ Microlink succeeded: title="${microlinkData.title?.substring(0, 50)}"`);
+          return {
+            title: microlinkData.title,
+            description: microlinkData.description,
+            image: microlinkData.image,
+            siteName: microlinkData.site_name
+          };
+        }
+        log(`[Enrichment] ✗ Microlink fallback failed`);
       }
 
+      log(`[Enrichment] ✗✗✗ ALL enrichment methods failed for ${url} ✗✗✗`);
       return null;
     } catch (error) {
-      log(`[Enrichment] Error enriching ${url}:`, error instanceof Error ? error.message : String(error));
+      log(`[Enrichment] EXCEPTION enriching ${url}:`, error instanceof Error ? error.message : String(error));
       return null;
+    }
+  }
+
+  private shouldUseMicrolinkFirst(url: string): boolean {
+    const botBlockingDomains = [
+      'x.com',
+      'twitter.com',
+      'reddit.com',
+      'instagram.com',
+      'facebook.com',
+      'tiktok.com',
+      'linkedin.com',
+      'imdb.com'
+    ];
+    
+    try {
+      const urlObj = new URL(url);
+      return botBlockingDomains.some(domain => urlObj.hostname.includes(domain));
+    } catch {
+      return false;
     }
   }
 
