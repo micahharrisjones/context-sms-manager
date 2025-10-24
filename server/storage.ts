@@ -1962,7 +1962,8 @@ export class DatabaseStorage implements IStorage {
         SELECT 
           id, content, sender_id, user_id, timestamp, tags, media_url, 
           media_type, message_sid, og_title, og_description,
-          og_image, og_site_name, enrichment_status, enriched_at,
+          og_image, og_site_name, og_is_blocked, og_is_fallback, 
+          enrichment_status, enriched_at,
           (exact_score + prefix_score + fuzzy_score) as total_score
         FROM scored_results
         WHERE (exact_score + prefix_score + fuzzy_score) > 0
