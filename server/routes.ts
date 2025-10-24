@@ -1420,34 +1420,25 @@ Reply STOP to opt out`;
     }
   });
 
-  // Hybrid search endpoint - combines keyword (BM25) + semantic (vector) search
+  // Keyword search endpoint - searches across content, titles, descriptions, and tags
   app.get("/api/messages/hybrid-search", requireAuth, async (req, res) => {
     try {
       const userId = req.userId!;
       const query = req.query.q as string;
-      const alpha = parseFloat(req.query.alpha as string) || 0.7; // Default to 0.7 (lean toward semantic)
-      const limit = parseInt(req.query.limit as string) || 20;
+      const limit = parseInt(req.query.limit as string) || 50;
       
       if (!query || query.trim().length === 0) {
         return res.status(400).json({ error: "Search query is required" });
       }
       
-      // Generate embedding for the search query
-      const queryEmbedding = await embeddingService.generateEmbedding(query.trim());
+      // Perform keyword search across content, titles, descriptions, and tags
+      const messages = await storage.keywordSearch(userId, query.trim(), limit);
       
-      if (!queryEmbedding || queryEmbedding.length === 0) {
-        log(`Failed to generate embedding for query: "${query}"`);
-        throw new Error('Failed to generate query embedding');
-      }
-      
-      // Perform hybrid search
-      const messages = await storage.hybridSearch(userId, query.trim(), queryEmbedding, alpha, limit);
-      
-      log(`Hybrid search for "${query}" (alpha=${alpha}) returned ${messages.length} messages for user ${userId}`);
+      log(`Keyword search for "${query}" returned ${messages.length} messages for user ${userId}`);
       res.json(messages);
     } catch (error) {
-      log(`Error in hybrid search: ${error instanceof Error ? error.message : String(error)}`);
-      res.status(500).json({ error: "Failed to perform hybrid search" });
+      log(`Error in keyword search: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to perform search" });
     }
   });
 

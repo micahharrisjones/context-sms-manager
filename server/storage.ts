@@ -1902,6 +1902,43 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  async keywordSearch(userId: number, query: string, limit: number = 50): Promise<Message[]> {
+    try {
+      log(`Performing keyword search for user ${userId} with query: "${query}"`);
+      
+      // Search across content, ogTitle, ogDescription, and tags using PostgreSQL full-text search
+      // Use combined text vector for both ranking and filtering to support multi-word queries
+      const results = await db.execute(sql`
+        SELECT m.*, 
+               ts_rank(
+                 to_tsvector('english', 
+                   COALESCE(m.content, '') || ' ' || 
+                   COALESCE(m.og_title, '') || ' ' || 
+                   COALESCE(m.og_description, '') || ' ' ||
+                   COALESCE(array_to_string(m.tags, ' '), '')
+                 ),
+                 plainto_tsquery('english', ${query})
+               ) as rank
+        FROM ${messages} m
+        WHERE m.user_id = ${userId}
+          AND to_tsvector('english', 
+            COALESCE(m.content, '') || ' ' || 
+            COALESCE(m.og_title, '') || ' ' || 
+            COALESCE(m.og_description, '') || ' ' ||
+            COALESCE(array_to_string(m.tags, ' '), '')
+          ) @@ plainto_tsquery('english', ${query})
+        ORDER BY rank DESC, m.timestamp DESC
+        LIMIT ${limit}
+      `);
+      
+      log(`Keyword search returned ${results.rows.length} results`);
+      return results.rows as Message[];
+    } catch (error) {
+      log(`Error performing keyword search:`, error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
   async getAllMessagesWithoutEmbeddings(limit: number = 1000): Promise<Message[]> {
     try {
       const results = await db
