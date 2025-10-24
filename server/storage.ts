@@ -1924,8 +1924,28 @@ export class DatabaseStorage implements IStorage {
     try {
       log(`Performing enhanced keyword search for user ${userId} with query: "${query}"`);
       
-      // Enhanced search with exact matching, prefix matching, and fuzzy matching
-      // Exact matches score highest, prefix matches medium, fuzzy/similarity matches lower
+      // Common English stop words that should have reduced weight in scoring
+      const stopWords = new Set([
+        'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'he',
+        'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 'to', 'was', 'will', 'with',
+        'i', 'me', 'my', 'we', 'us', 'our', 'you', 'your', 'just', 'but', 'not', 'so',
+        'if', 'or', 'can', 'this', 'these', 'those', 'am', 'been', 'have', 'had', 'do',
+        'does', 'did', 'all', 'any', 'some', 'such', 'no', 'nor', 'too', 'very', 'what',
+        'when', 'where', 'who', 'why', 'how'
+      ]);
+      
+      // Split query into words and calculate individual word weights
+      const queryWords = query.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+      const hasStopWords = queryWords.some(w => stopWords.has(w));
+      const hasMeaningfulWords = queryWords.some(w => !stopWords.has(w));
+      
+      // If query is ONLY stop words, use normal weight. Otherwise, downweight stop words.
+      const stopWordMultiplier = !hasMeaningfulWords ? 1.0 : 0.1;
+      
+      log(`Query analysis: ${queryWords.length} words, ${hasStopWords ? 'contains' : 'no'} stop words, weight multiplier: ${stopWordMultiplier}`);
+      
+      // Use 'simple' config to search ALL words (no filtering)
+      // But apply smart scoring to downweight common words
       const prefixQuery = query.split(/\s+/).map(word => `${word}:*`).join(' & ');
       
       const results = await db.execute(sql`
@@ -1942,17 +1962,18 @@ export class DatabaseStorage implements IStorage {
         scored_results AS (
           SELECT 
             ct.*,
-            -- Exact match score (highest priority)
+            -- Exact match score with smart weighting
+            -- Use 'simple' config to match ALL words, then apply weight based on content
             ts_rank(
-              to_tsvector('english', ct.full_text),
-              plainto_tsquery('english', ${query})
-            ) * 10 as exact_score,
-            -- Prefix match score (medium priority)
+              to_tsvector('simple', ct.full_text),
+              plainto_tsquery('simple', ${query})
+            ) * 10 as base_exact_score,
+            -- Prefix match score
             ts_rank(
-              to_tsvector('english', ct.full_text),
-              to_tsquery('english', ${prefixQuery})
-            ) * 5 as prefix_score,
-            -- Fuzzy/similarity score (lower priority, handles typos)
+              to_tsvector('simple', ct.full_text),
+              to_tsquery('simple', ${prefixQuery})
+            ) * 5 as base_prefix_score,
+            -- Fuzzy/similarity score (handles typos)
             GREATEST(
               similarity(ct.content, ${query}),
               similarity(ct.og_title, ${query}),
@@ -1961,8 +1982,8 @@ export class DatabaseStorage implements IStorage {
           FROM combined_text ct
           WHERE 
             -- Match if any scoring method finds it
-            to_tsvector('english', ct.full_text) @@ plainto_tsquery('english', ${query})
-            OR to_tsvector('english', ct.full_text) @@ to_tsquery('english', ${prefixQuery})
+            to_tsvector('simple', ct.full_text) @@ plainto_tsquery('simple', ${query})
+            OR to_tsvector('simple', ct.full_text) @@ to_tsquery('simple', ${prefixQuery})
             OR similarity(ct.full_text, ${query}) > 0.1
         )
         SELECT 
@@ -1972,9 +1993,10 @@ export class DatabaseStorage implements IStorage {
           og_image AS "ogImage", og_site_name AS "ogSiteName", og_is_blocked AS "ogIsBlocked", 
           og_is_fallback AS "ogIsFallback", enrichment_status AS "enrichmentStatus", 
           enriched_at AS "enrichedAt",
-          (exact_score + prefix_score + fuzzy_score) as total_score
+          -- Apply stop word multiplier: if query has meaningful words, downweight matches on common words
+          ((base_exact_score + base_prefix_score) * ${stopWordMultiplier} + fuzzy_score) as total_score
         FROM scored_results
-        WHERE (exact_score + prefix_score + fuzzy_score) > 0
+        WHERE ((base_exact_score + base_prefix_score) * ${stopWordMultiplier} + fuzzy_score) > 0
         ORDER BY total_score DESC, timestamp DESC
         LIMIT ${limit}
       `);
