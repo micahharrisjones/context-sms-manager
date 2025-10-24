@@ -71,6 +71,14 @@ export interface IStorage {
   getRecentMessagesBySender(userId: number, senderId: string, since: Date): Promise<Message[]>;
   updateMessageTags(messageId: number, tags: string[]): Promise<void>;
   updateMessage(messageId: number, content: string, tags: string[]): Promise<Message>;
+  updateMessageEnrichmentStatus(messageId: number, status: string): Promise<void>;
+  updateMessageEnrichment(messageId: number, data: {
+    ogTitle: string | null;
+    ogDescription: string | null;
+    ogImage: string | null;
+    ogSiteName: string | null;
+    enrichmentStatus: string;
+  }): Promise<void>;
   
   // Shared board management
   getSharedBoards(userId: number): Promise<SharedBoard[]>;
@@ -763,6 +771,50 @@ export class DatabaseStorage implements IStorage {
       return updatedMessage;
     } catch (error) {
       log("Error updating message:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async updateMessageEnrichmentStatus(messageId: number, status: string): Promise<void> {
+    try {
+      await db
+        .update(messages)
+        .set({
+          enrichmentStatus: status,
+          enrichedAt: status === 'completed' ? new Date() : null
+        })
+        .where(eq(messages.id, messageId));
+      
+      log(`Updated enrichment status for message ${messageId}: ${status}`);
+    } catch (error) {
+      log(`Error updating enrichment status for message ${messageId}:`, error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async updateMessageEnrichment(messageId: number, data: {
+    ogTitle: string | null;
+    ogDescription: string | null;
+    ogImage: string | null;
+    ogSiteName: string | null;
+    enrichmentStatus: string;
+  }): Promise<void> {
+    try {
+      await db
+        .update(messages)
+        .set({
+          ogTitle: data.ogTitle,
+          ogDescription: data.ogDescription,
+          ogImage: data.ogImage,
+          ogSiteName: data.ogSiteName,
+          enrichmentStatus: data.enrichmentStatus,
+          enrichedAt: new Date()
+        })
+        .where(eq(messages.id, messageId));
+      
+      log(`Updated enrichment data for message ${messageId}: ${data.ogTitle || 'No title'}`);
+    } catch (error) {
+      log(`Error updating enrichment data for message ${messageId}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
