@@ -22,14 +22,31 @@ export class UrlEnrichmentService {
 
   async enrichUrl(url: string): Promise<EnrichmentData | null> {
     try {
-      log(`[Enrichment] ========== Starting fill-the-gaps enrichment for: ${url} ==========`);
+      log(`[Enrichment] ========== Starting smart platform routing for: ${url} ==========`);
 
       let result: EnrichmentData = {};
-      const shouldUseMicrolinkFirst = this.shouldUseMicrolinkFirst(url);
       
-      // Method 1: Microlink (good for most sites, especially bot-blocking ones)
-      if (shouldUseMicrolinkFirst) {
-        log(`[Enrichment] → Method 1: Trying Microlink FIRST for bot-blocking platform`);
+      // STEP 1: Check if URL is a supported free platform
+      const platform = this.detectPlatform(url);
+      
+      if (platform) {
+        log(`[Enrichment] → Detected platform: ${platform} - using free oEmbed API`);
+        const platformData = await this.tryPlatformOembed(url, platform);
+        if (platformData) {
+          result = this.mergeData(result, platformData);
+          this.logDataStatus(result, `${platform} oEmbed`);
+          if (this.isComplete(result)) {
+            log(`[Enrichment] ✓✓✓ COMPLETE data from ${platform} oEmbed - stopping`);
+            return result;
+          }
+        } else {
+          log(`[Enrichment] ✗ ${platform} oEmbed failed - falling back to Microlink`);
+        }
+      }
+
+      // STEP 2: For non-platform URLs or failed platform attempts, use Microlink
+      if (!this.isComplete(result)) {
+        log(`[Enrichment] → Using Microlink for ${platform ? 'fallback' : 'non-platform URL'}`);
         const microlinkData = await this.openGraphService.fetchOpenGraph(url);
         if (microlinkData) {
           result = this.mergeData(result, {
@@ -40,7 +57,7 @@ export class UrlEnrichmentService {
           });
           this.logDataStatus(result, 'Microlink');
           if (this.isComplete(result)) {
-            log(`[Enrichment] ✓✓✓ COMPLETE data from Microlink - stopping early`);
+            log(`[Enrichment] ✓✓✓ COMPLETE data from Microlink - stopping`);
             return result;
           }
         } else {
@@ -48,68 +65,15 @@ export class UrlEnrichmentService {
         }
       }
 
-      // Method 2: Platform-specific extraction (e.g., YouTube API)
+      // STEP 3: If still incomplete, try remaining free methods
       if (!this.isComplete(result)) {
-        log(`[Enrichment] → Method 2: Trying platform-specific extraction`);
-        const platformData = await this.tryPlatformSpecific(url);
-        if (platformData) {
-          result = this.mergeData(result, platformData);
-          this.logDataStatus(result, 'Platform-specific');
-          if (this.isComplete(result)) {
-            log(`[Enrichment] ✓✓✓ COMPLETE data after platform-specific - stopping early`);
-            return result;
-          }
-        } else {
-          log(`[Enrichment] ✗ Platform-specific extraction returned no data`);
-        }
-      }
-
-      // Method 3: Direct HTML parsing (good for e-commerce sites)
-      if (!this.isComplete(result)) {
-        log(`[Enrichment] → Method 3: Trying direct HTML parsing`);
+        log(`[Enrichment] → Trying direct HTML parsing as last resort`);
         const htmlData = await this.tryDirectParsing(url);
         if (htmlData) {
           result = this.mergeData(result, htmlData);
           this.logDataStatus(result, 'Direct HTML parsing');
-          if (this.isComplete(result)) {
-            log(`[Enrichment] ✓✓✓ COMPLETE data after direct parsing - stopping early`);
-            return result;
-          }
         } else {
           log(`[Enrichment] ✗ Direct HTML parsing returned no data`);
-        }
-      }
-
-      // Method 4: oEmbed discovery
-      if (!this.isComplete(result)) {
-        log(`[Enrichment] → Method 4: Trying oEmbed discovery`);
-        const oembedData = await this.tryOembed(url);
-        if (oembedData) {
-          result = this.mergeData(result, oembedData);
-          this.logDataStatus(result, 'oEmbed');
-          if (this.isComplete(result)) {
-            log(`[Enrichment] ✓✓✓ COMPLETE data after oEmbed - stopping early`);
-            return result;
-          }
-        } else {
-          log(`[Enrichment] ✗ oEmbed discovery returned no data`);
-        }
-      }
-
-      // Method 5: Microlink fallback (if not already tried)
-      if (!shouldUseMicrolinkFirst && !this.isComplete(result)) {
-        log(`[Enrichment] → Method 5: Trying Microlink as fallback`);
-        const microlinkData = await this.openGraphService.fetchOpenGraph(url);
-        if (microlinkData) {
-          result = this.mergeData(result, {
-            title: microlinkData.title,
-            description: microlinkData.description,
-            image: microlinkData.image,
-            siteName: microlinkData.site_name
-          });
-          this.logDataStatus(result, 'Microlink fallback');
-        } else {
-          log(`[Enrichment] ✗ Microlink fallback returned no data`);
         }
       }
 
@@ -161,100 +125,65 @@ export class UrlEnrichmentService {
     log(`[Enrichment] After ${source}: [${parts.join(', ')}]`);
   }
 
-  private shouldUseMicrolinkFirst(url: string): boolean {
-    const botBlockingDomains = [
-      'x.com',
-      'twitter.com',
-      'reddit.com',
-      'instagram.com',
-      'facebook.com',
-      'tiktok.com',
-      'linkedin.com',
-      'imdb.com'
-    ];
-    
+  private detectPlatform(url: string): string | null {
     try {
       const urlObj = new URL(url);
-      return botBlockingDomains.some(domain => urlObj.hostname.includes(domain));
+      const hostname = urlObj.hostname.toLowerCase();
+      
+      // Check for supported platforms with free oEmbed APIs
+      if (hostname.includes('x.com') || hostname.includes('twitter.com')) return 'twitter';
+      if (hostname.includes('youtube.com') || hostname.includes('youtu.be')) return 'youtube';
+      if (hostname.includes('vimeo.com')) return 'vimeo';
+      if (hostname.includes('tiktok.com')) return 'tiktok';
+      if (hostname.includes('reddit.com')) return 'reddit';
+      if (hostname.includes('spotify.com') || hostname.includes('open.spotify.com')) return 'spotify';
+      if (hostname.includes('soundcloud.com')) return 'soundcloud';
+      if (hostname.includes('pinterest.com') || hostname.includes('pin.it')) return 'pinterest';
+      if (hostname.includes('bsky.social') || hostname.includes('bsky.app')) return 'bluesky';
+      
+      return null;
     } catch {
-      return false;
-    }
-  }
-
-  private async tryPlatformSpecific(url: string): Promise<EnrichmentData | null> {
-    // YouTube
-    const youtubeId = this.extractYouTubeId(url);
-    if (youtubeId) {
-      return await this.enrichYouTube(youtubeId);
-    }
-
-    // For other platforms (Instagram, Twitter, TikTok, etc.), we use embeds
-    // They don't provide easy metadata APIs, so we'll let them fall through
-    // to oEmbed or HTML parsing
-    
-    return null;
-  }
-
-  private extractYouTubeId(url: string): string | null {
-    const patterns = [
-      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/,
-      /youtube\.com\/embed\/([^&\s]+)/,
-      /youtube\.com\/v\/([^&\s]+)/
-    ];
-
-    for (const pattern of patterns) {
-      const match = url.match(pattern);
-      if (match) return match[1];
-    }
-    return null;
-  }
-
-  private async enrichYouTube(videoId: string): Promise<EnrichmentData | null> {
-    try {
-      // Use YouTube oEmbed (free, no API key required)
-      const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
-      const response = await fetch(oembedUrl, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0)',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!response.ok) return null;
-
-      const data = await response.json();
-      return {
-        title: data.title,
-        description: `By ${data.author_name}`,
-        image: data.thumbnail_url,
-        siteName: 'YouTube'
-      };
-    } catch (error) {
-      log('[Enrichment] YouTube oEmbed failed:', error instanceof Error ? error.message : String(error));
       return null;
     }
   }
 
-  private async tryOembed(url: string): Promise<EnrichmentData | null> {
+  private async tryPlatformOembed(url: string, platform: string): Promise<EnrichmentData | null> {
     try {
-      // First, fetch the HTML to discover oEmbed endpoint
-      const response = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0)',
-          'Accept': 'text/html',
-        },
-        signal: AbortSignal.timeout(10000),
-      });
-
-      if (!response.ok) return null;
-
-      const html = await response.text();
-      const oembedEndpoint = this.discoverOembedEndpoint(html);
+      let oembedEndpoint: string;
       
-      if (!oembedEndpoint) return null;
+      switch (platform) {
+        case 'twitter':
+          oembedEndpoint = `https://publish.twitter.com/oembed?url=${encodeURIComponent(url)}&omit_script=true`;
+          break;
+        case 'youtube':
+          oembedEndpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+          break;
+        case 'vimeo':
+          oembedEndpoint = `https://vimeo.com/api/oembed.json?url=${encodeURIComponent(url)}`;
+          break;
+        case 'tiktok':
+          oembedEndpoint = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+          break;
+        case 'reddit':
+          oembedEndpoint = `https://www.reddit.com/oembed?url=${encodeURIComponent(url)}`;
+          break;
+        case 'spotify':
+          oembedEndpoint = `https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`;
+          break;
+        case 'soundcloud':
+          oembedEndpoint = `https://soundcloud.com/oembed?url=${encodeURIComponent(url)}&format=json`;
+          break;
+        case 'pinterest':
+          oembedEndpoint = `https://www.pinterest.com/oembed.json?url=${encodeURIComponent(url)}`;
+          break;
+        case 'bluesky':
+          // Bluesky doesn't have a stable oEmbed API yet, fall through to Microlink
+          return null;
+        default:
+          return null;
+      }
 
-      // Fetch oEmbed data
-      const oembedResponse = await fetch(oembedEndpoint, {
+      const response = await fetch(oembedEndpoint, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0)',
           'Accept': 'application/json',
@@ -262,33 +191,26 @@ export class UrlEnrichmentService {
         signal: AbortSignal.timeout(10000),
       });
 
-      if (!oembedResponse.ok) return null;
+      if (!response.ok) {
+        log(`[Enrichment] ${platform} oEmbed returned ${response.status}`);
+        return null;
+      }
 
-      const data = await oembedResponse.json();
+      const data = await response.json();
+      
+      // Map oEmbed response to our EnrichmentData format
       return {
-        title: data.title,
+        title: data.title || data.name,
         description: data.description || (data.author_name ? `By ${data.author_name}` : undefined),
-        image: data.thumbnail_url || data.url,
-        siteName: data.provider_name
+        image: data.thumbnail_url || data.image || data.url,
+        siteName: data.provider_name || platform
       };
     } catch (error) {
-      log('[Enrichment] oEmbed discovery failed:', error instanceof Error ? error.message : String(error));
+      log(`[Enrichment] ${platform} oEmbed failed:`, error instanceof Error ? error.message : String(error));
       return null;
     }
   }
 
-  private discoverOembedEndpoint(html: string): string | null {
-    const jsonOembedRegex = /<link[^>]*type=["']application\/json\+oembed["'][^>]*href=["']([^"']+)["'][^>]*>/i;
-    const xmlOembedRegex = /<link[^>]*type=["'](?:text\/xml|application\/xml)\+oembed["'][^>]*href=["']([^"']+)["'][^>]*>/i;
-    
-    let match = html.match(jsonOembedRegex);
-    if (match) return match[1];
-    
-    match = html.match(xmlOembedRegex);
-    if (match) return match[1];
-    
-    return null;
-  }
 
   private async tryDirectParsing(url: string): Promise<EnrichmentData | null> {
     try {
