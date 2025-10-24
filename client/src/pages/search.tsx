@@ -1,13 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Message } from "@shared/schema";
 import { MessageCard } from "@/components/messages/MessageCard";
 import Masonry from "react-masonry-css";
+import { useLocation } from "wouter";
 
 export default function SearchPage() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [location] = useLocation();
+  
+  // Parse URL query parameter ?q=... and auto-populate search box
+  const urlParams = new URLSearchParams(location.split('?')[1] || '');
+  const queryParam = urlParams.get('q') || '';
+  
+  const [searchQuery, setSearchQuery] = useState(queryParam);
   
   // Search functionality - only query when there's a search term
   const { data: searchResults, isLoading: searchLoading } = useQuery<Message[]>({
