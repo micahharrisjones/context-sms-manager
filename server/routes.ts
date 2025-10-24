@@ -3273,6 +3273,19 @@ Reply STOP to opt out`;
     }
   });
 
+  // Test endpoint for URL enrichment (temporary for testing platform routing)
+  app.post('/api/test-enrich', async (req, res) => {
+    try {
+      const { url } = req.body as { url: string };
+      log(`[Test Enrich] Testing URL: ${url}`);
+      const enriched = await urlEnrichmentService.enrichUrl(url);
+      res.json({ success: true, url, enriched });
+    } catch (error) {
+      log('Error in test-enrich endpoint:', error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: 'Failed to enrich URL' });
+    }
+  });
+
   // Register single primary webhook endpoint for Twilio
   // CRITICAL FIX: Use only ONE webhook endpoint to prevent duplicate SMS notifications
   app.post("/api/webhook/twilio", handleWebhook); // Primary Twilio webhook endpoint
