@@ -34,7 +34,8 @@ class AsideAIService {
       // Step 2: Based on intent, perform appropriate action
       switch (intentAnalysis.intent) {
         case 'search':
-          return await this.handleSearchQuery(query, userId, storage);
+          // Use AI-extracted query for more accurate search
+          return await this.handleSearchQuery(intentAnalysis.extractedQuery || query, userId, storage);
         
         case 'summarize':
           return await this.handleSummarizeQuery(query, userId, storage);
@@ -77,17 +78,22 @@ class AsideAIService {
             content: `You are an intent classifier for Aside, a personal information management system via SMS.
 
 Users can ask you to:
-- SEARCH: Find specific saved content ("find my recipes", "do I have anything about AI?", "search for gift ideas")
+- SEARCH: Find specific saved content. This includes keywords, topics, or any content search. Examples: "cookie", "find my recipes", "do I have anything about AI?", "search for gift ideas", "show me tech articles"
 - SUMMARIZE: Get overview of saved content ("what have I saved about cooking?", "summarize my tech articles")
 - RECOMMEND: Get recommendations ("what's the best gift idea I saved?", "recommend something to read")
 - ANALYZE: Get insights ("what topics do I save the most?", "analyze my interests")
 - LOGIN: Request a login link for the web dashboard ("how do I login?", "send me a login link", "I need to access the website")
 
-Respond with ONLY a JSON object: {"intent": "search|summarize|recommend|analyze|login|unknown", "query": "cleaned up search query"}
+Respond with ONLY a JSON object: {"intent": "search|summarize|recommend|analyze|login|unknown", "query": "cleaned up search keywords"}
+
+For SEARCH intent, extract just the core search keywords without action verbs.
 
 Examples:
+"cookie" → {"intent": "search", "query": "cookie"}
 "find my recipes" → {"intent": "search", "query": "recipes"}
-"what have I saved about AI?" → {"intent": "summarize", "query": "AI content"}
+"show me tech articles" → {"intent": "search", "query": "tech articles"}
+"do I have anything about AI?" → {"intent": "search", "query": "AI"}
+"what have I saved about cooking?" → {"intent": "summarize", "query": "cooking"}
 "recommend a good restaurant" → {"intent": "recommend", "query": "restaurants"}
 "what do I save most?" → {"intent": "analyze", "query": "saved topics"}
 "how do I login?" → {"intent": "login", "query": "login"}
@@ -149,9 +155,8 @@ Examples:
       }
 
       if (searchResults.length === 0) {
-        // Create search link with query pre-populated
-        const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'textaside.app';
-        const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+        // Create search link with query pre-populated - always use textaside.app
+        const baseUrl = 'https://textaside.app';
         const searchUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
         
         try {
@@ -195,9 +200,8 @@ Examples:
         response += `${i + 1}. ${title}\n`;
       }
 
-      // Create "View all" short link to search page with query
-      const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 'textaside.app';
-      const baseUrl = domain.startsWith('http') ? domain : `https://${domain}`;
+      // Create "View all" short link to search page with query - always use textaside.app
+      const baseUrl = 'https://textaside.app';
       const searchUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
       
       try {
