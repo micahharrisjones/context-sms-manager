@@ -1850,6 +1850,8 @@ Reply STOP to opt out`;
               ogDescription: enrichmentData.description || null,
               ogImage: enrichmentData.image || null,
               ogSiteName: enrichmentData.siteName || null,
+              ogIsBlocked: enrichmentData.isBlocked,
+              ogIsFallback: enrichmentData.isFallback,
               enrichmentStatus: 'completed'
             });
             
@@ -2149,8 +2151,15 @@ Reply STOP to opt out`;
 
       if (enrichmentData && (enrichmentData.title || enrichmentData.description)) {
         log(`Re-enrichment successful for message ${messageId}: ${enrichmentData.title || 'No title'}`);
-        await storage.updateMessageEnrichment(messageId, enrichmentData.title || null, enrichmentData.description || null, enrichmentData.image || null, enrichmentData.siteName || null);
-        await storage.updateMessageEnrichmentStatus(messageId, 'completed');
+        await storage.updateMessageEnrichment(messageId, {
+          ogTitle: enrichmentData.title || null,
+          ogDescription: enrichmentData.description || null,
+          ogImage: enrichmentData.image || null,
+          ogSiteName: enrichmentData.siteName || null,
+          ogIsBlocked: enrichmentData.isBlocked,
+          ogIsFallback: enrichmentData.isFallback,
+          enrichmentStatus: 'completed'
+        });
         
         res.json({
           success: true,
@@ -2933,6 +2942,8 @@ Reply STOP to opt out`;
               ogDescription: enrichmentData.description || null,
               ogImage: enrichmentData.image || null,
               ogSiteName: enrichmentData.siteName || null,
+              ogIsBlocked: enrichmentData.isBlocked,
+              ogIsFallback: enrichmentData.isFallback,
               enrichmentStatus: 'completed'
             });
             

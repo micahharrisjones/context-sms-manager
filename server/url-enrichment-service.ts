@@ -63,11 +63,15 @@ export class UrlEnrichmentService {
           if (this.isBlockedResponse(result)) {
             log(`[Enrichment] ⚠ Detected blocked/access denied response - using domain fallback`);
             const fallbackData = this.extractDomainFallback(url);
-            result = this.mergeData(fallbackData, result); // Use fallback for missing fields
-            result.isBlocked = true;
-            result.isFallback = true;
-            log(`[Enrichment] ✓ Using domain fallback: ${result.title}`);
-            return result;
+            if (fallbackData) {
+              result = this.mergeData(fallbackData, result); // Use fallback for missing fields
+              result.isBlocked = true;
+              result.isFallback = true;
+              // Clear the image so frontend shows placeholder icon instead
+              result.image = undefined;
+              log(`[Enrichment] ✓ Using domain fallback: ${result.title}`);
+              return result;
+            }
           }
           
           if (this.isComplete(result)) {

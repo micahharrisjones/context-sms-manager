@@ -797,6 +797,8 @@ export class DatabaseStorage implements IStorage {
     ogDescription: string | null;
     ogImage: string | null;
     ogSiteName: string | null;
+    ogIsBlocked?: boolean;
+    ogIsFallback?: boolean;
     enrichmentStatus: string;
   }): Promise<void> {
     try {
@@ -807,6 +809,8 @@ export class DatabaseStorage implements IStorage {
           ogDescription: data.ogDescription,
           ogImage: data.ogImage,
           ogSiteName: data.ogSiteName,
+          ogIsBlocked: data.ogIsBlocked ? 'true' : null,
+          ogIsFallback: data.ogIsFallback ? 'true' : null,
           enrichmentStatus: data.enrichmentStatus,
           enrichedAt: new Date()
         })
@@ -1099,6 +1103,8 @@ export class DatabaseStorage implements IStorage {
           ogDescription: messages.ogDescription,
           ogImage: messages.ogImage,
           ogSiteName: messages.ogSiteName,
+          ogIsBlocked: messages.ogIsBlocked,
+          ogIsFallback: messages.ogIsFallback,
           enrichmentStatus: messages.enrichmentStatus,
           enrichedAt: messages.enrichedAt,
           // Include sender profile information

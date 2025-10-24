@@ -53,6 +53,8 @@ export const messages = pgTable("messages", {
   ogDescription: text("og_description"), // Open Graph description from URL enrichment
   ogImage: text("og_image"), // Open Graph image URL from URL enrichment
   ogSiteName: text("og_site_name"), // Open Graph site name from URL enrichment
+  ogIsBlocked: text("og_is_blocked"), // "true" if preview was blocked by the site
+  ogIsFallback: text("og_is_fallback"), // "true" if we used domain-based fallback data
   enrichmentStatus: varchar("enrichment_status", { length: 20 }), // "pending" | "completed" | "failed" | null
   enrichedAt: timestamp("enriched_at"), // When URL enrichment completed
 }, (table) => ({

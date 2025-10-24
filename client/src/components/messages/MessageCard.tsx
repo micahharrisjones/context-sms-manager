@@ -453,6 +453,8 @@ export function MessageCard({ message }: MessageCardProps) {
           description: message.ogDescription || undefined,
           image: message.ogImage || undefined,
           site_name: message.ogSiteName || undefined,
+          isBlocked: message.ogIsBlocked === 'true',
+          isFallback: message.ogIsFallback === 'true',
           url: previewUrl
         });
         setIsLoadingOg(false);
