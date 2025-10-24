@@ -49,6 +49,12 @@ export const messages = pgTable("messages", {
   mediaUrl: text("media_url"),
   mediaType: varchar("media_type", { length: 20 }),
   messageSid: text("message_sid"), // Twilio MessageSid for deduplication
+  ogTitle: text("og_title"), // Open Graph title from URL enrichment
+  ogDescription: text("og_description"), // Open Graph description from URL enrichment
+  ogImage: text("og_image"), // Open Graph image URL from URL enrichment
+  ogSiteName: text("og_site_name"), // Open Graph site name from URL enrichment
+  enrichmentStatus: varchar("enrichment_status", { length: 20 }), // "pending" | "completed" | "failed" | null
+  enrichedAt: timestamp("enriched_at"), // When URL enrichment completed
 }, (table) => ({
   // Unique constraint on messageSid to prevent duplicate webhook processing
   // Using plain unique index (allows multiple NULLs by default in PostgreSQL)
