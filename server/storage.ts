@@ -1095,6 +1095,12 @@ export class DatabaseStorage implements IStorage {
           mediaUrl: messages.mediaUrl,
           mediaType: messages.mediaType,
           messageSid: messages.messageSid,
+          ogTitle: messages.ogTitle,
+          ogDescription: messages.ogDescription,
+          ogImage: messages.ogImage,
+          ogSiteName: messages.ogSiteName,
+          enrichmentStatus: messages.enrichmentStatus,
+          enrichedAt: messages.enrichedAt,
           // Include sender profile information
           senderFirstName: users.firstName,
           senderLastName: users.lastName,
