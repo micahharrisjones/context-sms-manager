@@ -270,6 +270,8 @@ interface OpenGraphData {
   url?: string;
   site_name?: string;
   type?: string;
+  isBlocked?: boolean; // Indicates preview was blocked by the site
+  isFallback?: boolean; // Indicates we used domain-based fallback data
 }
 
 export function MessageCard({ message }: MessageCardProps) {
@@ -511,7 +513,7 @@ export function MessageCard({ message }: MessageCardProps) {
                 className="block"
                 data-pendo="content-external-link-btn"
               >
-                {ogData.image && (
+                {ogData.image && !ogData.isBlocked && (
                   <div className="aspect-video w-full bg-[#263d57]/10 overflow-hidden">
                     <img
                       src={ogData.image}
@@ -524,7 +526,29 @@ export function MessageCard({ message }: MessageCardProps) {
                     />
                   </div>
                 )}
+                {!ogData.image && ogData.isFallback && (
+                  <div className="aspect-video w-full bg-[#263d57]/10 flex items-center justify-center">
+                    <div className="text-[#263d57]/30">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                      </svg>
+                    </div>
+                  </div>
+                )}
                 <div className="p-4">
+                  {(ogData.isBlocked || ogData.isFallback) && (
+                    <div className="mb-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-[#263d57]/10 text-[#263d57]/70">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="12" y1="16" x2="12" y2="12"></line>
+                          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        Preview unavailable
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-[#263d57] line-clamp-2 text-sm">
