@@ -36,6 +36,7 @@ export const magicLinkTokens = pgTable("magic_link_tokens", {
   userId: integer("user_id").references(() => users.id).notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   used: text("used").default("false").notNull(), // "true" or "false"
+  redirectUrl: varchar("redirect_url", { length: 500 }), // Optional redirect after login
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

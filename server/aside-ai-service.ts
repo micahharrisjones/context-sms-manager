@@ -3,6 +3,7 @@ import { log } from "./vite";
 import { embeddingService } from "./embedding-service";
 import type { IStorage } from "./storage";
 import { shortLinkService } from "./short-link-service";
+import { MagicLinkService } from "./magic-link-service";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -155,21 +156,25 @@ Examples:
       }
 
       if (searchResults.length === 0) {
-        // Create search link with query pre-populated - always use textaside.app
-        const baseUrl = 'https://textaside.app';
-        const searchUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
+        // Create magic link with redirect to search page (auto-login + search in one click)
+        const redirectUrl = `/search?q=${encodeURIComponent(query)}`;
         
         try {
-          const shortCode = await shortLinkService.createShortLink(searchUrl);
+          const { url: magicLinkUrl } = await MagicLinkService.createMagicLink(userId, redirectUrl);
+          
+          // Shorten the magic link for SMS readability
+          const shortCode = await shortLinkService.createShortLink(magicLinkUrl);
+          const baseUrl = 'https://textaside.app';
+          
           return {
             response: `I couldn't find anything matching "${query}". Try a different search here: ${baseUrl}/s/${shortCode}`,
             intent: 'search',
             searchPerformed: true,
           };
         } catch (error) {
-          log(`Failed to create short link for no results: ${error instanceof Error ? error.message : String(error)}`);
+          log(`Failed to create magic link for no results: ${error instanceof Error ? error.message : String(error)}`);
           return {
-            response: `I couldn't find anything matching "${query}". Try a different search at: ${searchUrl}`,
+            response: `I couldn't find anything matching "${query}". Try searching on the web at textaside.app`,
             intent: 'search',
             searchPerformed: true,
           };
@@ -200,17 +205,21 @@ Examples:
         response += `${i + 1}. ${title}\n`;
       }
 
-      // Create "View all" short link to search page with query - always use textaside.app
-      const baseUrl = 'https://textaside.app';
-      const searchUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
+      // Create "View all" magic link with redirect to search page (auto-login + search in one click)
+      const redirectUrl = `/search?q=${encodeURIComponent(query)}`;
       
       try {
-        const shortCode = await shortLinkService.createShortLink(searchUrl);
+        const { url: magicLinkUrl } = await MagicLinkService.createMagicLink(userId, redirectUrl);
+        
+        // Shorten the magic link for SMS readability
+        const shortCode = await shortLinkService.createShortLink(magicLinkUrl);
+        const baseUrl = 'https://textaside.app';
+        
         response += `\nView all: ${baseUrl}/s/${shortCode}`;
       } catch (error) {
-        log(`Failed to create View all short link: ${error instanceof Error ? error.message : String(error)}`);
-        // Fallback to regular URL
-        response += `\nView all: ${searchUrl}`;
+        log(`Failed to create View all magic link: ${error instanceof Error ? error.message : String(error)}`);
+        // Fallback to regular search link
+        response += `\nView all: https://textaside.app/search?q=${encodeURIComponent(query)}`;
       }
 
       return {

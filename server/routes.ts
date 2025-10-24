@@ -965,12 +965,14 @@ export async function registerRoutes(app: Express) {
       }
       
       // Validate and consume the token (one-time use, expiry-checked)
-      const userId = await MagicLinkService.validateAndConsumeToken(token);
+      const result = await MagicLinkService.validateAndConsumeToken(token);
       
-      if (!userId) {
+      if (!result) {
         log(`Magic link authentication failed: Invalid/expired/used token ${token.substring(0, 10)}...`);
         return res.redirect("/?error=link_expired");
       }
+      
+      const { userId, redirectUrl } = result;
       
       // Get user to update last login
       const user = await storage.getUserById(userId);
@@ -993,8 +995,10 @@ export async function registerRoutes(app: Express) {
         });
       });
       
-      // Redirect to main dashboard
-      res.redirect("/");
+      // Redirect to stored URL if provided, otherwise to main dashboard
+      const targetUrl = redirectUrl || "/";
+      log(`Redirecting user ${userId} to: ${targetUrl}`);
+      res.redirect(targetUrl);
     } catch (error) {
       log("Error in magic link authentication:", error instanceof Error ? error.message : String(error));
       res.redirect("/?error=login_failed");

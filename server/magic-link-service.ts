@@ -22,11 +22,18 @@ export class MagicLinkService {
   /**
    * Create a magic link for a user
    * @param userId - The user ID to create the magic link for
+   * @param redirectUrl - Optional URL to redirect to after login (internal paths only)
    * @returns The full magic link URL and the token
-   * @throws Error if rate limit exceeded
+   * @throws Error if rate limit exceeded or invalid redirect URL
    */
-  static async createMagicLink(userId: number): Promise<{ url: string; token: string }> {
+  static async createMagicLink(userId: number, redirectUrl?: string): Promise<{ url: string; token: string }> {
     try {
+      // Validate redirect URL if provided (security: only allow internal paths)
+      if (redirectUrl && !this.isValidRedirectUrl(redirectUrl)) {
+        log(`Invalid redirect URL rejected: ${redirectUrl}`);
+        throw new Error("Invalid redirect URL");
+      }
+      
       // Rate limiting: Check if user has exceeded token generation limit
       const recentTokenCount = await storage.getRecentTokenCount(userId, this.RATE_LIMIT_WINDOW_MINUTES);
       
@@ -41,19 +48,20 @@ export class MagicLinkService {
       // Calculate expiry time
       const expiresAt = new Date(Date.now() + this.TOKEN_EXPIRY_MINUTES * 60 * 1000);
       
-      // Store in database
+      // Store in database with optional redirect URL
       await storage.createMagicLinkToken({
         token,
         userId,
         expiresAt,
-        used: "false"
+        used: "false",
+        redirectUrl: redirectUrl || null
       });
       
       // Construct the URL
       const baseUrl = 'https://textaside.app';
       const url = `${baseUrl}/auth/${token}`;
       
-      log(`Created magic link for user ${userId}: expires at ${expiresAt.toISOString()}`);
+      log(`Created magic link for user ${userId}${redirectUrl ? ` with redirect to ${redirectUrl}` : ''}: expires at ${expiresAt.toISOString()}`);
       
       return { url, token };
     } catch (error) {
@@ -63,11 +71,36 @@ export class MagicLinkService {
   }
 
   /**
+   * Validate a redirect URL for security (prevent open redirect attacks)
+   * Only allow internal paths starting with / (no external URLs)
+   */
+  private static isValidRedirectUrl(redirectUrl: string): boolean {
+    // Must start with / (internal path)
+    if (!redirectUrl.startsWith('/')) {
+      return false;
+    }
+    
+    // Must not be a protocol-relative URL (//example.com)
+    if (redirectUrl.startsWith('//')) {
+      return false;
+    }
+    
+    // Must not contain backslashes (common bypass technique)
+    if (redirectUrl.includes('\\')) {
+      return false;
+    }
+    
+    // Allowlist specific paths
+    const allowedPrefixes = ['/search', '/board/', '/invite/', '/'];
+    return allowedPrefixes.some(prefix => redirectUrl.startsWith(prefix));
+  }
+
+  /**
    * Validate and consume a magic link token
    * @param token - The token to validate
-   * @returns The user ID if valid, undefined if invalid/expired/used
+   * @returns Object with userId and redirectUrl if valid, undefined if invalid/expired/used
    */
-  static async validateAndConsumeToken(token: string): Promise<number | undefined> {
+  static async validateAndConsumeToken(token: string): Promise<{ userId: number; redirectUrl?: string | null } | undefined> {
     try {
       // Get the token from database
       const magicToken = await storage.getValidMagicLinkToken(token);
@@ -80,9 +113,12 @@ export class MagicLinkService {
       // Mark token as used (one-time use)
       await storage.markTokenAsUsed(magicToken.id);
       
-      log(`Magic link token validated and consumed for user ${magicToken.userId}`);
+      log(`Magic link token validated and consumed for user ${magicToken.userId}${magicToken.redirectUrl ? ` with redirect to ${magicToken.redirectUrl}` : ''}`);
       
-      return magicToken.userId;
+      return {
+        userId: magicToken.userId,
+        redirectUrl: magicToken.redirectUrl
+      };
     } catch (error) {
       log("Error validating magic link token:", error instanceof Error ? error.message : String(error));
       return undefined;
