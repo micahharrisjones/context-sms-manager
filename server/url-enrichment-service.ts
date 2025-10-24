@@ -379,12 +379,33 @@ export class UrlEnrichmentService {
       'reference #'
     ];
     
+    // Check for generic e-commerce/site responses
+    const genericPatterns = [
+      'conditions of use',
+      'privacy policy',
+      'terms of service',
+      'terms and conditions',
+      'legal notice'
+    ];
+    
+    // Check if title is just the site name (e.g., "Amazon.com", "Wayfair")
+    const siteName = data.siteName?.toLowerCase() || '';
+    if (siteName && title === siteName) return true;
+    if (title.endsWith('.com') || title.endsWith('.co.uk') || title.endsWith('.org')) return true;
+    
     // Check if title is suspiciously short (likely not real content)
     if (data.title.length <= 2) return true;
     
     // Check for blocked patterns in title or description
     for (const pattern of blockedPatterns) {
       if (title.includes(pattern) || description.includes(pattern)) {
+        return true;
+      }
+    }
+    
+    // Check for generic patterns in description
+    for (const pattern of genericPatterns) {
+      if (description.includes(pattern) && !title.includes(pattern)) {
         return true;
       }
     }
@@ -407,14 +428,92 @@ export class UrlEnrichmentService {
       // Capitalize first letter for display
       const displayName = mainDomain.charAt(0).toUpperCase() + mainDomain.slice(1);
       
+      // Extract and clean the URL path for a better description
+      const pathDescription = this.extractReadablePathInfo(urlObj);
+      
       return {
         title: displayName,
-        description: `Link from ${cleanDomain}`,
+        description: pathDescription || `Link from ${cleanDomain}`,
         siteName: cleanDomain,
         isFallback: true
       };
     } catch (error) {
       log('[Enrichment] Failed to extract domain fallback:', error instanceof Error ? error.message : String(error));
+      return null;
+    }
+  }
+
+  private extractReadablePathInfo(urlObj: URL): string | null {
+    try {
+      // Get the pathname without leading/trailing slashes
+      const path = urlObj.pathname.replace(/^\/+|\/+$/g, '');
+      
+      if (!path) return null;
+      
+      // Split by slashes to get path segments
+      const segments = path.split('/');
+      
+      // Find the most descriptive segment (usually the longest one with readable text)
+      let bestSegment = '';
+      for (const segment of segments) {
+        // Skip short segments, numeric IDs, and query-like segments
+        if (segment.length < 3) continue;
+        if (/^\d+$/.test(segment)) continue;
+        if (segment.includes('?') || segment.includes('=')) continue;
+        
+        // Prefer longer segments with hyphens/underscores (likely product names)
+        if (segment.length > bestSegment.length && /[-_]/.test(segment)) {
+          bestSegment = segment;
+        } else if (!bestSegment && segment.length > 10) {
+          bestSegment = segment;
+        }
+      }
+      
+      if (!bestSegment) {
+        // Fallback to first non-trivial segment
+        bestSegment = segments.find(s => s.length > 5 && !/^\d+$/.test(s)) || segments[0];
+      }
+      
+      if (!bestSegment) return null;
+      
+      // Clean up the segment
+      let cleaned = bestSegment;
+      
+      // Decode URL encoding
+      try {
+        cleaned = decodeURIComponent(cleaned);
+      } catch {
+        // If decoding fails, continue with original
+      }
+      
+      // Replace hyphens and underscores with spaces
+      cleaned = cleaned.replace(/[-_]+/g, ' ');
+      
+      // Remove common URL patterns
+      cleaned = cleaned.replace(/\b(pd|p|product|item|dp|shop|buy)\b/gi, '');
+      
+      // Clean up multiple spaces
+      cleaned = cleaned.replace(/\s+/g, ' ').trim();
+      
+      // Capitalize first letter of each word for readability
+      cleaned = cleaned.split(' ')
+        .map(word => {
+          if (word.length === 0) return word;
+          // Keep all caps words (like "UV", "LED")
+          if (word === word.toUpperCase() && word.length <= 4) return word;
+          // Capitalize first letter
+          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        })
+        .join(' ');
+      
+      // Limit length for display
+      if (cleaned.length > 150) {
+        cleaned = cleaned.substring(0, 147) + '...';
+      }
+      
+      return cleaned || null;
+    } catch (error) {
+      log('[Enrichment] Failed to extract readable path info:', error instanceof Error ? error.message : String(error));
       return null;
     }
   }
