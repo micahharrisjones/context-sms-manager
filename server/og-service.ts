@@ -402,9 +402,78 @@ class OpenGraphService {
     }
   }
 
+  // Check if URL is from Amazon
+  private isAmazonUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+      
+      return hostname.includes('amazon.com') || 
+             hostname.includes('amazon.') || // International Amazon sites
+             hostname.includes('amzn.to') || 
+             hostname.includes('a.co');
+    } catch {
+      return false;
+    }
+  }
+
+  // Extract ASIN (Amazon Standard Identification Number) from URL
+  private extractAsin(url: string): string | null {
+    try {
+      // ASIN is a 10-character alphanumeric code
+      // Common patterns:
+      // /dp/ASIN
+      // /gp/product/ASIN
+      // /exec/obidos/ASIN/
+      // /product/ASIN
+      // Short URLs like a.co/d/ASIN or amzn.to/ASIN redirect to full URLs
+      
+      const patterns = [
+        /\/dp\/([A-Z0-9]{10})/i,
+        /\/gp\/product\/([A-Z0-9]{10})/i,
+        /\/exec\/obidos\/ASIN\/([A-Z0-9]{10})/i,
+        /\/product\/([A-Z0-9]{10})/i,
+        /\/([A-Z0-9]{10})(?:\/|\?|$)/i, // Generic pattern for short URLs
+      ];
+      
+      for (const pattern of patterns) {
+        const match = url.match(pattern);
+        if (match && match[1]) {
+          return match[1];
+        }
+      }
+      
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  // Create Amazon-specific fallback preview
+  private createAmazonFallback(url: string): OpenGraphData {
+    const asin = this.extractAsin(url);
+    
+    return {
+      title: 'Amazon Product',
+      description: asin ? `ASIN: ${asin}` : 'View on Amazon',
+      image: 'https://m.media-amazon.com/images/G/01/share-icons/previewdoh/amazon.png', // Official Amazon logo
+      site_name: 'Amazon',
+      url: url
+    };
+  }
+
   // Main function to fetch Open Graph data
   async fetchOpenGraph(url: string): Promise<OpenGraphData | null> {
-    // Check cache first
+    // Special handling for Amazon URLs - use fallback immediately (before cache check)
+    // Amazon blocks all scrapers (Microlink, direct fetch, etc.)
+    if (this.isAmazonUrl(url)) {
+      log(`Amazon URL detected, using branded fallback: ${url}`);
+      const amazonFallback = this.createAmazonFallback(url);
+      this.cacheSuccess(url, amazonFallback);
+      return amazonFallback;
+    }
+
+    // Check cache for non-Amazon URLs
     const cached = this.cache.get(url);
     if (cached && this.isCacheValid(cached)) {
       // For failures, check if we should retry
