@@ -18,6 +18,7 @@ import { embeddingService } from "./embedding-service";
 import { microlinkQueue } from "./request-queue";
 import { asideAIService } from "./aside-ai-service";
 import { UrlEnrichmentService } from "./url-enrichment-service";
+import { shortLinkService } from "./short-link-service";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -917,6 +918,39 @@ export async function registerRoutes(app: Express) {
         database: "disconnected",
         error: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // Short link redirect endpoint - /s/:code redirects to target URL
+  app.get("/s/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      
+      if (!code) {
+        log("Short link redirect failed: No code provided");
+        return res.status(400).send("Invalid short link");
+      }
+      
+      // Look up the short link
+      const shortLink = await shortLinkService.getShortLink(code);
+      
+      if (!shortLink) {
+        log(`Short link not found: ${code}`);
+        return res.status(404).send("Short link not found");
+      }
+      
+      // Increment click count asynchronously
+      shortLinkService.incrementClickCount(code).catch(err => {
+        log(`Failed to increment click count for ${code}:`, err);
+      });
+      
+      log(`Redirecting short link ${code} -> ${shortLink.targetUrl}`);
+      
+      // Redirect to the target URL
+      res.redirect(shortLink.targetUrl);
+    } catch (error) {
+      log("Short link redirect error:", error instanceof Error ? error.message : String(error));
+      res.status(500).send("Error processing short link");
     }
   });
 
