@@ -449,13 +449,76 @@ class OpenGraphService {
     }
   }
 
+  // Extract product name slug from Amazon URL path
+  private extractProductSlug(url: string): string | null {
+    try {
+      const urlObj = new URL(url);
+      const path = urlObj.pathname;
+      
+      // Short URLs (a.co, amzn.to) don't have slugs
+      if (urlObj.hostname.includes('a.co') || urlObj.hostname.includes('amzn.to')) {
+        return null;
+      }
+      
+      // Amazon URLs pattern: /Product-Name-Here/dp/ASIN or /Product-Name-Here/gp/product/ASIN
+      // Extract the slug that comes before /dp/ or /gp/
+      const slugMatch = path.match(/\/([^\/]+)\/(?:dp|gp\/product)\//);
+      if (!slugMatch || !slugMatch[1]) {
+        return null;
+      }
+      
+      let slug = slugMatch[1];
+      
+      // Decode URL encoding (e.g., %20 -> space)
+      slug = decodeURIComponent(slug);
+      
+      // Replace hyphens and underscores with spaces
+      slug = slug.replace(/[-_]/g, ' ');
+      
+      // Collapse multiple spaces into one
+      slug = slug.replace(/\s+/g, ' ').trim();
+      
+      // Skip if slug is too short (likely not meaningful)
+      if (slug.length < 3) {
+        return null;
+      }
+      
+      // Limit length to 100 characters to avoid overly long titles
+      if (slug.length > 100) {
+        slug = slug.substring(0, 100).trim();
+      }
+      
+      // Title case: capitalize first letter of each word
+      slug = slug.split(' ').map(word => {
+        if (word.length === 0) return word;
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }).join(' ');
+      
+      return slug;
+    } catch {
+      return null;
+    }
+  }
+
   // Create Amazon-specific fallback preview
   private createAmazonFallback(url: string): OpenGraphData {
     const asin = this.extractAsin(url);
+    const slug = this.extractProductSlug(url);
+    
+    // Priority: slug > generic fallback
+    const title = slug || 'Amazon Product';
+    
+    // Description: Combine slug info with ASIN when available
+    let description: string;
+    if (asin) {
+      description = `ASIN: ${asin}`;
+    } else {
+      description = 'View on Amazon';
+    }
     
     return {
-      title: 'Amazon Product',
-      description: asin ? `ASIN: ${asin}` : 'View on Amazon',
+      title: title,
+      description: description,
       image: 'https://m.media-amazon.com/images/G/01/share-icons/previewdoh/amazon.png', // Official Amazon logo
       site_name: 'Amazon',
       url: url
