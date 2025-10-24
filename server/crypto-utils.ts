@@ -61,7 +61,7 @@ export function decryptPII(encryptedText: string): string {
       throw new Error('Invalid authentication tag length');
     }
     
-    const decipher = createDecipheriv(ALGORITHM, key, iv);
+    const decipher = createDecipheriv(ALGORITHM, key, iv, { authTagLength: 16 });
     decipher.setAuthTag(authTag);
     
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
