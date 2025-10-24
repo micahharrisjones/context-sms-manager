@@ -22,75 +22,143 @@ export class UrlEnrichmentService {
 
   async enrichUrl(url: string): Promise<EnrichmentData | null> {
     try {
-      log(`[Enrichment] ========== Starting enrichment for: ${url} ==========`);
+      log(`[Enrichment] ========== Starting fill-the-gaps enrichment for: ${url} ==========`);
 
-      // For social media and sites that block bots, use Microlink first
+      let result: EnrichmentData = {};
       const shouldUseMicrolinkFirst = this.shouldUseMicrolinkFirst(url);
       
+      // Method 1: Microlink (good for most sites, especially bot-blocking ones)
       if (shouldUseMicrolinkFirst) {
-        log(`[Enrichment] → Trying Microlink FIRST for bot-blocking platform: ${url}`);
-        const microlinkData = await this.openGraphService.fetchOpenGraph(url);
-        if (microlinkData && (microlinkData.title || microlinkData.description)) {
-          log(`[Enrichment] ✓ Microlink succeeded for ${url}: title="${microlinkData.title?.substring(0, 50)}"`);
-          return {
-            title: microlinkData.title,
-            description: microlinkData.description,
-            image: microlinkData.image,
-            siteName: microlinkData.site_name
-          };
-        }
-        log(`[Enrichment] ✗ Microlink failed for ${url}, falling back to other methods`);
-      }
-
-      // Step 1: Try platform-specific extraction
-      log(`[Enrichment] → Trying platform-specific extraction for ${url}`);
-      const platformData = await this.tryPlatformSpecific(url);
-      if (platformData) {
-        log(`[Enrichment] ✓ Platform-specific data found for ${url}`);
-        return platformData;
-      }
-      log(`[Enrichment] ✗ Platform-specific extraction failed`);
-
-      // Step 2: Try oEmbed discovery
-      log(`[Enrichment] → Trying oEmbed discovery for ${url}`);
-      const oembedData = await this.tryOembed(url);
-      if (oembedData) {
-        log(`[Enrichment] ✓ oEmbed data found for ${url}`);
-        return oembedData;
-      }
-      log(`[Enrichment] ✗ oEmbed discovery failed`);
-
-      // Step 3: Try direct HTML parsing
-      log(`[Enrichment] → Trying direct HTML parsing for ${url}`);
-      const htmlData = await this.tryDirectParsing(url);
-      if (htmlData) {
-        log(`[Enrichment] ✓ Direct HTML parsing succeeded for ${url}`);
-        return htmlData;
-      }
-      log(`[Enrichment] ✗ Direct HTML parsing failed`);
-
-      // Step 4: Fallback to Microlink (if not already tried)
-      if (!shouldUseMicrolinkFirst) {
-        log(`[Enrichment] → Falling back to Microlink for ${url}`);
+        log(`[Enrichment] → Method 1: Trying Microlink FIRST for bot-blocking platform`);
         const microlinkData = await this.openGraphService.fetchOpenGraph(url);
         if (microlinkData) {
-          log(`[Enrichment] ✓ Microlink succeeded: title="${microlinkData.title?.substring(0, 50)}"`);
-          return {
+          result = this.mergeData(result, {
             title: microlinkData.title,
             description: microlinkData.description,
             image: microlinkData.image,
             siteName: microlinkData.site_name
-          };
+          });
+          this.logDataStatus(result, 'Microlink');
+          if (this.isComplete(result)) {
+            log(`[Enrichment] ✓✓✓ COMPLETE data from Microlink - stopping early`);
+            return result;
+          }
+        } else {
+          log(`[Enrichment] ✗ Microlink returned no data`);
         }
-        log(`[Enrichment] ✗ Microlink fallback failed`);
       }
 
-      log(`[Enrichment] ✗✗✗ ALL enrichment methods failed for ${url} ✗✗✗`);
-      return null;
+      // Method 2: Platform-specific extraction (e.g., YouTube API)
+      if (!this.isComplete(result)) {
+        log(`[Enrichment] → Method 2: Trying platform-specific extraction`);
+        const platformData = await this.tryPlatformSpecific(url);
+        if (platformData) {
+          result = this.mergeData(result, platformData);
+          this.logDataStatus(result, 'Platform-specific');
+          if (this.isComplete(result)) {
+            log(`[Enrichment] ✓✓✓ COMPLETE data after platform-specific - stopping early`);
+            return result;
+          }
+        } else {
+          log(`[Enrichment] ✗ Platform-specific extraction returned no data`);
+        }
+      }
+
+      // Method 3: Direct HTML parsing (good for e-commerce sites)
+      if (!this.isComplete(result)) {
+        log(`[Enrichment] → Method 3: Trying direct HTML parsing`);
+        const htmlData = await this.tryDirectParsing(url);
+        if (htmlData) {
+          result = this.mergeData(result, htmlData);
+          this.logDataStatus(result, 'Direct HTML parsing');
+          if (this.isComplete(result)) {
+            log(`[Enrichment] ✓✓✓ COMPLETE data after direct parsing - stopping early`);
+            return result;
+          }
+        } else {
+          log(`[Enrichment] ✗ Direct HTML parsing returned no data`);
+        }
+      }
+
+      // Method 4: oEmbed discovery
+      if (!this.isComplete(result)) {
+        log(`[Enrichment] → Method 4: Trying oEmbed discovery`);
+        const oembedData = await this.tryOembed(url);
+        if (oembedData) {
+          result = this.mergeData(result, oembedData);
+          this.logDataStatus(result, 'oEmbed');
+          if (this.isComplete(result)) {
+            log(`[Enrichment] ✓✓✓ COMPLETE data after oEmbed - stopping early`);
+            return result;
+          }
+        } else {
+          log(`[Enrichment] ✗ oEmbed discovery returned no data`);
+        }
+      }
+
+      // Method 5: Microlink fallback (if not already tried)
+      if (!shouldUseMicrolinkFirst && !this.isComplete(result)) {
+        log(`[Enrichment] → Method 5: Trying Microlink as fallback`);
+        const microlinkData = await this.openGraphService.fetchOpenGraph(url);
+        if (microlinkData) {
+          result = this.mergeData(result, {
+            title: microlinkData.title,
+            description: microlinkData.description,
+            image: microlinkData.image,
+            siteName: microlinkData.site_name
+          });
+          this.logDataStatus(result, 'Microlink fallback');
+        } else {
+          log(`[Enrichment] ✗ Microlink fallback returned no data`);
+        }
+      }
+
+      // Final result - return whatever we found, even if incomplete
+      if (!result.title && !result.description && !result.image) {
+        log(`[Enrichment] ✗✗✗ FAILED - No metadata found after trying all methods`);
+        return null;
+      }
+
+      if (this.isComplete(result)) {
+        log(`[Enrichment] ✓✓✓ SUCCESS - Complete data: title + description + image`);
+      } else {
+        const missing = [];
+        if (!result.title) missing.push('title');
+        if (!result.description) missing.push('description');
+        if (!result.image) missing.push('image');
+        log(`[Enrichment] ⚠ PARTIAL - Missing: ${missing.join(', ')}`);
+      }
+
+      return result;
     } catch (error) {
       log(`[Enrichment] EXCEPTION enriching ${url}:`, error instanceof Error ? error.message : String(error));
       return null;
     }
+  }
+
+  private isComplete(data: EnrichmentData): boolean {
+    return !!(data.title && data.description && data.image);
+  }
+
+  private mergeData(existing: EnrichmentData, newData: EnrichmentData | null): EnrichmentData {
+    if (!newData) return existing;
+    
+    return {
+      title: existing.title || newData.title,
+      description: existing.description || newData.description,
+      image: existing.image || newData.image,
+      siteName: existing.siteName || newData.siteName
+    };
+  }
+
+  private logDataStatus(data: EnrichmentData, source: string): void {
+    const parts = [];
+    if (data.title) parts.push('✓ title');
+    if (data.description) parts.push('✓ description');
+    if (data.image) parts.push('✓ image');
+    if (data.siteName) parts.push('✓ siteName');
+    
+    log(`[Enrichment] After ${source}: [${parts.join(', ')}]`);
   }
 
   private shouldUseMicrolinkFirst(url: string): boolean {
