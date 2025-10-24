@@ -1895,7 +1895,11 @@ export class DatabaseStorage implements IStorage {
           FROM keyword_scores ks
           FULL OUTER JOIN vector_scores vs ON ks.id = vs.id
         )
-        SELECT m.*
+        SELECT 
+          m.id, m.content, m.sender_id, m.user_id, m.timestamp, m.tags, 
+          m.media_url, m.media_type, m.message_sid, m.og_title, m.og_description,
+          m.og_image, m.og_site_name, m.og_is_blocked, m.og_is_fallback, 
+          m.enrichment_status, m.enriched_at
         FROM ${messages} m
         INNER JOIN combined_scores cs ON m.id = cs.id
         WHERE cs.hybrid_score > 0.4
