@@ -141,23 +141,23 @@ export function AdminPage() {
     }
   });
 
-  // Batch embedding generation mutation
-  const batchEmbedMutation = useMutation({
+  // Retroactive post enrichment mutation
+  const enrichOldPostsMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/admin/batch-embed', {
+      return apiRequest('/api/admin/enrich-old-posts', {
         method: 'POST'
       });
     },
     onSuccess: (data: any) => {
       toast({
-        title: "Embeddings generated",
-        description: `Successfully generated embeddings for ${data.processed} messages (${data.errors} errors)`
+        title: "Posts enriched",
+        description: `Successfully enriched ${data.processed} old posts with URL metadata (${data.skipped} skipped, ${data.errors} errors)`
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Embedding generation failed",
-        description: error.message || "Failed to generate embeddings",
+        title: "Post enrichment failed",
+        description: error.message || "Failed to enrich old posts",
         variant: "destructive"
       });
     }
@@ -295,27 +295,27 @@ export function AdminPage() {
         </Card>
       </div>
 
-      {/* Search Embeddings Card */}
+      {/* Post Enrichment Card */}
       <Card className="bg-[#fff2ea] border-[#e3cac0]">
         <CardHeader>
-          <CardTitle>Search Feature Setup</CardTitle>
+          <CardTitle>Enrich Old Posts</CardTitle>
           <CardDescription>
-            Generate vector embeddings for existing messages to enable semantic search. This only needs to be run once.
+            Retroactively fetch link previews (titles, descriptions, images) for old posts with URLs. This makes keyword search work properly by adding missing metadata to the database.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Button
-            onClick={() => batchEmbedMutation.mutate()}
-            disabled={batchEmbedMutation.isPending}
+            onClick={() => enrichOldPostsMutation.mutate()}
+            disabled={enrichOldPostsMutation.isPending}
             className="bg-[#b95827] hover:bg-[#a04d1f] text-white"
-            data-pendo="admin-button-generate-embeddings"
+            data-testid="admin-button-enrich-old-posts"
           >
             <Database className="h-4 w-4 mr-2" />
-            {batchEmbedMutation.isPending ? "Generating Embeddings..." : "Generate Search Embeddings"}
+            {enrichOldPostsMutation.isPending ? "Enriching Posts..." : "Enrich Old Posts with Link Previews"}
           </Button>
-          {batchEmbedMutation.isPending && (
+          {enrichOldPostsMutation.isPending && (
             <p className="text-sm text-[#263d57]/70 mt-2">
-              This may take a few minutes depending on message count...
+              This may take several minutes as each URL is fetched and processed...
             </p>
           )}
         </CardContent>

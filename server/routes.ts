@@ -1,11 +1,11 @@
 import type { Express, NextFunction } from "express";
 import { createServer } from "http";
 import { storage } from "./storage";
-import { insertMessageSchema } from "@shared/schema";
+import { insertMessageSchema, messages } from "@shared/schema";
 import { z } from "zod";
 import { WebSocketManager } from "./websocket";
 import { log } from "./vite";
-import { pool } from "./db";
+import { db, pool } from "./db";
 import { AuthService, generateTwilioResponse, requireAuth } from "./auth";
 import { twilioService } from "./twilio-service";
 import { tmdbService } from "./tmdb-service";
@@ -19,6 +19,7 @@ import { microlinkQueue } from "./request-queue";
 import { asideAIService } from "./aside-ai-service";
 import { UrlEnrichmentService } from "./url-enrichment-service";
 import { shortLinkService } from "./short-link-service";
+import { sql, asc } from "drizzle-orm";
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
