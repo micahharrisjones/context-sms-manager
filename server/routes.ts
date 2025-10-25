@@ -3244,8 +3244,8 @@ Reply STOP to opt out`;
     log("Exiting handleWebhook function");
   };
 
-  // Admin endpoint to generate embeddings for all existing messages
-  app.post('/api/admin/batch-embed', requireAuth, async (req, res) => {
+  // Admin endpoint to retroactively enrich old posts with URL metadata
+  app.post('/api/admin/enrich-old-posts', requireAuth, async (req, res) => {
     try {
       const userId = req.userId!;
       const userIsAdmin = await isUserAdmin(userId);
@@ -3254,59 +3254,106 @@ Reply STOP to opt out`;
         return res.status(403).json({ error: 'Admin access required' });
       }
       
-      log('Starting batch embedding generation...');
+      log('🔄 Starting retroactive URL enrichment for old posts...');
       
-      // Get all messages without embeddings
-      const messages = await storage.getAllMessagesWithoutEmbeddings(1000);
-      log(`Found ${messages.length} messages without embeddings`);
+      // Find messages with URLs but missing OG data
+      const messagesWithUrls = await db
+        .select()
+        .from(messages)
+        .where(
+          sql`(${messages.content} LIKE '%http://%' OR ${messages.content} LIKE '%https://%') 
+              AND ${messages.ogTitle} IS NULL`
+        )
+        .orderBy(asc(messages.timestamp))
+        .limit(500);
       
-      if (messages.length === 0) {
-        return res.json({ success: true, message: 'All messages already have embeddings!', processed: 0 });
+      log(`Found ${messagesWithUrls.length} old posts with URLs but no enrichment data`);
+      
+      if (messagesWithUrls.length === 0) {
+        return res.json({ 
+          success: true, 
+          message: 'All posts with URLs are already enriched!', 
+          processed: 0,
+          skipped: 0,
+          errors: 0
+        });
       }
       
-      // Process in batches of 10
-      const BATCH_SIZE = 10;
       let processed = 0;
+      let skipped = 0;
       let errors = 0;
       
-      for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-        const batch = messages.slice(i, i + BATCH_SIZE);
-        const texts = batch.map(m => m.content).filter(content => content && content.trim().length > 0);
-        
+      // Process each message individually (URL enrichment is already slow, no need for batching)
+      for (const message of messagesWithUrls) {
         try {
-          const embeddings = await embeddingService.generateEmbeddingsBatch(texts);
+          // Extract URLs from content
+          const urls = urlEnrichmentService.extractUrls(message.content);
           
-          await Promise.all(
-            batch.map(async (message, idx) => {
-              try {
-                await storage.saveMessageEmbedding(message.id, embeddings[idx]);
-                processed++;
-              } catch (error) {
-                errors++;
-                log(`Failed to save embedding for message ${message.id}:`, error instanceof Error ? error.message : String(error));
-              }
-            })
-          );
+          if (urls.length === 0) {
+            log(`  Message ${message.id}: No valid URLs found, skipping`);
+            skipped++;
+            continue;
+          }
+          
+          log(`  Message ${message.id}: Enriching ${urls.length} URL(s)...`);
+          
+          // Enrich the first URL (same logic as webhook)
+          const enrichmentData = await urlEnrichmentService.enrichUrl(urls[0]);
+          
+          if (!enrichmentData || (!enrichmentData.title && !enrichmentData.description)) {
+            log(`  Message ${message.id}: No enrichment data retrieved, skipping`);
+            skipped++;
+            continue;
+          }
+          
+          log(`  Message ${message.id}: ✓ Got enrichment data: "${enrichmentData.title || 'No title'}"`);
+          
+          // Update message with enrichment data
+          await storage.updateMessageEnrichment(message.id, {
+            ogTitle: enrichmentData.title || null,
+            ogDescription: enrichmentData.description || null,
+            ogImage: enrichmentData.image || null,
+            ogSiteName: enrichmentData.siteName || null,
+            ogIsBlocked: enrichmentData.isBlocked,
+            ogIsFallback: enrichmentData.isFallback,
+            enrichmentStatus: 'completed'
+          });
+          
+          // Regenerate embedding with enriched content for better search
+          const enrichedContent = [
+            message.content,
+            enrichmentData.title,
+            enrichmentData.description
+          ].filter(Boolean).join(' ');
+          
+          log(`  Message ${message.id}: Regenerating embedding with enriched content...`);
+          const embedding = await embeddingService.generateEmbedding(enrichedContent);
+          await storage.saveMessageEmbedding(message.id, embedding);
+          
+          processed++;
+          log(`  Message ${message.id}: ✅ Complete (${processed}/${messagesWithUrls.length})`);
+          
+          // Rate limiting: small delay between requests to avoid overwhelming external APIs
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
         } catch (error) {
-          errors += batch.length;
-          log(`Failed to generate embeddings for batch:`, error instanceof Error ? error.message : String(error));
+          errors++;
+          log(`  Message ${message.id}: ❌ Error - ${error instanceof Error ? error.message : String(error)}`);
         }
-        
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
-      log(`Batch embedding complete: ${processed} processed, ${errors} errors`);
+      log(`🎉 Retroactive enrichment complete: ${processed} processed, ${skipped} skipped, ${errors} errors`);
       res.json({ 
         success: true, 
-        message: 'Batch embedding complete', 
+        message: 'Post enrichment complete', 
         processed, 
+        skipped,
         errors,
-        total: messages.length
+        total: messagesWithUrls.length
       });
     } catch (error) {
-      log('Error in batch-embed endpoint:', error instanceof Error ? error.message : String(error));
-      res.status(500).json({ error: 'Failed to generate batch embeddings' });
+      log('Error in enrich-old-posts endpoint:', error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: 'Failed to enrich old posts' });
     }
   });
 
