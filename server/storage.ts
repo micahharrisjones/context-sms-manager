@@ -1927,25 +1927,31 @@ export class DatabaseStorage implements IStorage {
       log(`Performing pure semantic search for user ${userId}`);
       
       const embeddingString = `[${queryEmbedding.join(',')}]`;
+      const similarityThreshold = 0.5; // Only return results with >50% similarity
       
       const results = await db.execute(sql`
-        SELECT 
-          m.id, m.content, m.sender_id AS "senderId", m.user_id AS "userId", 
-          m.timestamp, m.tags, m.media_url AS "mediaUrl", m.media_type AS "mediaType", 
-          m.message_sid AS "messageSid", m.og_title AS "ogTitle", m.og_description AS "ogDescription",
-          m.og_image AS "ogImage", m.og_site_name AS "ogSiteName", m.og_is_blocked AS "ogIsBlocked", 
-          m.og_is_fallback AS "ogIsFallback", m.enrichment_status AS "enrichmentStatus", 
-          m.enriched_at AS "enrichedAt",
-          1 - (me.embedding <=> ${embeddingString}::vector) as similarity_score
-        FROM ${messages} m
-        INNER JOIN ${messageEmbeddings} me ON m.id = me.message_id
-        WHERE m.user_id = ${userId}
-          AND LENGTH(m.content) >= 2
-        ORDER BY me.embedding <=> ${embeddingString}::vector
-        LIMIT ${limit}
+        WITH ranked_results AS (
+          SELECT 
+            m.id, m.content, m.sender_id AS "senderId", m.user_id AS "userId", 
+            m.timestamp, m.tags, m.media_url AS "mediaUrl", m.media_type AS "mediaType", 
+            m.message_sid AS "messageSid", m.og_title AS "ogTitle", m.og_description AS "ogDescription",
+            m.og_image AS "ogImage", m.og_site_name AS "ogSiteName", m.og_is_blocked AS "ogIsBlocked", 
+            m.og_is_fallback AS "ogIsFallback", m.enrichment_status AS "enrichmentStatus", 
+            m.enriched_at AS "enrichedAt",
+            1 - (me.embedding <=> ${embeddingString}::vector) as similarity_score
+          FROM ${messages} m
+          INNER JOIN ${messageEmbeddings} me ON m.id = me.message_id
+          WHERE m.user_id = ${userId}
+            AND LENGTH(m.content) >= 2
+          ORDER BY me.embedding <=> ${embeddingString}::vector
+          LIMIT ${limit}
+        )
+        SELECT *
+        FROM ranked_results
+        WHERE similarity_score >= ${similarityThreshold}
       `);
       
-      log(`Semantic search returned ${results.rows.length} results`);
+      log(`Semantic search returned ${results.rows.length} results (threshold: ${similarityThreshold})`);
       return results.rows as Message[];
     } catch (error) {
       log(`Error performing semantic search:`, error instanceof Error ? error.message : String(error));
