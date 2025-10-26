@@ -122,7 +122,7 @@ Examples:
 
   /**
    * Handle search queries - find specific content
-   * Uses keyword-first approach: try keyword matching first, fall back to semantic search if needed
+   * Uses semantic-first approach: AI understands natural language, keywords boost exact matches
    */
   private async handleSearchQuery(
     query: string,
@@ -131,28 +131,38 @@ Examples:
   ): Promise<AsideAIResponse> {
     try {
       let searchResults: any[] = [];
-      let searchMethod = 'keyword';
+      let searchMethod = 'semantic';
 
-      // STEP 1: Try enhanced keyword search first (searches content, og_title, og_description, tags)
-      log(`🔍 Trying enhanced keyword search for: "${query}"`);
-      searchResults = await storage.keywordSearch(userId, query, 50);
-      log(`Enhanced keyword search returned ${searchResults.length} results`);
-
-      // STEP 2: If keyword search returns < 3 results, fall back to semantic search
-      if (searchResults.length < 3) {
-        log(`⚡ Keyword search returned < 3 results, falling back to semantic search`);
+      // STEP 1: Generate embedding for semantic search (always try AI understanding first)
+      log(`🔍 Generating embedding for semantic search: "${query}"`);
+      const queryEmbedding = await embeddingService.generateEmbedding(query);
+      
+      if (queryEmbedding) {
+        // STEP 2: Try pure semantic search first (vector-only for natural language understanding)
+        log(`🧠 Performing pure semantic search...`);
+        searchResults = await storage.semanticSearch(userId, queryEmbedding, 20);
+        searchMethod = 'semantic';
+        log(`Pure semantic search returned ${searchResults.length} results`);
         
-        // Generate embedding for semantic search
-        const queryEmbedding = await embeddingService.generateEmbedding(query);
-        
-        if (queryEmbedding) {
-          // Perform hybrid search (70% semantic + 30% keyword)
-          searchResults = await storage.hybridSearch(userId, query, queryEmbedding, 0.7, 5);
-          searchMethod = 'hybrid';
-          log(`Hybrid/semantic search returned ${searchResults.length} results`);
-        } else {
-          log(`⚠️ Failed to generate embedding, sticking with keyword results`);
+        // STEP 3: If semantic found results, ALWAYS boost with keyword matches for better ranking
+        if (searchResults.length > 0) {
+          log(`✨ Boosting semantic results with keyword matches for reranking...`);
+          const hybridResults = await storage.hybridSearch(userId, query, queryEmbedding, 0.7, 20);
+          if (hybridResults.length > 0) {
+            // Always use hybrid results - they have keyword-boosted rankings
+            searchResults = hybridResults;
+            searchMethod = 'semantic-boosted';
+            log(`Keyword boosting applied - using ${searchResults.length} reranked results`);
+          }
         }
+      }
+
+      // STEP 4: If semantic search fails or returns 0 results, fall back to keyword search
+      if (searchResults.length === 0) {
+        log(`⚡ Semantic search returned 0 results, falling back to keyword search`);
+        searchResults = await storage.keywordSearch(userId, query, 50);
+        searchMethod = 'keyword-fallback';
+        log(`Keyword fallback search returned ${searchResults.length} results`);
       }
 
       if (searchResults.length === 0) {

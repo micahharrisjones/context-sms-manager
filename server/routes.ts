@@ -1737,7 +1737,7 @@ Reply STOP to opt out`;
     }
   });
 
-  // Keyword search endpoint - searches across content, titles, descriptions, and tags
+  // Semantic-first hybrid search endpoint - AI understands natural language, keywords boost exact matches
   app.get("/api/messages/hybrid-search", requireAuth, async (req, res) => {
     try {
       const userId = req.userId!;
@@ -1748,16 +1748,48 @@ Reply STOP to opt out`;
         return res.status(400).json({ error: "Search query is required" });
       }
 
-      // Perform keyword search across content, titles, descriptions, and tags
-      const messages = await storage.keywordSearch(userId, query.trim(), limit);
+      let messages: any[] = [];
+      let searchMethod = 'semantic';
+
+      // STEP 1: Generate embedding for semantic search (AI understanding first)
+      log(`🔍 Generating embedding for semantic search: "${query}"`);
+      const queryEmbedding = await embeddingService.generateEmbedding(query.trim());
+      
+      if (queryEmbedding) {
+        // STEP 2: Try pure semantic search first (vector-only for natural language)
+        log(`🧠 Performing pure semantic search for user ${userId}...`);
+        messages = await storage.semanticSearch(userId, queryEmbedding, Math.min(limit, 20));
+        searchMethod = 'semantic';
+        log(`Pure semantic search returned ${messages.length} results`);
+        
+        // STEP 3: If semantic found results, ALWAYS boost with keyword matches for better ranking
+        if (messages.length > 0) {
+          log(`✨ Boosting semantic results with keyword matches for reranking...`);
+          const hybridResults = await storage.hybridSearch(userId, query.trim(), queryEmbedding, 0.7, Math.min(limit, 20));
+          if (hybridResults.length > 0) {
+            // Always use hybrid results - they have keyword-boosted rankings
+            messages = hybridResults;
+            searchMethod = 'semantic-boosted';
+            log(`Keyword boosting applied - using ${messages.length} reranked results`);
+          }
+        }
+      }
+
+      // STEP 4: If semantic returns 0 results, fall back to keyword search
+      if (messages.length === 0) {
+        log(`⚡ Semantic search returned 0 results, falling back to keyword search`);
+        messages = await storage.keywordSearch(userId, query.trim(), limit);
+        searchMethod = 'keyword-fallback';
+        log(`Keyword fallback returned ${messages.length} results`);
+      }
 
       log(
-        `Keyword search for "${query}" returned ${messages.length} messages for user ${userId}`,
+        `${searchMethod} search for "${query}" returned ${messages.length} messages for user ${userId}`,
       );
       res.json(messages);
     } catch (error) {
       log(
-        `Error in keyword search: ${error instanceof Error ? error.message : String(error)}`,
+        `Error in hybrid search: ${error instanceof Error ? error.message : String(error)}`,
       );
       res.status(500).json({ error: "Failed to perform search" });
     }

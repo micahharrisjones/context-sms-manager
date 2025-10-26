@@ -149,6 +149,8 @@ export interface IStorage {
   // Embedding methods for hybrid search
   saveMessageEmbedding(messageId: number, embedding: number[]): Promise<void>;
   getMessageEmbedding(messageId: number): Promise<number[] | null>;
+  semanticSearch(userId: number, queryEmbedding: number[], limit: number): Promise<Message[]>;
+  keywordSearch(userId: number, query: string, limit: number): Promise<Message[]>;
   hybridSearch(userId: number, query: string, queryEmbedding: number[], alpha: number, limit: number): Promise<Message[]>;
   getAllMessagesWithoutEmbeddings(limit?: number): Promise<Message[]>;
 }
@@ -1917,6 +1919,37 @@ export class DatabaseStorage implements IStorage {
       // Fallback to simple keyword search if hybrid fails
       log("Falling back to keyword search");
       return this.searchMessages(userId, query);
+    }
+  }
+
+  async semanticSearch(userId: number, queryEmbedding: number[], limit: number = 20): Promise<Message[]> {
+    try {
+      log(`Performing pure semantic search for user ${userId}`);
+      
+      const embeddingString = `[${queryEmbedding.join(',')}]`;
+      
+      const results = await db.execute(sql`
+        SELECT 
+          m.id, m.content, m.sender_id AS "senderId", m.user_id AS "userId", 
+          m.timestamp, m.tags, m.media_url AS "mediaUrl", m.media_type AS "mediaType", 
+          m.message_sid AS "messageSid", m.og_title AS "ogTitle", m.og_description AS "ogDescription",
+          m.og_image AS "ogImage", m.og_site_name AS "ogSiteName", m.og_is_blocked AS "ogIsBlocked", 
+          m.og_is_fallback AS "ogIsFallback", m.enrichment_status AS "enrichmentStatus", 
+          m.enriched_at AS "enrichedAt",
+          1 - (me.embedding <=> ${embeddingString}::vector) as similarity_score
+        FROM ${messages} m
+        INNER JOIN ${messageEmbeddings} me ON m.id = me.message_id
+        WHERE m.user_id = ${userId}
+          AND LENGTH(m.content) >= 2
+        ORDER BY me.embedding <=> ${embeddingString}::vector
+        LIMIT ${limit}
+      `);
+      
+      log(`Semantic search returned ${results.rows.length} results`);
+      return results.rows as Message[];
+    } catch (error) {
+      log(`Error performing semantic search:`, error instanceof Error ? error.message : String(error));
+      return [];
     }
   }
 
