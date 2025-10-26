@@ -40,7 +40,7 @@ export class AuthService {
       log(`Generated verification code ${verificationCode} for phone ${cleanPhoneNumber}`);
       
       // Send SMS with verification code
-      const smsMessage = `Your Context verification code is: ${verificationCode}\n\nThis code expires in 10 minutes. Don't share this code with anyone.`;
+      const smsMessage = `Your Aside verification code is: ${verificationCode}\n\nThis code expires in 10 minutes. Don't share this code with anyone.`;
       
       const smsSent = await twilioService.sendSMS(cleanPhoneNumber, smsMessage);
       
