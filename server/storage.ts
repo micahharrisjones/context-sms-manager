@@ -1871,14 +1871,44 @@ export class DatabaseStorage implements IStorage {
       // Hybrid search using BM25 (keyword) + vector similarity
       // Alpha determines the weight: 0 = pure keyword, 1 = pure semantic
       // We use alpha=0.7 to lean toward semantic search for conversational queries
+      
+      // Extract individual words safely and create OR query with English stemming
+      // plainto_tsquery sanitizes input, then we convert its AND output to OR for forgiving search
+      const words = query.trim().split(/\s+/).filter(w => w.length > 0);
+      
+      // Handle empty queries gracefully
+      if (words.length === 0) {
+        log('Empty query provided, returning empty results');
+        return [];
+      }
+      
+      // Build OR tsquery using raw SQL (safe because plainto_tsquery sanitizes each word)
+      const orQueryFragments = words.map(w => sql.raw(`plainto_tsquery('english', '${w.replace(/'/g, "''")}')`));
+      const orQuery = orQueryFragments.reduce((acc, fragment, i) => 
+        i === 0 ? fragment : sql.join([acc, sql.raw(' || '), fragment], sql.raw(''))
+      );
+      
       const results = await db.execute(sql`
         WITH keyword_scores AS (
           SELECT 
             m.id,
-            ts_rank(to_tsvector('english', m.content), plainto_tsquery('english', ${query})) as keyword_score
+            ts_rank(
+              to_tsvector('english', 
+                COALESCE(m.content, '') || ' ' || 
+                COALESCE(m.og_title, '') || ' ' || 
+                COALESCE(m.og_description, '') || ' ' || 
+                COALESCE(array_to_string(m.tags, ' '), '')
+              ), 
+              ${orQuery}
+            ) as keyword_score
           FROM ${messages} m
           WHERE m.user_id = ${userId}
-            AND to_tsvector('english', m.content) @@ plainto_tsquery('english', ${query})
+            AND to_tsvector('english', 
+              COALESCE(m.content, '') || ' ' || 
+              COALESCE(m.og_title, '') || ' ' || 
+              COALESCE(m.og_description, '') || ' ' || 
+              COALESCE(array_to_string(m.tags, ' '), '')
+            ) @@ ${orQuery}
         ),
         vector_scores AS (
           SELECT 
@@ -1906,7 +1936,7 @@ export class DatabaseStorage implements IStorage {
           m.enriched_at AS "enrichedAt"
         FROM ${messages} m
         INNER JOIN combined_scores cs ON m.id = cs.id
-        WHERE cs.hybrid_score > 0.4
+        WHERE cs.hybrid_score > 0.25
           AND LENGTH(m.content) >= 2
         ORDER BY cs.hybrid_score DESC
         LIMIT ${limit}
@@ -1927,7 +1957,7 @@ export class DatabaseStorage implements IStorage {
       log(`Performing pure semantic search for user ${userId}`);
       
       const embeddingString = `[${queryEmbedding.join(',')}]`;
-      const similarityThreshold = 0.5; // Only return results with >50% similarity
+      const similarityThreshold = 0.35; // Only return results with >35% similarity (lowered for better recall)
       
       const results = await db.execute(sql`
         WITH ranked_results AS (
