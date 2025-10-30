@@ -78,35 +78,35 @@ export function Sidebar({ onClose }: SidebarProps) {
             </Button>
           </Link>
           
-          {/* All Boards Button */}
-          <Link href="/" data-pendo="link-all-boards">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start hover:bg-[#e3cac0]/20 text-[#263d57]",
-                location === "/" && "bg-[#e3cac0]/30"
-              )}
-              onClick={onClose}
-              data-pendo="button-all-boards"
-            >
-              <Hash className="w-4 h-4 mr-2" />
-              All Boards
-            </Button>
-          </Link>
-          
           {/* All Texts Button */}
-          <Link href="/all-texts" data-pendo="link-all-texts">
+          <Link href="/" data-pendo="link-all-texts">
             <Button
               variant="ghost"
               className={cn(
                 "w-full justify-start hover:bg-[#e3cac0]/20 text-[#263d57]",
-                location === "/all-texts" && "bg-[#e3cac0]/30"
+                (location === "/" || location === "/all-texts") && "bg-[#e3cac0]/30"
               )}
               onClick={onClose}
               data-pendo="button-all-texts"
             >
               <Hash className="w-4 h-4 mr-2" />
               All Texts
+            </Button>
+          </Link>
+          
+          {/* All Boards Button */}
+          <Link href="/boards" data-pendo="link-all-boards">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start hover:bg-[#e3cac0]/20 text-[#263d57]",
+                location === "/boards" && "bg-[#e3cac0]/30"
+              )}
+              onClick={onClose}
+              data-pendo="button-all-boards"
+            >
+              <Hash className="w-4 h-4 mr-2" />
+              All Boards
             </Button>
           </Link>
         </div>

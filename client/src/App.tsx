@@ -69,6 +69,9 @@ function Router() {
       <Layout>
         <Switch>
           <Route path="/">
+            {() => <ProtectedRoute component={AllTexts} />}
+          </Route>
+          <Route path="/boards">
             {() => <ProtectedRoute component={Home} />}
           </Route>
           <Route path="/all-texts">
