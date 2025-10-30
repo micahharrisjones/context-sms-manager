@@ -1183,8 +1183,8 @@ export async function registerRoutes(app: Express) {
         });
       });
 
-      // Redirect to stored URL if provided, otherwise to main dashboard
-      const targetUrl = redirectUrl || "/";
+      // Redirect to stored URL if provided, otherwise to All Texts page
+      const targetUrl = redirectUrl || "/all-texts";
       log(`Redirecting user ${userId} to: ${targetUrl}`);
       res.redirect(targetUrl);
     } catch (error) {

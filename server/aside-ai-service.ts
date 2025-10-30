@@ -168,13 +168,13 @@ Examples:
       if (searchResults.length === 0) {
         // Create magic link with redirect to search page (auto-login + search in one click)
         const redirectUrl = `/search?q=${encodeURIComponent(query)}`;
+        const baseUrl = 'https://textaside.app';
         
         try {
           const { url: magicLinkUrl } = await MagicLinkService.createMagicLink(userId, redirectUrl);
           
           // Shorten the magic link for SMS readability
           const shortCode = await shortLinkService.createShortLink(magicLinkUrl);
-          const baseUrl = 'https://textaside.app';
           
           return {
             response: `I couldn't find anything matching "${query}". Try a different search here: ${baseUrl}/s/${shortCode}`,
@@ -183,11 +183,25 @@ Examples:
           };
         } catch (error) {
           log(`Failed to create magic link for no results: ${error instanceof Error ? error.message : String(error)}`);
-          return {
-            response: `I couldn't find anything matching "${query}". Try searching on the web at textaside.app`,
-            intent: 'search',
-            searchPerformed: true,
-          };
+          
+          // Fallback: try to create short link for direct search URL (without auth)
+          try {
+            const searchUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
+            const fallbackShortCode = await shortLinkService.createShortLink(searchUrl);
+            return {
+              response: `I couldn't find anything matching "${query}". Try a different search here: ${baseUrl}/s/${fallbackShortCode}`,
+              intent: 'search',
+              searchPerformed: true,
+            };
+          } catch (fallbackError) {
+            log(`Failed to create fallback short link: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`);
+            // Last resort: generic message without long URL
+            return {
+              response: `I couldn't find anything matching "${query}". Try searching on the web at textaside.app`,
+              intent: 'search',
+              searchPerformed: true,
+            };
+          }
         }
       }
 
@@ -217,19 +231,29 @@ Examples:
 
       // Create "View all" magic link with redirect to search page (auto-login + search in one click)
       const redirectUrl = `/search?q=${encodeURIComponent(query)}`;
+      const baseUrl = 'https://textaside.app';
       
       try {
         const { url: magicLinkUrl } = await MagicLinkService.createMagicLink(userId, redirectUrl);
         
         // Shorten the magic link for SMS readability
         const shortCode = await shortLinkService.createShortLink(magicLinkUrl);
-        const baseUrl = 'https://textaside.app';
         
         response += `\nView all: ${baseUrl}/s/${shortCode}`;
       } catch (error) {
         log(`Failed to create View all magic link: ${error instanceof Error ? error.message : String(error)}`);
-        // Fallback to regular search link
-        response += `\nView all: https://textaside.app/search?q=${encodeURIComponent(query)}`;
+        
+        // Fallback: try to create short link for direct search URL (without auth)
+        try {
+          const searchUrl = `${baseUrl}/search?q=${encodeURIComponent(query)}`;
+          const fallbackShortCode = await shortLinkService.createShortLink(searchUrl);
+          response += `\nView all: ${baseUrl}/s/${fallbackShortCode}`;
+        } catch (fallbackError) {
+          log(`Failed to create fallback short link: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`);
+          // Last resort: truncate query if too long for SMS
+          const truncatedQuery = query.length > 30 ? query.substring(0, 30) : query;
+          response += `\nView all: ${baseUrl}/search?q=${encodeURIComponent(truncatedQuery)}`;
+        }
       }
 
       return {
