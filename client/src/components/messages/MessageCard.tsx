@@ -626,6 +626,21 @@ export function MessageCard({ message }: MessageCardProps) {
           </>
         )}
         
+        {/* Loading state for URL previews */}
+        {!hasDisplayableContent && isLoadingOg && previewUrl && (
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-[#e3cac0] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 animate-pulse">
+              <MessageSquare className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="animate-pulse">
+                <div className="h-4 bg-[#263d57]/10 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-[#263d57]/10 rounded w-1/2"></div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Fallback message when no content is displayable but card still needs to render */}
         {!hasDisplayableContent && !instagramPostId && !facebookPostId && !twitterPostId && !redditPostInfo && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl && !isLoadingOg && (
           <div className="flex items-start gap-3 opacity-60">
