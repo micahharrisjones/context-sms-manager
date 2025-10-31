@@ -603,6 +603,231 @@ export function AdminPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Pendo Cleanup */}
+      <PendoCleanupCard />
     </div>
+  );
+}
+
+interface CleanupResult {
+  totalProcessed: number;
+  totalDeleted: number;
+  totalFailed: number;
+  batches: number;
+  errors: string[];
+  dryRun: boolean;
+}
+
+function PendoCleanupCard() {
+  const { toast } = useToast();
+  const [csvContent, setCsvContent] = useState("");
+  const [parsedVisitors, setParsedVisitors] = useState<string[]>([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
+
+  // Parse CSV mutation
+  const parseCsvMutation = useMutation({
+    mutationFn: async (csv: string) => {
+      return apiRequest('/api/admin/pendo/parse-csv', {
+        method: 'POST',
+        body: JSON.stringify({ csvContent: csv })
+      });
+    },
+    onSuccess: (data: any) => {
+      setParsedVisitors(data.visitorIds || []);
+      toast({
+        title: "CSV parsed",
+        description: `Found ${data.totalVisitors} anonymous visitors to delete`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "CSV parsing failed",
+        description: error.message || "Failed to parse CSV file",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Cleanup mutation
+  const cleanupMutation = useMutation({
+    mutationFn: async ({ visitorIds, dryRun }: { visitorIds: string[], dryRun: boolean }) => {
+      return apiRequest('/api/admin/pendo/cleanup', {
+        method: 'POST',
+        body: JSON.stringify({ visitorIds, dryRun })
+      });
+    },
+    onSuccess: (data: CleanupResult) => {
+      setCleanupResult(data);
+      if (data.dryRun) {
+        toast({
+          title: "Dry run complete",
+          description: `Would delete ${data.totalDeleted} visitors in ${data.batches} batches`
+        });
+      } else {
+        toast({
+          title: "Cleanup complete",
+          description: `Deleted ${data.totalDeleted} visitors (${data.totalFailed} failed)`
+        });
+        // Clear form after successful cleanup
+        setCsvContent("");
+        setParsedVisitors([]);
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Cleanup failed",
+        description: error.message || "Failed to cleanup Pendo visitors",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      setCsvContent(text);
+      parseCsvMutation.mutate(text);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleDryRun = () => {
+    if (parsedVisitors.length === 0) return;
+    cleanupMutation.mutate({ visitorIds: parsedVisitors, dryRun: true });
+  };
+
+  const handleLiveCleanup = () => {
+    if (parsedVisitors.length === 0) return;
+    setShowConfirmDialog(true);
+  };
+
+  const confirmLiveCleanup = () => {
+    cleanupMutation.mutate({ visitorIds: parsedVisitors, dryRun: false });
+    setShowConfirmDialog(false);
+  };
+
+  return (
+    <Card className="border-2 border-orange-200">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-orange-600">
+          <Database className="h-5 w-5" />
+          Pendo Visitor Cleanup
+        </CardTitle>
+        <CardDescription>
+          Remove anonymous visitors from Pendo to stay under the free tier limit. Upload the visitor CSV from Pendo, preview the cleanup, then execute.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* File Upload */}
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Upload Visitor CSV from Pendo
+          </label>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFileUpload}
+            className="block w-full text-sm text-[#263d57] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+            data-pendo="input-pendo-csv-upload"
+          />
+        </div>
+
+        {/* Parsed Results */}
+        {parsedVisitors.length > 0 && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-medium text-orange-900">
+                Found {parsedVisitors.length} anonymous visitors
+              </span>
+              <Badge variant="outline" className="bg-white">
+                Ready to delete
+              </Badge>
+            </div>
+            <div className="text-xs text-orange-700 bg-white p-2 rounded border border-orange-200 max-h-32 overflow-y-auto">
+              {parsedVisitors.slice(0, 10).join(', ')}
+              {parsedVisitors.length > 10 && ` ... and ${parsedVisitors.length - 10} more`}
+            </div>
+          </div>
+        )}
+
+        {/* Cleanup Result */}
+        {cleanupResult && (
+          <div className={`border rounded-lg p-4 ${cleanupResult.dryRun ? 'bg-blue-50 border-blue-200' : 'bg-green-50 border-green-200'}`}>
+            <div className="font-medium mb-2 ${cleanupResult.dryRun ? 'text-blue-900' : 'text-green-900'}">
+              {cleanupResult.dryRun ? 'Dry Run Results' : 'Cleanup Results'}
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>Total Processed: <strong>{cleanupResult.totalProcessed}</strong></div>
+              <div>Total Deleted: <strong>{cleanupResult.totalDeleted}</strong></div>
+              <div>Total Failed: <strong>{cleanupResult.totalFailed}</strong></div>
+              <div>Batches: <strong>{cleanupResult.batches}</strong></div>
+            </div>
+            {cleanupResult.errors.length > 0 && (
+              <div className="mt-2 text-xs text-red-600 bg-white p-2 rounded border border-red-200">
+                Errors: {cleanupResult.errors.join(', ')}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex gap-2">
+          <Button
+            onClick={handleDryRun}
+            disabled={parsedVisitors.length === 0 || cleanupMutation.isPending}
+            variant="outline"
+            className="flex-1"
+            data-pendo="button-pendo-dry-run"
+          >
+            {cleanupMutation.isPending ? 'Processing...' : 'Dry Run (Preview)'}
+          </Button>
+          <Button
+            onClick={handleLiveCleanup}
+            disabled={parsedVisitors.length === 0 || cleanupMutation.isPending}
+            className="flex-1 bg-orange-600 hover:bg-orange-700"
+            data-pendo="button-pendo-live-cleanup"
+          >
+            {cleanupMutation.isPending ? 'Deleting...' : 'Delete Visitors (LIVE)'}
+          </Button>
+        </div>
+
+        {/* Confirmation Dialog */}
+        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Pendo Cleanup</AlertDialogTitle>
+              <AlertDialogDescription>
+                You are about to permanently delete <strong>{parsedVisitors.length} anonymous visitors</strong> from Pendo. This action cannot be undone.
+                <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded text-sm">
+                  <strong>What will happen:</strong>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>All events for these visitors will be deleted</li>
+                    <li>All metadata will be removed</li>
+                    <li>Visitors will be marked as Do Not Process (DNP)</li>
+                    <li>Deletion will be processed in batches of 100</li>
+                  </ul>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel data-pendo="button-cancel-pendo-cleanup">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmLiveCleanup}
+                className="bg-orange-600 hover:bg-orange-700"
+                data-pendo="button-confirm-pendo-cleanup"
+              >
+                Yes, Delete {parsedVisitors.length} Visitors
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardContent>
+    </Card>
   );
 }
