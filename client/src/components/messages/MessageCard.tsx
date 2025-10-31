@@ -626,6 +626,20 @@ export function MessageCard({ message }: MessageCardProps) {
           </>
         )}
         
+        {/* Fallback message when no content is displayable but card still needs to render */}
+        {!hasDisplayableContent && !instagramPostId && !facebookPostId && !twitterPostId && !redditPostInfo && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl && !isLoadingOg && (
+          <div className="flex items-start gap-3 opacity-60">
+            <div className="w-8 h-8 bg-[#e3cac0]/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <MessageSquare className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-muted-foreground italic text-sm">
+                {hashtags.length > 0 ? 'Saved item' : 'No content available'}
+              </p>
+            </div>
+          </div>
+        )}
+        
         {facebookPostId && (
           <div className="w-full" data-pendo="content-facebook-embed" data-post-id={facebookPostId}>
             <iframe
