@@ -706,11 +706,18 @@ function PendoCleanupCard() {
     }
   });
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('[Pendo Cleanup] handleFileUpload CALLED!', event);
-    const file = event.target.files?.[0];
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = () => {
+    console.log('[Pendo Cleanup] handleFileUpload CALLED!');
+    const file = fileInputRef.current?.files?.[0];
     if (!file) {
       console.log('[Pendo Cleanup] No file selected');
+      toast({
+        title: "No file selected",
+        description: "Please select a CSV file first",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -728,17 +735,12 @@ function PendoCleanupCard() {
           description: "The CSV file appears to be empty",
           variant: "destructive"
         });
-        // Reset file input
-        event.target.value = '';
         return;
       }
       
       setCsvContent(text);
       console.log('[Pendo Cleanup] Triggering CSV parsing mutation...');
       parseCsvMutation.mutate(text);
-      
-      // Reset file input after reading
-      event.target.value = '';
     };
     
     reader.onerror = (error) => {
@@ -748,8 +750,6 @@ function PendoCleanupCard() {
         description: "Failed to read the CSV file. Please try again.",
         variant: "destructive"
       });
-      // Reset file input
-      event.target.value = '';
     };
     
     reader.readAsText(file);
@@ -788,23 +788,29 @@ function PendoCleanupCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* File Upload */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium">
             Upload Visitor CSV from Pendo
           </label>
-          <input
-            type="file"
-            accept=".csv"
-            onChange={(e) => {
-              console.log('[Pendo Cleanup] File input onChange fired!', e);
-              handleFileUpload(e);
-            }}
-            disabled={parseCsvMutation.isPending}
-            className="block w-full text-sm text-[#263d57] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            data-pendo="input-pendo-csv-upload"
-          />
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              className="block w-full text-sm text-[#263d57] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+              data-pendo="input-pendo-csv-upload"
+            />
+            <Button
+              onClick={handleFileUpload}
+              disabled={parseCsvMutation.isPending}
+              variant="outline"
+              className="shrink-0"
+            >
+              {parseCsvMutation.isPending ? 'Parsing...' : 'Upload'}
+            </Button>
+          </div>
           {parseCsvMutation.isPending && (
-            <p className="text-sm text-orange-600 mt-2">Parsing CSV file...</p>
+            <p className="text-sm text-orange-600">Parsing CSV file...</p>
           )}
         </div>
 
