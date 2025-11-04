@@ -707,6 +707,7 @@ function PendoCleanupCard() {
   });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[Pendo Cleanup] handleFileUpload CALLED!', event);
     const file = event.target.files?.[0];
     if (!file) {
       console.log('[Pendo Cleanup] No file selected');
@@ -767,7 +768,7 @@ function PendoCleanupCard() {
   };
 
   // Debug: Log button state
-  console.log('[Pendo Cleanup] Render - parsedVisitorsCount:', parsedVisitorsCount, 'cleanupMutation.isPending:', cleanupMutation.isPending, 'buttons disabled:', parsedVisitorsCount === 0 || cleanupMutation.isPending);
+  console.log('[Pendo Cleanup] Render - parsedVisitorsCount:', parsedVisitorsCount, 'parseCsvMutation.isPending:', parseCsvMutation.isPending, 'cleanupMutation.isPending:', cleanupMutation.isPending, 'buttons disabled:', parsedVisitorsCount === 0 || cleanupMutation.isPending);
 
   const confirmLiveCleanup = () => {
     cleanupMutation.mutate({ visitorIds: parsedVisitors, dryRun: false });
@@ -794,7 +795,10 @@ function PendoCleanupCard() {
           <input
             type="file"
             accept=".csv"
-            onChange={handleFileUpload}
+            onChange={(e) => {
+              console.log('[Pendo Cleanup] File input onChange fired!', e);
+              handleFileUpload(e);
+            }}
             disabled={parseCsvMutation.isPending}
             className="block w-full text-sm text-[#263d57] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed"
             data-pendo="input-pendo-csv-upload"
