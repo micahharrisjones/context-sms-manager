@@ -60,7 +60,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       <div className="flex-1 flex flex-col min-h-0 lg:overflow-hidden">
       {/* Scrollable Content */}
       <ScrollArea className="flex-1 min-h-0 lg:overflow-auto">
-        {/* Search, All Boards and All Texts */}
+        {/* Search and All Texts */}
         <div className="px-4 pt-4 pb-2 space-y-2">
           {/* Search Button */}
           <Link href="/search" data-pendo="link-search">
@@ -91,22 +91,6 @@ export function Sidebar({ onClose }: SidebarProps) {
             >
               <Hash className="w-4 h-4 mr-2" />
               All Texts
-            </Button>
-          </Link>
-          
-          {/* All Boards Button */}
-          <Link href="/boards" data-pendo="link-all-boards">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full justify-start hover:bg-[#e3cac0]/20 text-[#263d57]",
-                location === "/boards" && "bg-[#e3cac0]/30"
-              )}
-              onClick={onClose}
-              data-pendo="button-all-boards"
-            >
-              <Hash className="w-4 h-4 mr-2" />
-              All Boards
             </Button>
           </Link>
         </div>
