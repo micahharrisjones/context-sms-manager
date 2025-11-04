@@ -79,11 +79,13 @@
   overflow: hidden;
 }
 
-/* Modal backdrop fix for Pendo tagging */
-[data-radix-dialog-overlay] {
+/* Modal backdrop fix for Pendo tagging - Allow clicks through dialog overlay to reach modal content */
+/* Scope specifically to dialog overlays only, not all Radix components with data-state="open" */
+[data-radix-dialog-overlay][data-state="open"] {
   pointer-events: none !important;
 }
 
-[data-radix-dialog-content] {
+/* Ensure modal dialog content remains clickable */
+[role="dialog"] {
   pointer-events: auto !important;
 }

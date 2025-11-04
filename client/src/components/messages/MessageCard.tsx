@@ -45,7 +45,18 @@ function TwitterEmbed({ tweetId, url }: { tweetId: string; url: string }) {
   }, [tweetId]);
 
   return (
-    <div className="w-full" data-pendo="content-twitter-embed" data-tweet-id={tweetId}>
+    <div className="w-full relative" data-pendo="content-twitter-embed" data-tweet-id={tweetId}>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="EmbeddedMedia absolute top-2 right-2 z-10 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full text-xs font-medium text-[#263d57] shadow-md hover:shadow-lg transition-all flex items-center gap-1"
+        data-pendo="content-external-link-btn"
+        data-embed-type="twitter"
+      >
+        <ExternalLink className="w-3 h-3" />
+        View on X/Twitter
+      </a>
       <div ref={containerRef} className="flex justify-center"></div>
       {isLoading && (
         <div className="w-full">
@@ -67,7 +78,18 @@ function RedditEmbed({ subreddit, postId, url }: { subreddit: string; postId: st
   const [isLoading, setIsLoading] = useState(true);
 
   return (
-    <div className="w-full" data-pendo="content-reddit-embed" data-subreddit={subreddit} data-post-id={postId}>
+    <div className="w-full relative" data-pendo="content-reddit-embed" data-subreddit={subreddit} data-post-id={postId}>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="EmbeddedMedia absolute top-2 right-2 z-10 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full text-xs font-medium text-[#263d57] shadow-md hover:shadow-lg transition-all flex items-center gap-1"
+        data-pendo="content-external-link-btn"
+        data-embed-type="reddit"
+      >
+        <ExternalLink className="w-3 h-3" />
+        View on Reddit
+      </a>
       <iframe
         src={`https://embed.reddit.com/r/${subreddit}/comments/${postId}?theme=light`}
         className="w-full min-h-[500px] rounded-md border-0"
@@ -591,7 +613,18 @@ export function MessageCard({ message }: MessageCardProps) {
         
         
         {instagramPostId && (
-          <div className="w-full" data-pendo="content-instagram-embed" data-post-id={instagramPostId}>
+          <div className="w-full relative" data-pendo="content-instagram-embed" data-post-id={instagramPostId}>
+            <a
+              href={urls.find(url => getInstagramPostId(url)) || `https://www.instagram.com/p/${instagramPostId}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="EmbeddedMedia absolute top-2 right-2 z-10 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full text-xs font-medium text-[#263d57] shadow-md hover:shadow-lg transition-all flex items-center gap-1"
+              data-pendo="content-external-link-btn"
+              data-embed-type="instagram"
+            >
+              <ExternalLink className="w-3 h-3" />
+              View on Instagram
+            </a>
             <iframe
               src={`https://www.instagram.com/p/${instagramPostId}/embed/captioned/`}
               className="w-full h-[600px] rounded-md border-0"
@@ -656,7 +689,18 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         {facebookPostId && (
-          <div className="w-full" data-pendo="content-facebook-embed" data-post-id={facebookPostId}>
+          <div className="w-full relative" data-pendo="content-facebook-embed" data-post-id={facebookPostId}>
+            <a
+              href={urls.find(url => getFacebookPostId(url)) || `https://www.facebook.com/permalink.php?story_fbid=${facebookPostId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="EmbeddedMedia absolute top-2 right-2 z-10 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full text-xs font-medium text-[#263d57] shadow-md hover:shadow-lg transition-all flex items-center gap-1"
+              data-pendo="content-external-link-btn"
+              data-embed-type="facebook"
+            >
+              <ExternalLink className="w-3 h-3" />
+              View on Facebook
+            </a>
             <iframe
               src={`https://www.facebook.com/plugins/post.php?href=https://www.facebook.com/permalink.php?story_fbid=${facebookPostId}&width=500&show_text=true&height=500`}
               className="w-full h-[500px] rounded-md shadow-md"
@@ -677,7 +721,18 @@ export function MessageCard({ message }: MessageCardProps) {
           />
         )}
         {youtubeVideoId && (
-          <div className="w-full" data-pendo="content-youtube-embed" data-video-id={youtubeVideoId}>
+          <div className="w-full relative" data-pendo="content-youtube-embed" data-video-id={youtubeVideoId}>
+            <a
+              href={urls.find(url => getYouTubeVideoId(url)) || `https://www.youtube.com/watch?v=${youtubeVideoId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="EmbeddedMedia absolute top-2 right-2 z-10 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full text-xs font-medium text-[#263d57] shadow-md hover:shadow-lg transition-all flex items-center gap-1"
+              data-pendo="content-external-link-btn"
+              data-embed-type="youtube"
+            >
+              <ExternalLink className="w-3 h-3" />
+              View on YouTube
+            </a>
             <iframe
               src={`https://www.youtube.com/embed/${youtubeVideoId}`}
               className="w-full h-[315px] rounded-md border-0"
@@ -689,17 +744,30 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         {tiktokVideoId && (
-          <div className="w-full" data-pendo="content-tiktok-embed" data-video-id={tiktokVideoId}>
+          <div className="w-full relative" data-pendo="content-tiktok-embed" data-video-id={tiktokVideoId}>
             {/* For numeric video IDs, use iframe embed */}
             {/^\d+$/.test(tiktokVideoId) ? (
-              <iframe
-                src={`https://www.tiktok.com/embed/v2/${tiktokVideoId}`}
-                className="w-full h-[500px] rounded-md border-0"
-                loading="lazy"
-                frameBorder="0"
-                allow="encrypted-media"
-                allowFullScreen
-              />
+              <>
+                <a
+                  href={urls.find(url => getTikTokVideoId(url)) || `https://www.tiktok.com/video/${tiktokVideoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="EmbeddedMedia absolute top-2 right-2 z-10 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full text-xs font-medium text-[#263d57] shadow-md hover:shadow-lg transition-all flex items-center gap-1"
+                  data-pendo="content-external-link-btn"
+                  data-embed-type="tiktok"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  View on TikTok
+                </a>
+                <iframe
+                  src={`https://www.tiktok.com/embed/v2/${tiktokVideoId}`}
+                  className="w-full h-[500px] rounded-md border-0"
+                  loading="lazy"
+                  frameBorder="0"
+                  allow="encrypted-media"
+                  allowFullScreen
+                />
+              </>
             ) : (
               /* For short URLs (vm.tiktok.com, tiktok.com/t/), show a styled link */
               <div className="w-full rounded-md border bg-gradient-to-br from-[#263d57] to-[#263d57] p-6">
@@ -708,9 +776,10 @@ export function MessageCard({ message }: MessageCardProps) {
                     href={urls.find(url => url.includes('tiktok.com')) || '#'}
                     target="_blank" 
                     rel="noopener noreferrer"
-                    className="text-white hover:text-[#263d57]/70 transition-colors flex items-center gap-3 text-lg font-medium hover:underline"
+                    className="EmbeddedMedia text-white hover:text-[#263d57]/70 transition-colors flex items-center gap-3 text-lg font-medium hover:underline"
                     data-pendo="content-external-link-btn"
                     data-link-type="tiktok-short"
+                    data-embed-type="tiktok"
                   >
                     <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
