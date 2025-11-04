@@ -629,12 +629,16 @@ function PendoCleanupCard() {
   // Parse CSV mutation
   const parseCsvMutation = useMutation({
     mutationFn: async (csv: string) => {
-      return apiRequest('/api/admin/pendo/parse-csv', {
+      console.log('[Pendo Cleanup] Sending CSV to server, length:', csv.length);
+      const result = await apiRequest('/api/admin/pendo/parse-csv', {
         method: 'POST',
         body: JSON.stringify({ csvContent: csv })
       });
+      console.log('[Pendo Cleanup] Server response:', result);
+      return result;
     },
     onSuccess: (data: any) => {
+      console.log('[Pendo Cleanup] Parse successful, visitor count:', data.totalVisitors);
       setParsedVisitors(data.visitorIds || []);
       toast({
         title: "CSV parsed",
@@ -642,6 +646,7 @@ function PendoCleanupCard() {
       });
     },
     onError: (error: any) => {
+      console.error('[Pendo Cleanup] Parse error:', error);
       toast({
         title: "CSV parsing failed",
         description: error.message || "Failed to parse CSV file",
@@ -652,7 +657,7 @@ function PendoCleanupCard() {
 
   // Cleanup mutation
   const cleanupMutation = useMutation({
-    mutationFn: async ({ visitorIds, dryRun }: { visitorIds: string[], dryRun: boolean }) => {
+    mutationFn: async ({ visitorIds, dryRun }: { visitorIds: string[], dryRun: boolean }): Promise<CleanupResult> => {
       return apiRequest('/api/admin/pendo/cleanup', {
         method: 'POST',
         body: JSON.stringify({ visitorIds, dryRun })
@@ -686,14 +691,42 @@ function PendoCleanupCard() {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      console.log('[Pendo Cleanup] No file selected');
+      return;
+    }
+
+    console.log('[Pendo Cleanup] File selected:', file.name, file.size, 'bytes');
 
     const reader = new FileReader();
+    
     reader.onload = (e) => {
       const text = e.target?.result as string;
+      console.log('[Pendo Cleanup] File read successfully, length:', text?.length);
+      
+      if (!text) {
+        toast({
+          title: "File read failed",
+          description: "The CSV file appears to be empty",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       setCsvContent(text);
+      console.log('[Pendo Cleanup] Triggering CSV parsing mutation...');
       parseCsvMutation.mutate(text);
     };
+    
+    reader.onerror = (error) => {
+      console.error('[Pendo Cleanup] FileReader error:', error);
+      toast({
+        title: "File read error",
+        description: "Failed to read the CSV file. Please try again.",
+        variant: "destructive"
+      });
+    };
+    
     reader.readAsText(file);
   };
 
@@ -733,9 +766,13 @@ function PendoCleanupCard() {
             type="file"
             accept=".csv"
             onChange={handleFileUpload}
-            className="block w-full text-sm text-[#263d57] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+            disabled={parseCsvMutation.isPending}
+            className="block w-full text-sm text-[#263d57] file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 disabled:opacity-50 disabled:cursor-not-allowed"
             data-pendo="input-pendo-csv-upload"
           />
+          {parseCsvMutation.isPending && (
+            <p className="text-sm text-orange-600 mt-2">Parsing CSV file...</p>
+          )}
         </div>
 
         {/* Parsed Results */}
