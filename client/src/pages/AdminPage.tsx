@@ -741,14 +741,19 @@ function PendoCleanupCard() {
   };
 
   const handleDryRun = () => {
+    console.log('[Pendo Cleanup] handleDryRun called, parsedVisitors.length:', parsedVisitors.length);
     if (parsedVisitors.length === 0) return;
     cleanupMutation.mutate({ visitorIds: parsedVisitors, dryRun: true });
   };
 
   const handleLiveCleanup = () => {
+    console.log('[Pendo Cleanup] handleLiveCleanup called, parsedVisitors.length:', parsedVisitors.length);
     if (parsedVisitors.length === 0) return;
     setShowConfirmDialog(true);
   };
+
+  // Debug: Log button state
+  console.log('[Pendo Cleanup] Render - parsedVisitors.length:', parsedVisitors.length, 'cleanupMutation.isPending:', cleanupMutation.isPending, 'buttons disabled:', parsedVisitors.length === 0 || cleanupMutation.isPending);
 
   const confirmLiveCleanup = () => {
     cleanupMutation.mutate({ visitorIds: parsedVisitors, dryRun: false });
