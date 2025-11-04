@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -626,6 +626,11 @@ function PendoCleanupCard() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
 
+  // Debug: Log whenever parsedVisitors changes
+  useEffect(() => {
+    console.log('[Pendo Cleanup] parsedVisitors state changed, length:', parsedVisitors.length, 'data:', parsedVisitors);
+  }, [parsedVisitors]);
+
   // Parse CSV mutation
   const parseCsvMutation = useMutation({
     mutationFn: async (csv: string) => {
@@ -639,7 +644,12 @@ function PendoCleanupCard() {
     },
     onSuccess: (data: any) => {
       console.log('[Pendo Cleanup] Parse successful, visitor count:', data.totalVisitors);
-      setParsedVisitors(data.visitorIds || []);
+      console.log('[Pendo Cleanup] visitorIds received:', data.visitorIds);
+      console.log('[Pendo Cleanup] visitorIds type:', typeof data.visitorIds, 'isArray:', Array.isArray(data.visitorIds));
+      const visitors = data.visitorIds || [];
+      console.log('[Pendo Cleanup] About to setParsedVisitors with:', visitors, 'length:', visitors.length);
+      setParsedVisitors(visitors);
+      console.log('[Pendo Cleanup] setParsedVisitors called');
       toast({
         title: "CSV parsed",
         description: `Found ${data.totalVisitors} anonymous visitors to delete`
