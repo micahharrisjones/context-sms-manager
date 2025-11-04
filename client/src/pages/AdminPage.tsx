@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -622,24 +622,20 @@ interface CleanupResult {
 function PendoCleanupCard() {
   const { toast } = useToast();
   const [csvContent, setCsvContent] = useState("");
-  const [parsedVisitorsRaw, setParsedVisitorsRaw] = useState<string[]>([]);
+  const parsedVisitorsRef = useRef<string[]>([]);
+  const [parsedVisitorsCount, setParsedVisitorsCount] = useState(0);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
 
-  // Wrapper to log all calls to setParsedVisitors
-  const setParsedVisitors = (value: string[] | ((prev: string[]) => string[])) => {
-    const newValue = typeof value === 'function' ? value(parsedVisitorsRaw) : value;
-    console.log('[Pendo Cleanup] setParsedVisitors called with:', newValue, 'length:', newValue.length);
-    console.trace('[Pendo Cleanup] setParsedVisitors call stack');
-    setParsedVisitorsRaw(newValue);
+  // Use ref to persist visitor IDs across renders
+  const setParsedVisitors = (visitors: string[]) => {
+    console.log('[Pendo Cleanup] setParsedVisitors called with:', visitors, 'length:', visitors.length);
+    parsedVisitorsRef.current = visitors;
+    setParsedVisitorsCount(visitors.length);
   };
 
-  const parsedVisitors = parsedVisitorsRaw;
-
-  // Debug: Log whenever parsedVisitors changes
-  useEffect(() => {
-    console.log('[Pendo Cleanup] parsedVisitors state changed, length:', parsedVisitors.length, 'data:', parsedVisitors);
-  }, [parsedVisitors]);
+  // Get current visitors from ref
+  const parsedVisitors = parsedVisitorsRef.current;
 
   // Parse CSV mutation
   const parseCsvMutation = useMutation({
@@ -759,19 +755,19 @@ function PendoCleanupCard() {
   };
 
   const handleDryRun = () => {
-    console.log('[Pendo Cleanup] handleDryRun called, parsedVisitors.length:', parsedVisitors.length);
-    if (parsedVisitors.length === 0) return;
+    console.log('[Pendo Cleanup] handleDryRun called, parsedVisitorsCount:', parsedVisitorsCount);
+    if (parsedVisitorsCount === 0) return;
     cleanupMutation.mutate({ visitorIds: parsedVisitors, dryRun: true });
   };
 
   const handleLiveCleanup = () => {
-    console.log('[Pendo Cleanup] handleLiveCleanup called, parsedVisitors.length:', parsedVisitors.length);
-    if (parsedVisitors.length === 0) return;
+    console.log('[Pendo Cleanup] handleLiveCleanup called, parsedVisitorsCount:', parsedVisitorsCount);
+    if (parsedVisitorsCount === 0) return;
     setShowConfirmDialog(true);
   };
 
   // Debug: Log button state
-  console.log('[Pendo Cleanup] Render - parsedVisitors.length:', parsedVisitors.length, 'cleanupMutation.isPending:', cleanupMutation.isPending, 'buttons disabled:', parsedVisitors.length === 0 || cleanupMutation.isPending);
+  console.log('[Pendo Cleanup] Render - parsedVisitorsCount:', parsedVisitorsCount, 'cleanupMutation.isPending:', cleanupMutation.isPending, 'buttons disabled:', parsedVisitorsCount === 0 || cleanupMutation.isPending);
 
   const confirmLiveCleanup = () => {
     cleanupMutation.mutate({ visitorIds: parsedVisitors, dryRun: false });
@@ -809,11 +805,11 @@ function PendoCleanupCard() {
         </div>
 
         {/* Parsed Results */}
-        {parsedVisitors.length > 0 && (
+        {parsedVisitorsCount > 0 && (
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="font-medium text-orange-900">
-                Found {parsedVisitors.length} anonymous visitors
+                Found {parsedVisitorsCount} anonymous visitors
               </span>
               <Badge variant="outline" className="bg-white">
                 Ready to delete
@@ -821,7 +817,7 @@ function PendoCleanupCard() {
             </div>
             <div className="text-xs text-orange-700 bg-white p-2 rounded border border-orange-200 max-h-32 overflow-y-auto">
               {parsedVisitors.slice(0, 10).join(', ')}
-              {parsedVisitors.length > 10 && ` ... and ${parsedVisitors.length - 10} more`}
+              {parsedVisitorsCount > 10 && ` ... and ${parsedVisitorsCount - 10} more`}
             </div>
           </div>
         )}
@@ -850,7 +846,7 @@ function PendoCleanupCard() {
         <div className="flex gap-2">
           <Button
             onClick={handleDryRun}
-            disabled={parsedVisitors.length === 0 || cleanupMutation.isPending}
+            disabled={parsedVisitorsCount === 0 || cleanupMutation.isPending}
             variant="outline"
             className="flex-1"
             data-pendo="button-pendo-dry-run"
@@ -859,7 +855,7 @@ function PendoCleanupCard() {
           </Button>
           <Button
             onClick={handleLiveCleanup}
-            disabled={parsedVisitors.length === 0 || cleanupMutation.isPending}
+            disabled={parsedVisitorsCount === 0 || cleanupMutation.isPending}
             className="flex-1 bg-orange-600 hover:bg-orange-700"
             data-pendo="button-pendo-live-cleanup"
           >
@@ -873,7 +869,7 @@ function PendoCleanupCard() {
             <AlertDialogHeader>
               <AlertDialogTitle>Confirm Pendo Cleanup</AlertDialogTitle>
               <AlertDialogDescription>
-                You are about to permanently delete <strong>{parsedVisitors.length} anonymous visitors</strong> from Pendo. This action cannot be undone.
+                You are about to permanently delete <strong>{parsedVisitorsCount} anonymous visitors</strong> from Pendo. This action cannot be undone.
                 <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded text-sm">
                   <strong>What will happen:</strong>
                   <ul className="list-disc list-inside mt-2 space-y-1">
