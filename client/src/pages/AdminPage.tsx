@@ -642,10 +642,11 @@ function PendoCleanupCard() {
     mutationKey: ['parse-pendo-csv'],
     mutationFn: async (csv: string) => {
       console.log('[Pendo Cleanup] Sending CSV to server, length:', csv.length);
-      const result = await apiRequest('/api/admin/pendo/parse-csv', {
+      const response = await apiRequest('/api/admin/pendo/parse-csv', {
         method: 'POST',
         body: JSON.stringify({ csvContent: csv })
       });
+      const result = await response.json();
       console.log('[Pendo Cleanup] Server response:', result);
       return result;
     },
@@ -675,10 +676,11 @@ function PendoCleanupCard() {
   // Cleanup mutation
   const cleanupMutation = useMutation({
     mutationFn: async ({ visitorIds, dryRun }: { visitorIds: string[], dryRun: boolean }): Promise<CleanupResult> => {
-      return apiRequest('/api/admin/pendo/cleanup', {
+      const response = await apiRequest('/api/admin/pendo/cleanup', {
         method: 'POST',
         body: JSON.stringify({ visitorIds, dryRun })
       });
+      return response.json();
     },
     onSuccess: (data: CleanupResult) => {
       setCleanupResult(data);
