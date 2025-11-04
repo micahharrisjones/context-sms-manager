@@ -2862,67 +2862,6 @@ Reply STOP to opt out`;
     }
   });
 
-  // Pendo cleanup endpoints
-  app.post("/api/admin/pendo/cleanup", requireAdmin, async (req, res) => {
-    try {
-      const { visitorIds, dryRun = true } = req.body;
-
-      if (!visitorIds || !Array.isArray(visitorIds)) {
-        return res.status(400).json({ error: "visitorIds must be an array" });
-      }
-
-      log(`Pendo cleanup requested: ${visitorIds.length} visitors, dry run: ${dryRun}`);
-
-      // Dynamic import to avoid circular dependencies
-      const { pendoCleanupService } = await import("./pendo-cleanup-service");
-
-      if (!pendoCleanupService.isConfigured()) {
-        return res.status(503).json({ 
-          error: "Pendo Integration Key not configured" 
-        });
-      }
-
-      const result = await pendoCleanupService.cleanupAnonymousVisitors(
-        visitorIds,
-        dryRun
-      );
-
-      res.json(result);
-    } catch (error) {
-      log(
-        "Pendo cleanup error:",
-        error instanceof Error ? error.message : String(error),
-      );
-      res.status(500).json({ error: "Pendo cleanup failed" });
-    }
-  });
-
-  app.post("/api/admin/pendo/parse-csv", requireAdmin, async (req, res) => {
-    try {
-      const { csvContent } = req.body;
-
-      if (!csvContent || typeof csvContent !== 'string') {
-        return res.status(400).json({ error: "csvContent must be a string" });
-      }
-
-      // Dynamic import
-      const { pendoCleanupService } = await import("./pendo-cleanup-service");
-
-      const anonymousVisitors = pendoCleanupService.parseAnonymousVisitorsFromCSV(csvContent);
-
-      res.json({
-        totalVisitors: anonymousVisitors.length,
-        visitorIds: anonymousVisitors
-      });
-    } catch (error) {
-      log(
-        "CSV parsing error:",
-        error instanceof Error ? error.message : String(error),
-      );
-      res.status(500).json({ error: "Failed to parse CSV" });
-    }
-  });
-
   // Shared boards endpoints
   // Get shared boards for the current user (boards they created + boards they're members of)
   app.get("/api/shared-boards", requireAuth, async (req, res) => {
