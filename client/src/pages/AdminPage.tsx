@@ -622,9 +622,19 @@ interface CleanupResult {
 function PendoCleanupCard() {
   const { toast } = useToast();
   const [csvContent, setCsvContent] = useState("");
-  const [parsedVisitors, setParsedVisitors] = useState<string[]>([]);
+  const [parsedVisitorsRaw, setParsedVisitorsRaw] = useState<string[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
+
+  // Wrapper to log all calls to setParsedVisitors
+  const setParsedVisitors = (value: string[] | ((prev: string[]) => string[])) => {
+    const newValue = typeof value === 'function' ? value(parsedVisitorsRaw) : value;
+    console.log('[Pendo Cleanup] setParsedVisitors called with:', newValue, 'length:', newValue.length);
+    console.trace('[Pendo Cleanup] setParsedVisitors call stack');
+    setParsedVisitorsRaw(newValue);
+  };
+
+  const parsedVisitors = parsedVisitorsRaw;
 
   // Debug: Log whenever parsedVisitors changes
   useEffect(() => {
@@ -633,6 +643,7 @@ function PendoCleanupCard() {
 
   // Parse CSV mutation
   const parseCsvMutation = useMutation({
+    mutationKey: ['parse-pendo-csv'],
     mutationFn: async (csv: string) => {
       console.log('[Pendo Cleanup] Sending CSV to server, length:', csv.length);
       const result = await apiRequest('/api/admin/pendo/parse-csv', {
@@ -720,12 +731,17 @@ function PendoCleanupCard() {
           description: "The CSV file appears to be empty",
           variant: "destructive"
         });
+        // Reset file input
+        event.target.value = '';
         return;
       }
       
       setCsvContent(text);
       console.log('[Pendo Cleanup] Triggering CSV parsing mutation...');
       parseCsvMutation.mutate(text);
+      
+      // Reset file input after reading
+      event.target.value = '';
     };
     
     reader.onerror = (error) => {
@@ -735,6 +751,8 @@ function PendoCleanupCard() {
         description: "Failed to read the CSV file. Please try again.",
         variant: "destructive"
       });
+      // Reset file input
+      event.target.value = '';
     };
     
     reader.readAsText(file);
