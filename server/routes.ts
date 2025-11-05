@@ -21,6 +21,76 @@ import { UrlEnrichmentService } from "./url-enrichment-service";
 import { shortLinkService } from "./short-link-service";
 import { s3Service } from "./s3-service";
 import { sql, asc } from "drizzle-orm";
+import { fileTypeFromBuffer } from "file-type";
+
+// Helper function to check MMS rate limit for a user
+function checkMMSRateLimit(userId: number): { allowed: boolean; remaining: number } {
+  const now = Date.now();
+  let tracker = mmsUploadTrackers.get(userId);
+  
+  if (!tracker) {
+    tracker = { count: 0, timestamps: [] };
+    mmsUploadTrackers.set(userId, tracker);
+  }
+  
+  // Remove timestamps older than the rate window
+  tracker.timestamps = tracker.timestamps.filter(
+    (timestamp) => now - timestamp < MMS_RATE_WINDOW_MS
+  );
+  
+  tracker.count = tracker.timestamps.length;
+  
+  // Check if user has exceeded rate limit
+  if (tracker.count >= MMS_RATE_LIMIT) {
+    const oldestTimestamp = tracker.timestamps[0];
+    const timeUntilReset = Math.ceil((oldestTimestamp + MMS_RATE_WINDOW_MS - now) / 60000); // minutes
+    log(`[MMS] Rate limit exceeded for user ${userId} - ${tracker.count}/${MMS_RATE_LIMIT} uploads in last hour`);
+    return { allowed: false, remaining: 0 };
+  }
+  
+  return { allowed: true, remaining: MMS_RATE_LIMIT - tracker.count };
+}
+
+// Helper function to record an MMS upload
+function recordMMSUpload(userId: number): void {
+  const now = Date.now();
+  let tracker = mmsUploadTrackers.get(userId);
+  
+  if (!tracker) {
+    tracker = { count: 0, timestamps: [] };
+    mmsUploadTrackers.set(userId, tracker);
+  }
+  
+  tracker.timestamps.push(now);
+  tracker.count = tracker.timestamps.length;
+  
+  log(`[MMS] Recorded upload for user ${userId} - ${tracker.count}/${MMS_RATE_LIMIT} in current window`);
+}
+
+// Helper function to validate file signature matches claimed MIME type
+async function validateFileSignature(buffer: Buffer, claimedMimeType: string): Promise<{ valid: boolean; detectedType: string | null }> {
+  try {
+    const fileType = await fileTypeFromBuffer(buffer);
+    
+    if (!fileType) {
+      log(`[MMS] Unable to detect file signature - file may be corrupted or unsupported`);
+      return { valid: false, detectedType: null };
+    }
+    
+    const detectedMime = fileType.mime;
+    log(`[MMS] File signature validation - Claimed: ${claimedMimeType}, Detected: ${detectedMime}`);
+    
+    // Check if detected type matches claimed type
+    // Allow some flexibility for common image format variations
+    const isValid = detectedMime === claimedMimeType || 
+                    (claimedMimeType.startsWith('image/') && detectedMime.startsWith('image/'));
+    
+    return { valid: isValid, detectedType: detectedMime };
+  } catch (error) {
+    log(`[MMS] Error validating file signature:`, error instanceof Error ? error.message : String(error));
+    return { valid: false, detectedType: null };
+  }
+}
 
 // Middleware to check database connection
 async function checkDatabaseConnection(req: any, res: any, next: any) {
@@ -73,6 +143,16 @@ interface PendingNotification {
   timeoutId: NodeJS.Timeout;
 }
 const pendingNotifications = new Map<string, PendingNotification>(); // key: "boardId:userId"
+
+// MMS Rate Limiting - Track uploads per user
+interface MMSUploadTracker {
+  count: number;
+  timestamps: number[]; // Rolling window of upload timestamps
+}
+const mmsUploadTrackers = new Map<number, MMSUploadTracker>(); // key: userId
+const MMS_RATE_LIMIT = 10; // Max uploads per hour
+const MMS_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour in milliseconds
+const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 const NOTIFICATION_DEBOUNCE_MS = 10000; // 10 seconds - wait for additional messages
 
 // Pending invite signups - track phone numbers waiting for YES confirmation
@@ -3810,9 +3890,23 @@ Reply STOP to opt out`;
           try {
             const twilioMediaUrl = (smsData as any).twilioMediaUrl;
             const mediaContentType = (smsData as any).mediaContentType;
+            const userId = created.userId;
+            const senderId = smsData.senderId;
+            
+            // SECURITY CHECK 1: Rate Limiting (10 MMS per hour)
+            const rateLimitCheck = checkMMSRateLimit(userId);
+            if (!rateLimitCheck.allowed) {
+              log(`[MMS] ⛔ Rate limit exceeded for user ${userId}`);
+              await twilioService.sendSMS(
+                senderId,
+                `You've reached the limit of ${MMS_RATE_LIMIT} image uploads per hour. Please try again later.`
+              );
+              return;
+            }
+            
             log(`[MMS] Downloading image from Twilio: ${twilioMediaUrl} (${mediaContentType})`);
             
-            // Download image from Twilio
+            // Download image from Twilio with size check
             const response = await fetch(twilioMediaUrl, {
               headers: {
                 'Authorization': 'Basic ' + Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64')
@@ -3823,10 +3917,46 @@ Reply STOP to opt out`;
               throw new Error(`Failed to download image from Twilio: ${response.status} ${response.statusText}`);
             }
             
+            // SECURITY CHECK 2: File Size Validation (10 MB max)
+            const contentLength = response.headers.get('content-length');
+            if (contentLength && parseInt(contentLength) > MAX_FILE_SIZE_BYTES) {
+              const sizeMB = (parseInt(contentLength) / (1024 * 1024)).toFixed(2);
+              log(`[MMS] ⛔ File too large: ${sizeMB} MB (max 10 MB)`);
+              await twilioService.sendSMS(
+                senderId,
+                `Image is too large (${sizeMB} MB). Please send images under 10 MB.`
+              );
+              return;
+            }
+            
             const arrayBuffer = await response.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
             
-            log(`[MMS] Image downloaded (${buffer.length} bytes), uploading to S3...`);
+            // Double-check size after download
+            if (buffer.length > MAX_FILE_SIZE_BYTES) {
+              const sizeMB = (buffer.length / (1024 * 1024)).toFixed(2);
+              log(`[MMS] ⛔ File too large after download: ${sizeMB} MB (max 10 MB)`);
+              await twilioService.sendSMS(
+                senderId,
+                `Image is too large (${sizeMB} MB). Please send images under 10 MB.`
+              );
+              return;
+            }
+            
+            log(`[MMS] Image downloaded (${buffer.length} bytes)`);
+            
+            // SECURITY CHECK 3: File Signature Validation
+            const signatureCheck = await validateFileSignature(buffer, mediaContentType);
+            if (!signatureCheck.valid) {
+              log(`[MMS] ⛔ File signature mismatch - Claimed: ${mediaContentType}, Detected: ${signatureCheck.detectedType || 'unknown'}`);
+              await twilioService.sendSMS(
+                senderId,
+                `Invalid image file. Please send a valid image (JPEG, PNG, GIF, or WebP).`
+              );
+              return;
+            }
+            
+            log(`[MMS] ✓ Security checks passed - uploading to S3...`);
             
             // Upload to S3
             const uploadResult = await s3Service.uploadImage({
@@ -3841,7 +3971,10 @@ Reply STOP to opt out`;
             // Update message with S3 key and media type info
             await storage.updateMessageMedia(created.id, uploadResult.key, 'image', mediaContentType);
             
-            log(`[MMS] Message ${created.id} updated with S3 image key`);
+            // Record successful upload for rate limiting
+            recordMMSUpload(userId);
+            
+            log(`[MMS] ✓ Message ${created.id} updated with S3 image key`);
             
             // Broadcast WebSocket update for the image
             wsManager.broadcastNewMessage();
