@@ -557,7 +557,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       if (directInvite && Date.now() - directInvite.timestamp < PENDING_DIRECT_INVITE_TTL_MS) {
         log(`📖 WHAT response received from ${senderId} - sending info about Aside`);
 
-        const infoMessage = `Aside is your personal SMS board for saving and organizing content!\n\nHere's what you can do:\n\n📎 Save links, ideas, and notes via text\n🏷️ Use #hashtags to organize everything\n🔍 AI-powered search ("Hey Aside, find my recipes")\n📋 Create shared boards with friends\n🖼️ Auto-generates previews for links\n\nReply YES to join and start saving!`;
+        const infoMessage = `Text anything you want to save to this number. Use #hashtags to organize each text into separate boards. It can be recipes you find on Pinterest, movies from IMDB, posts from Instagram, or just a simple quote you like. Reply YES to get started and try it out. No pressure!`;
 
         await twilioService.sendSMS(senderId, infoMessage);
         log(`Sent info message to ${senderId}`);
