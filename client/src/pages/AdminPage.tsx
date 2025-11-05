@@ -69,9 +69,10 @@ export function AdminPage() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      return apiRequest(`/api/admin/users/${userId}`, {
+      const response = await apiRequest(`/api/admin/users/${userId}`, {
         method: 'DELETE'
       });
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -93,10 +94,11 @@ export function AdminPage() {
   // Bulk delete users mutation
   const bulkDeleteMutation = useMutation({
     mutationFn: async (userIds: number[]) => {
-      return apiRequest('/api/admin/users/bulk-delete', {
+      const response = await apiRequest('/api/admin/users/bulk-delete', {
         method: 'DELETE',
         body: JSON.stringify({ userIds })
       });
+      return response.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -119,10 +121,11 @@ export function AdminPage() {
   // Bulk SMS broadcast mutation
   const bulkSmsMutation = useMutation({
     mutationFn: async (message: string) => {
-      return apiRequest('/api/admin/broadcast-sms', {
+      const response = await apiRequest('/api/admin/broadcast-sms', {
         method: 'POST',
         body: JSON.stringify({ message })
       });
+      return response.json();
     },
     onSuccess: (data: any) => {
       setShowBulkSmsModal(false);
@@ -144,9 +147,10 @@ export function AdminPage() {
   // Retroactive post enrichment mutation
   const enrichOldPostsMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/admin/enrich-old-posts', {
+      const response = await apiRequest('/api/admin/enrich-old-posts', {
         method: 'POST'
       });
+      return response.json();
     },
     onSuccess: (data: any) => {
       toast({
