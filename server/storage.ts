@@ -1482,12 +1482,17 @@ export class DatabaseStorage implements IStorage {
         .delete(messages)
         .where(eq(messages.userId, userId));
 
-      // 2. Delete board memberships for this user
+      // 2. Delete notification preferences for this user
+      await db
+        .delete(notificationPreferences)
+        .where(eq(notificationPreferences.userId, userId));
+
+      // 3. Delete board memberships for this user
       await db
         .delete(boardMemberships)
         .where(eq(boardMemberships.userId, userId));
 
-      // 3. For shared boards created by this user, delete ALL memberships first, then the boards
+      // 4. For shared boards created by this user, delete ALL memberships first, then the boards
       const ownedBoards = await db
         .select({ id: sharedBoards.id })
         .from(sharedBoards)
@@ -1505,12 +1510,12 @@ export class DatabaseStorage implements IStorage {
           .where(eq(sharedBoards.id, board.id));
       }
 
-      // 4. Delete auth sessions (both by user phone number and any orphaned sessions)
+      // 5. Delete auth sessions (both by user phone number and any orphaned sessions)
       await db
         .delete(authSessions)
         .where(eq(authSessions.phoneNumber, existingUser.phoneNumber));
 
-      // 5. Double-check: Remove any remaining messages that might reference this phone number as senderId
+      // 6. Double-check: Remove any remaining messages that might reference this phone number as senderId
       // This handles edge cases where messages might exist with senderId but wrong userId
       log(`Double-checking: Removing any orphaned messages with senderId ${existingUser.phoneNumber}`);
       const orphanedResult = await db
@@ -1518,7 +1523,7 @@ export class DatabaseStorage implements IStorage {
         .where(eq(messages.senderId, existingUser.phoneNumber));
       log(`Cleaned up any orphaned messages for phone number ${existingUser.phoneNumber}`);
 
-      // 6. Finally delete the user
+      // 7. Finally delete the user
       await db
         .delete(users)
         .where(eq(users.id, userId));
