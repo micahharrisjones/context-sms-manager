@@ -48,7 +48,8 @@ export const messages = pgTable("messages", {
   timestamp: timestamp("timestamp").defaultNow().notNull(),
   tags: text("tags").array().notNull(),
   mediaUrl: text("media_url"),
-  mediaType: varchar("media_type", { length: 20 }),
+  mediaType: varchar("media_type", { length: 20 }), // "image", "video", "audio", "other"
+  mediaContentType: varchar("media_content_type", { length: 100 }), // Original MIME type from Twilio (e.g., "image/jpeg", "video/mp4")
   messageSid: text("message_sid"), // Twilio MessageSid for deduplication
   ogTitle: text("og_title"), // Open Graph title from URL enrichment
   ogDescription: text("og_description"), // Open Graph description from URL enrichment
