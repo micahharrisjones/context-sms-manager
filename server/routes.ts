@@ -1122,23 +1122,31 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
     // Remove any duplicate tags
     const uniqueTags = Array.from(new Set(tags));
 
-    // Handle media if present (MMS images)
+    // Handle media if present (MMS with images, videos, audio, etc.)
     const numMedia = parseInt(validatedData.NumMedia || "0");
     let mediaUrl = null;
     let mediaType = null;
+    let mediaContentType = null;
     let twilioMediaUrl = null;
 
     if (numMedia > 0) {
       // Store Twilio media URL temporarily for later download
       twilioMediaUrl = validatedData.MediaUrl0;
-      mediaType = validatedData.MediaContentType0;
+      mediaContentType = validatedData.MediaContentType0;
       
-      // Check if it's an image type
-      const isImage = mediaType?.startsWith('image/');
-      if (isImage) {
-        log(`📸 MMS detected with image - will process after message creation (MediaUrl: ${twilioMediaUrl})`);
+      // Categorize media type
+      if (mediaContentType?.startsWith('image/')) {
+        mediaType = 'image';
+        log(`📸 MMS detected with image - will process after message creation (MediaUrl: ${twilioMediaUrl}, ContentType: ${mediaContentType})`);
+      } else if (mediaContentType?.startsWith('video/')) {
+        mediaType = 'video';
+        log(`🎥 MMS detected with video (not yet supported) - ContentType: ${mediaContentType}`);
+      } else if (mediaContentType?.startsWith('audio/')) {
+        mediaType = 'audio';
+        log(`🎵 MMS detected with audio (not yet supported) - ContentType: ${mediaContentType}`);
       } else {
-        log(`📎 MMS detected with non-image media type: ${mediaType}`);
+        mediaType = 'other';
+        log(`📎 MMS detected with unknown media type: ${mediaContentType}`);
       }
     }
 
@@ -1147,11 +1155,12 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       senderId,
       userId: user.id,
       tags: uniqueTags,
-      mediaUrl, // Will be null initially, updated after S3 upload
-      mediaType,
+      mediaUrl, // Will be null initially, updated after S3 upload for images
+      mediaType, // 'image', 'video', 'audio', 'other'
+      mediaContentType, // Original MIME type from Twilio
       messageSid: (body as any).MessageSid || null, // Store MessageSid for deduplication
       isNewUser,
-      twilioMediaUrl, // Pass this along for later processing
+      twilioMediaUrl, // Pass this along for later processing (images only)
     };
 
     log(
@@ -3795,11 +3804,13 @@ Reply STOP to opt out`;
       log("Message creation complete");
 
       // Process MMS image if present (download from Twilio, upload to S3)
-      if ((smsData as any).twilioMediaUrl && (smsData as any).mediaType?.startsWith('image/')) {
+      // Only images are supported - videos/audio are logged but not processed
+      if ((smsData as any).twilioMediaUrl && (smsData as any).mediaType === 'image') {
         (async () => {
           try {
             const twilioMediaUrl = (smsData as any).twilioMediaUrl;
-            log(`[MMS] Downloading image from Twilio: ${twilioMediaUrl}`);
+            const mediaContentType = (smsData as any).mediaContentType;
+            log(`[MMS] Downloading image from Twilio: ${twilioMediaUrl} (${mediaContentType})`);
             
             // Download image from Twilio
             const response = await fetch(twilioMediaUrl, {
@@ -3827,8 +3838,8 @@ Reply STOP to opt out`;
             
             log(`[MMS] Image uploaded to S3: ${uploadResult.key}`);
             
-            // Update message with S3 key
-            await storage.updateMessageMedia(created.id, uploadResult.key, smsData.mediaType || 'image/jpeg');
+            // Update message with S3 key and media type info
+            await storage.updateMessageMedia(created.id, uploadResult.key, 'image', mediaContentType);
             
             log(`[MMS] Message ${created.id} updated with S3 image key`);
             

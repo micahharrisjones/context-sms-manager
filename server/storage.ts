@@ -79,7 +79,7 @@ export interface IStorage {
     ogSiteName: string | null;
     enrichmentStatus: string;
   }): Promise<void>;
-  updateMessageMedia(messageId: number, mediaUrl: string, mediaType: string): Promise<void>;
+  updateMessageMedia(messageId: number, mediaUrl: string, mediaType: string, mediaContentType?: string): Promise<void>;
   
   // Shared board management
   getSharedBoards(userId: number): Promise<SharedBoard[]>;
@@ -826,17 +826,18 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateMessageMedia(messageId: number, mediaUrl: string, mediaType: string): Promise<void> {
+  async updateMessageMedia(messageId: number, mediaUrl: string, mediaType: string, mediaContentType?: string): Promise<void> {
     try {
       await db
         .update(messages)
         .set({
           mediaUrl,
-          mediaType
+          mediaType,
+          mediaContentType: mediaContentType || null
         })
         .where(eq(messages.id, messageId));
       
-      log(`Updated media for message ${messageId}: ${mediaUrl}`);
+      log(`Updated media for message ${messageId}: ${mediaUrl} (type: ${mediaType}, contentType: ${mediaContentType})`);
     } catch (error) {
       log(`Error updating media for message ${messageId}:`, error instanceof Error ? error.message : String(error));
       throw error;
