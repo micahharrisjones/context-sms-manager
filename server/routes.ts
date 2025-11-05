@@ -623,11 +623,20 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       // throw new Error("Invalid account SID");
     }
 
-    const content = validatedData.Body;
+    // Check if this is an image-only MMS (no text body)
+    const numMedia = parseInt(validatedData.NumMedia || "0");
+    const hasMedia = numMedia > 0;
+    const originalContent = validatedData.Body;
+    
+    // Use "Image" as placeholder text for image-only MMS messages
+    const content = originalContent || (hasMedia ? "Image" : "");
     const senderId = validatedData.From;
     const recipientNumber = validatedData.To; // The Context phone number that received the message
 
     log(`Message from ${senderId} to Context number ${recipientNumber}`);
+    if (hasMedia && !originalContent) {
+      log(`📸 Image-only MMS detected - using "Image" as placeholder text`);
+    }
 
     // Check if this is a WHAT response to direct invite (asking for info)
     const normalizedReply = content.toLowerCase().trim();
@@ -1203,7 +1212,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
     const uniqueTags = Array.from(new Set(tags));
 
     // Handle media if present (MMS with images, videos, audio, etc.)
-    const numMedia = parseInt(validatedData.NumMedia || "0");
+    // Note: numMedia is already declared earlier when checking for image-only MMS
     let mediaUrl = null;
     let mediaType = null;
     let mediaContentType = null;
