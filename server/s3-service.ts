@@ -100,13 +100,13 @@ async function uploadImage(options: UploadImageOptions): Promise<UploadImageResu
   try {
     const { buffer, userId, messageId, originalFilename } = options;
 
-    // Optimize image
+    // Optimize image (always converts to JPEG)
     const optimizedBuffer = await optimizeImage(buffer);
 
     // Generate S3 key: userId/messageId_timestamp.jpg
+    // Always use .jpg extension since optimizeImage() converts all formats to JPEG
     const timestamp = Date.now();
-    const extension = originalFilename?.split(".").pop() || "jpg";
-    const key = `${userId}/${messageId}_${timestamp}.${extension}`;
+    const key = `${userId}/${messageId}_${timestamp}.jpg`;
 
     const putCommand = new PutObjectCommand({
       Bucket: BUCKET_NAME,

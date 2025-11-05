@@ -302,6 +302,7 @@ export function MessageCard({ message }: MessageCardProps) {
   const [isLoadingMovie, setIsLoadingMovie] = useState(false);
   const [ogData, setOgData] = useState<OpenGraphData | null>(null);
   const [isLoadingOg, setIsLoadingOg] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   // Use hashtags from database instead of re-extracting from content
   // Format database tags back to hashtag display format (add # prefix)
@@ -611,6 +612,48 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
+        {/* MMS Image Display - Show if message has an attached image */}
+        {message.mediaUrl && !imageError && (
+          <div className="w-full">
+            <a
+              href={message.mediaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block shadow-md rounded-lg overflow-hidden bg-[#263d57]/5 hover:shadow-lg transition-shadow"
+              data-pendo="content-mms-image"
+              data-message-id={message.id}
+            >
+              <div className="relative">
+                <img
+                  src={message.mediaUrl}
+                  alt="MMS attachment"
+                  className="w-full h-auto object-contain max-h-[600px]"
+                  loading="lazy"
+                  onError={() => {
+                    console.error('Failed to load MMS image:', message.mediaUrl);
+                    setImageError(true);
+                  }}
+                  data-testid={`img-mms-${message.id}`}
+                />
+                <div className="absolute top-2 right-2 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full text-xs font-medium text-[#263d57] shadow-md hover:shadow-lg transition-all flex items-center gap-1">
+                  <ExternalLink className="w-3 h-3" />
+                  View Full Size
+                </div>
+              </div>
+            </a>
+          </div>
+        )}
+        
+        {/* Show error message if image failed to load */}
+        {message.mediaUrl && imageError && (
+          <div className="w-full">
+            <div className="p-4 shadow-md rounded-lg bg-red-50 border border-red-200">
+              <p className="text-sm text-red-600">
+                Failed to load image attachment. The image may have expired or been deleted.
+              </p>
+            </div>
+          </div>
+        )}
         
         {instagramPostId && (
           <div className="w-full relative" data-pendo="content-instagram-embed" data-post-id={instagramPostId}>

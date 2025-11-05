@@ -79,6 +79,7 @@ export interface IStorage {
     ogSiteName: string | null;
     enrichmentStatus: string;
   }): Promise<void>;
+  updateMessageMedia(messageId: number, mediaUrl: string, mediaType: string): Promise<void>;
   
   // Shared board management
   getSharedBoards(userId: number): Promise<SharedBoard[]>;
@@ -821,6 +822,23 @@ export class DatabaseStorage implements IStorage {
       log(`Updated enrichment data for message ${messageId}: ${data.ogTitle || 'No title'}`);
     } catch (error) {
       log(`Error updating enrichment data for message ${messageId}:`, error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async updateMessageMedia(messageId: number, mediaUrl: string, mediaType: string): Promise<void> {
+    try {
+      await db
+        .update(messages)
+        .set({
+          mediaUrl,
+          mediaType
+        })
+        .where(eq(messages.id, messageId));
+      
+      log(`Updated media for message ${messageId}: ${mediaUrl}`);
+    } catch (error) {
+      log(`Error updating media for message ${messageId}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
