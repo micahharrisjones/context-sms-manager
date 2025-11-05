@@ -3,11 +3,12 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { Link } from "wouter";
-import { X, Edit, ExternalLink, User, MessageSquare } from "lucide-react";
+import { X, Edit, ExternalLink, User, MessageSquare, Maximize2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect, useRef } from "react";
 import { DeleteMessageModal } from "./DeleteMessageModal";
 import { EditMessageModal } from "./EditMessageModal";
+import { ImageModal } from "./ImageModal";
 
 interface MessageCardProps {
   message: Message;
@@ -303,6 +304,7 @@ export function MessageCard({ message }: MessageCardProps) {
   const [ogData, setOgData] = useState<OpenGraphData | null>(null);
   const [isLoadingOg, setIsLoadingOg] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showImageModal, setShowImageModal] = useState(false);
 
   // Use hashtags from database instead of re-extracting from content
   // Format database tags back to hashtag display format (add # prefix)
@@ -615,13 +617,12 @@ export function MessageCard({ message }: MessageCardProps) {
         {/* MMS Image Display - Show if message has an attached image */}
         {message.mediaUrl && message.mediaType === 'image' && !imageError && (
           <div className="w-full">
-            <a
-              href={message.mediaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block shadow-md rounded-lg overflow-hidden bg-[#263d57]/5 hover:shadow-lg transition-shadow"
+            <div
+              onClick={() => setShowImageModal(true)}
+              className="block shadow-md rounded-lg overflow-hidden bg-[#263d57]/5 hover:shadow-lg transition-shadow cursor-pointer"
               data-pendo="content-mms-image"
               data-message-id={message.id}
+              data-testid={`button-view-image-${message.id}`}
             >
               <div className="relative">
                 <img
@@ -636,11 +637,11 @@ export function MessageCard({ message }: MessageCardProps) {
                   data-testid={`img-mms-${message.id}`}
                 />
                 <div className="absolute top-2 right-2 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full text-xs font-medium text-[#263d57] shadow-md hover:shadow-lg transition-all flex items-center gap-1">
-                  <ExternalLink className="w-3 h-3" />
+                  <Maximize2 className="w-3 h-3" />
                   View Full Size
                 </div>
               </div>
-            </a>
+            </div>
           </div>
         )}
         
@@ -990,6 +991,13 @@ export function MessageCard({ message }: MessageCardProps) {
       message={message}
       isOpen={showEditModal}
       onClose={() => setShowEditModal(false)}
+    />
+
+    <ImageModal
+      imageUrl={message.mediaUrl || ''}
+      alt="Full size image"
+      isOpen={showImageModal}
+      onClose={() => setShowImageModal(false)}
     />
     </>
   );

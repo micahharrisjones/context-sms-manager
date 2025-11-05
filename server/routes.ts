@@ -3893,14 +3893,14 @@ Reply STOP to opt out`;
       log("Message creation complete");
 
       // Process MMS image if present (download from Twilio, upload to S3)
+      // Upload synchronously to ensure the image is available before continuing
       // Only images are supported - videos/audio are logged but not processed
       if ((smsData as any).twilioMediaUrl && (smsData as any).mediaType === 'image') {
-        (async () => {
-          try {
-            const twilioMediaUrl = (smsData as any).twilioMediaUrl;
-            const mediaContentType = (smsData as any).mediaContentType;
-            const userId = created.userId;
-            const senderId = smsData.senderId;
+        try {
+          const twilioMediaUrl = (smsData as any).twilioMediaUrl;
+          const mediaContentType = (smsData as any).mediaContentType;
+          const userId = created.userId;
+          const senderId = smsData.senderId;
             
             // SECURITY CHECK 1: Rate Limiting (10 MMS per hour)
             const rateLimitCheck = checkMMSRateLimit(userId);
@@ -3965,33 +3965,29 @@ Reply STOP to opt out`;
               return;
             }
             
-            log(`[MMS] ✓ Security checks passed - uploading to S3...`);
-            
-            // Upload to S3
-            const uploadResult = await s3Service.uploadImage({
-              buffer,
-              userId: created.userId,
-              messageId: created.id,
-              originalFilename: 'mms-image.jpg'
-            });
-            
-            log(`[MMS] Image uploaded to S3: ${uploadResult.key}`);
-            
-            // Update message with S3 key and media type info
-            await storage.updateMessageMedia(created.id, uploadResult.key, 'image', mediaContentType);
-            
-            // Record successful upload for rate limiting
-            recordMMSUpload(userId);
-            
-            log(`[MMS] ✓ Message ${created.id} updated with S3 image key`);
-            
-            // Broadcast WebSocket update for the image
-            wsManager.broadcastNewMessage();
-          } catch (error) {
-            log(`[MMS] Error processing image for message ${created.id}:`, error instanceof Error ? error.message : String(error));
-            // Don't fail the whole request if image processing fails
-          }
-        })();
+          log(`[MMS] ✓ Security checks passed - uploading to S3...`);
+          
+          // Upload to S3
+          const uploadResult = await s3Service.uploadImage({
+            buffer,
+            userId: created.userId,
+            messageId: created.id,
+            originalFilename: 'mms-image.jpg'
+          });
+          
+          log(`[MMS] Image uploaded to S3: ${uploadResult.key}`);
+          
+          // Update message with S3 key and media type info
+          await storage.updateMessageMedia(created.id, uploadResult.key, 'image', mediaContentType);
+          
+          // Record successful upload for rate limiting
+          recordMMSUpload(userId);
+          
+          log(`[MMS] ✓ Message ${created.id} updated with S3 image key`);
+        } catch (error) {
+          log(`[MMS] Error processing image for message ${created.id}:`, error instanceof Error ? error.message : String(error));
+          // Don't fail the whole request if image processing fails
+        }
       }
 
       // Generate initial embedding for hybrid search (async, non-blocking)
