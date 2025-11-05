@@ -1482,23 +1482,29 @@ export class DatabaseStorage implements IStorage {
         .delete(messages)
         .where(eq(messages.userId, userId));
 
-      // 2. Delete notification preferences for this user
+      // 2. Delete magic link tokens for this user
+      await db
+        .delete(magicLinkTokens)
+        .where(eq(magicLinkTokens.userId, userId));
+
+      // 3. Handle ALL notification preferences for this user (all boards)
+      // This removes user's own notification prefs before deleting their memberships
       await db
         .delete(notificationPreferences)
         .where(eq(notificationPreferences.userId, userId));
 
-      // 3. Delete board memberships for this user
-      await db
-        .delete(boardMemberships)
-        .where(eq(boardMemberships.userId, userId));
-
-      // 4. For shared boards created by this user, delete ALL memberships first, then the boards
+      // 4. For shared boards created by this user, delete ALL related data
       const ownedBoards = await db
         .select({ id: sharedBoards.id })
         .from(sharedBoards)
         .where(eq(sharedBoards.createdBy, userId));
         
       for (const board of ownedBoards) {
+        // Delete notification preferences for this board (all users)
+        await db
+          .delete(notificationPreferences)
+          .where(eq(notificationPreferences.boardId, board.id));
+        
         // Delete all memberships to this board (including other users)
         await db
           .delete(boardMemberships)
@@ -1510,20 +1516,40 @@ export class DatabaseStorage implements IStorage {
           .where(eq(sharedBoards.id, board.id));
       }
 
-      // 5. Delete auth sessions (both by user phone number and any orphaned sessions)
+      // 5. Update ALL board memberships to null out invitedBy references
+      // This handles cases where this user invited others to boards they don't own
+      // Must happen BEFORE deleting user's memberships and invites
+      await db
+        .update(boardMemberships)
+        .set({ invitedBy: null })
+        .where(eq(boardMemberships.invitedBy, userId));
+
+      // 6. Delete board memberships where this user is a member (on boards they don't own)
+      // This must happen AFTER owned boards are deleted to avoid duplicate deletions
+      await db
+        .delete(boardMemberships)
+        .where(eq(boardMemberships.userId, userId));
+
+      // 7. NOW it's safe to delete invites created by this user
+      // All board memberships are either gone or have invitedBy nulled out
+      await db
+        .delete(invites)
+        .where(eq(invites.invitedBy, userId));
+
+      // 8. Delete auth sessions (both by user phone number and any orphaned sessions)
       await db
         .delete(authSessions)
         .where(eq(authSessions.phoneNumber, existingUser.phoneNumber));
 
-      // 6. Double-check: Remove any remaining messages that might reference this phone number as senderId
+      // 9. Double-check: Remove any remaining messages that might reference this phone number as senderId
       // This handles edge cases where messages might exist with senderId but wrong userId
       log(`Double-checking: Removing any orphaned messages with senderId ${existingUser.phoneNumber}`);
-      const orphanedResult = await db
+      await db
         .delete(messages)
         .where(eq(messages.senderId, existingUser.phoneNumber));
       log(`Cleaned up any orphaned messages for phone number ${existingUser.phoneNumber}`);
 
-      // 7. Finally delete the user
+      // 10. Finally delete the user
       await db
         .delete(users)
         .where(eq(users.id, userId));
