@@ -19,6 +19,7 @@ import { microlinkQueue } from "./request-queue";
 import { asideAIService } from "./aside-ai-service";
 import { UrlEnrichmentService } from "./url-enrichment-service";
 import { shortLinkService } from "./short-link-service";
+import { s3Service } from "./s3-service";
 import { sql, asc } from "drizzle-orm";
 
 // Middleware to check database connection
@@ -4273,6 +4274,39 @@ Reply STOP to opt out`;
         error instanceof Error ? error.message : String(error),
       );
       res.status(500).json({ error: "Failed to send welcome message" });
+    }
+  });
+
+  // Test endpoint to verify S3 connection
+  app.get("/api/test-s3", requireAuth, async (req, res) => {
+    try {
+      log("[S3 Test] Testing S3 connection and credentials...");
+      const isConnected = await s3Service.testConnection();
+      
+      if (isConnected) {
+        res.json({
+          success: true,
+          message: "S3 connection successful",
+          bucket: process.env.S3_BUCKET || "not set",
+          region: process.env.AWS_REGION || "not set",
+        });
+      } else {
+        res.status(500).json({
+          success: false,
+          error: "S3 connection failed",
+          message: "Check server logs for details",
+        });
+      }
+    } catch (error) {
+      log(
+        "Error in test-s3 endpoint:",
+        error instanceof Error ? error.message : String(error),
+      );
+      res.status(500).json({
+        success: false,
+        error: "S3 test failed",
+        message: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   });
 
