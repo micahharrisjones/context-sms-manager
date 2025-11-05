@@ -83,6 +83,15 @@ interface PendingInviteSignup {
 const pendingInviteSignups = new Map<string, PendingInviteSignup>(); // key: normalized phone number
 const PENDING_SIGNUP_TTL_MS = 3600000; // 1 hour expiry
 
+// Pending direct invites - track phone numbers invited directly (without invite codes)
+interface PendingDirectInvite {
+  phoneNumber: string;
+  inviterName: string;
+  timestamp: number;
+}
+const pendingDirectInvites = new Map<string, PendingDirectInvite>(); // key: normalized phone number
+const PENDING_DIRECT_INVITE_TTL_MS = 3600000; // 1 hour expiry
+
 // ========== OLD SEARCH SESSION TRACKING - NO LONGER USED ==========
 // Search now handled by "Hey Aside [query]" - no session tracking needed
 // interface SearchSession {
@@ -539,10 +548,92 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
 
     log(`Message from ${senderId} to Context number ${recipientNumber}`);
 
-    // Check if this is a YES response to invite opt-in
+    // Check if this is a WHAT response to direct invite (asking for info)
     const normalizedReply = content.toLowerCase().trim();
+    if (normalizedReply === "what") {
+      const normalizedPhone = normalizePhoneNumber(senderId);
+      const directInvite = pendingDirectInvites.get(normalizedPhone);
+
+      if (directInvite && Date.now() - directInvite.timestamp < PENDING_DIRECT_INVITE_TTL_MS) {
+        log(`📖 WHAT response received from ${senderId} - sending info about Aside`);
+
+        const infoMessage = `Aside is your personal SMS board for saving and organizing content!\n\nHere's what you can do:\n\n📎 Save links, ideas, and notes via text\n🏷️ Use #hashtags to organize everything\n🔍 AI-powered search ("Hey Aside, find my recipes")\n📋 Create shared boards with friends\n🖼️ Auto-generates previews for links\n\nReply YES to join and start saving!`;
+
+        await twilioService.sendSMS(senderId, infoMessage);
+        log(`Sent info message to ${senderId}`);
+        
+        // Don't save the WHAT message itself
+        return null;
+      }
+    }
+
+    // Check if this is a YES response to invite opt-in
     if (normalizedReply === "yes") {
       const normalizedPhone = normalizePhoneNumber(senderId);
+      
+      // Check for direct invite first (new invite system)
+      const directInvite = pendingDirectInvites.get(normalizedPhone);
+      if (directInvite && Date.now() - directInvite.timestamp < PENDING_DIRECT_INVITE_TTL_MS) {
+        log(`✅ YES response received from ${senderId} - direct invite from ${directInvite.inviterName}`);
+
+        try {
+          // Check if user already exists
+          const existingUser = await storage.getUserByPhoneNumber(senderId);
+
+          if (existingUser) {
+            log(`User already exists for ${senderId}`);
+            pendingDirectInvites.delete(normalizedPhone);
+            await twilioService.sendSMS(
+              senderId,
+              "You're already signed up! Start texting to save anything.",
+            );
+            return null;
+          }
+
+          // Create user account
+          const newUser = await storage.createUser({
+            phoneNumber: senderId,
+            displayName: `User ${senderId.slice(-4)}`,
+            firstName: "User",
+            lastName: senderId.slice(-4),
+            onboardingStep: "welcome_sent",
+            signupMethod: "direct_invite",
+          });
+
+          log(`🎉 Created user ${newUser.id} via direct invite from ${directInvite.inviterName}`);
+
+          // Track User Created event in Pendo
+          await pendoServerService.trackUserCreated(senderId).catch((error) => {
+            log(
+              "Pendo tracking failed for user creation:",
+              error instanceof Error ? error.message : String(error),
+            );
+          });
+
+          // Send welcome message
+          await twilioService.sendWelcomeMessage(senderId, onboardingService);
+          await storage.markOnboardingCompleted(newUser.id);
+
+          // Remove from pending direct invites
+          pendingDirectInvites.delete(normalizedPhone);
+
+          log(`✅ Direct invite signup completed for ${senderId}`);
+
+          // Don't save the YES message itself
+          return null;
+        } catch (error) {
+          log(
+            `Error completing direct invite signup: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          await twilioService.sendSMS(
+            senderId,
+            "Sorry, there was an error completing your signup. Please try again later.",
+          );
+          return null;
+        }
+      }
+
+      // Check for invite code-based signup (old invite system)
       const pendingSignup = pendingInviteSignups.get(normalizedPhone);
 
       if (pendingSignup) {
@@ -1688,6 +1779,72 @@ Reply STOP to opt out`;
         `Error updating profile: ${error instanceof Error ? error.message : String(error)}`,
       );
       res.status(500).json({ error: "Failed to update profile" });
+    }
+  });
+
+  // Invite friends endpoint
+  app.post("/api/invite", requireAuth, async (req, res) => {
+    try {
+      const { name, phoneNumber } = req.body;
+
+      if (!name || !phoneNumber) {
+        return res.status(400).json({
+          error: "Name and phone number are required",
+        });
+      }
+
+      // Validate phone number format
+      const digitsOnly = phoneNumber.replace(/\D/g, "");
+      if (digitsOnly.length < 10 || digitsOnly.length > 11) {
+        return res.status(400).json({
+          error: "Please enter a valid phone number",
+        });
+      }
+
+      // Format phone number
+      const formattedNumber = twilioService.formatPhoneNumber(phoneNumber);
+      log(`📧 Invite request from ${name} to ${formattedNumber}`);
+
+      // Check if user is already registered
+      const existingUser = await storage.getUserByPhoneNumber(formattedNumber);
+      if (existingUser) {
+        return res.status(400).json({
+          error: "This person is already using Aside!",
+        });
+      }
+
+      // Send invitation SMS
+      const inviteMessage = `Good news! You've been invited by ${name} to join Aside—your personal SMS board for saving and organizing content. Reply YES to get started. If you have any questions, reply with WHAT.`;
+
+      const smsSent = await twilioService.sendSMS(formattedNumber, inviteMessage);
+
+      if (!smsSent) {
+        return res.status(500).json({
+          error: "Failed to send invitation",
+        });
+      }
+
+      // Track this as a pending direct invite
+      const normalizedPhone = normalizePhoneNumber(formattedNumber);
+      pendingDirectInvites.set(normalizedPhone, {
+        phoneNumber: formattedNumber,
+        inviterName: name,
+        timestamp: Date.now(),
+      });
+
+      log(`✅ Sent invite SMS to ${formattedNumber} from ${name}`);
+
+      res.json({
+        success: true,
+        message: "Invitation sent successfully!",
+      });
+    } catch (error) {
+      log(
+        `Error sending invitation: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      res.status(500).json({
+        error: "Failed to send invitation",
+      });
     }
   });
 

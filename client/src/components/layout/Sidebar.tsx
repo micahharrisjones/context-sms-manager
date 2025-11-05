@@ -2,15 +2,17 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X, Users, User, Plus, LogOut, Settings, Bell, Trash2, Search } from "lucide-react";
+import { Hash, X, Users, User, Plus, LogOut, Settings, Bell, Trash2, Search, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useState } from "react";
 import { AdminButton } from "./AdminButton";
 import { CreateSharedBoardModal } from "../shared-boards/CreateSharedBoardModal";
 import { CreatePrivateBoardModal } from "../shared-boards/CreatePrivateBoardModal";
 import { DeleteAccountModal } from "./DeleteAccountModal";
+import { InviteFriendsModal } from "../invite/InviteFriendsModal";
 import { SharedBoard } from "@shared/schema";
 
 interface SidebarProps {
@@ -20,9 +22,11 @@ interface SidebarProps {
 export function Sidebar({ onClose }: SidebarProps) {
   const [location] = useLocation();
   const { logout } = useAuth();
+  const { getDisplayName } = useProfile();
   const [createBoardModalOpen, setCreateBoardModalOpen] = useState(false);
   const [createPrivateBoardModalOpen, setCreatePrivateBoardModalOpen] = useState(false);
   const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
   
   const { data: tags } = useQuery<string[]>({ 
     queryKey: ["/api/tags"],
@@ -209,6 +213,17 @@ export function Sidebar({ onClose }: SidebarProps) {
       <div className="flex-shrink-0 p-4 border-t border-[#e3cac0] space-y-1">
         <Button
           variant="ghost"
+          onClick={() => setInviteModalOpen(true)}
+          className="w-full justify-start text-[#263d57]/70 hover:text-[#263d57] hover:bg-[#e3cac0]/20"
+          data-testid="button-invite-friends"
+          data-pendo="button-invite-friends"
+        >
+          <UserPlus className="h-4 w-4 mr-2" />
+          Invite Friends
+        </Button>
+        
+        <Button
+          variant="ghost"
           onClick={() => setDeleteAccountModalOpen(true)}
           className="w-full justify-start text-[#263d57]/70 hover:text-red-600 hover:bg-red-50"
           data-pendo="button-delete-account"
@@ -249,6 +264,12 @@ export function Sidebar({ onClose }: SidebarProps) {
       <CreatePrivateBoardModal
         isOpen={createPrivateBoardModalOpen}
         onClose={() => setCreatePrivateBoardModalOpen(false)}
+      />
+      
+      <InviteFriendsModal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        userDisplayName={getDisplayName()}
       />
       
       <DeleteAccountModal
