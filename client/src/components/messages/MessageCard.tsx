@@ -613,7 +613,7 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         {/* MMS Image Display - Show if message has an attached image */}
-        {message.mediaUrl && !imageError && (
+        {message.mediaUrl && message.mediaType === 'image' && !imageError && (
           <div className="w-full">
             <a
               href={message.mediaUrl}
@@ -645,11 +645,29 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         {/* Show error message if image failed to load */}
-        {message.mediaUrl && imageError && (
+        {message.mediaUrl && message.mediaType === 'image' && imageError && (
           <div className="w-full">
             <div className="p-4 shadow-md rounded-lg bg-red-50 border border-red-200">
               <p className="text-sm text-red-600">
                 Failed to load image attachment. The image may have expired or been deleted.
+              </p>
+            </div>
+          </div>
+        )}
+        
+        {/* Show message for unsupported media types (video/audio) */}
+        {message.mediaType && (message.mediaType === 'video' || message.mediaType === 'audio' || message.mediaType === 'other') && (
+          <div className="w-full">
+            <div className="p-4 shadow-md rounded-lg bg-yellow-50 border border-yellow-200">
+              <p className="text-sm text-yellow-800">
+                {message.mediaType === 'video' && '🎥 Video attachments are not yet supported.'}
+                {message.mediaType === 'audio' && '🎵 Audio attachments are not yet supported.'}
+                {message.mediaType === 'other' && '📎 This media type is not yet supported.'}
+                {message.mediaContentType && (
+                  <span className="block mt-1 text-xs text-yellow-600">
+                    Type: {message.mediaContentType}
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -901,34 +919,6 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
-        {message.mediaUrl && !instagramPostId && !facebookPostId && !twitterPostId && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && (
-          <div className="w-full max-w-lg mx-auto">
-            {message.mediaType?.startsWith("image/") ? (
-              <img
-                src={message.mediaUrl}
-                alt="Message attachment"
-                className="rounded-md max-h-96 w-auto mx-auto object-contain"
-                loading="lazy"
-              />
-            ) : message.mediaType?.startsWith("video/") ? (
-              <video
-                src={message.mediaUrl}
-                className="rounded-md max-h-96 w-auto mx-auto"
-                controls
-                preload="metadata"
-              />
-            ) : (
-              <a
-                href={message.mediaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                View Attachment
-              </a>
-            )}
-          </div>
-        )}
         
         {/* Show hashtags at bottom */}
         <div className="flex items-center justify-between pt-3 border-t border-[#e3cac0] mt-3">
