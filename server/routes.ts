@@ -1239,17 +1239,29 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       }
     }
 
+    // For MMS with images, defer hashtag processing until after image upload
+    // This ensures the image is fully uploaded before the card is moved to the correct board
+    let deferredTags = null;
+    let tagsToUse = uniqueTags;
+    
+    if (numMedia > 0 && mediaType === 'image') {
+      deferredTags = uniqueTags; // Save original hashtags for later
+      tagsToUse = ['untagged']; // Temporarily use 'untagged' until image uploads
+      log(`🔄 Deferring hashtag processing for MMS - original tags: [${uniqueTags.join(", ")}], using: [${tagsToUse.join(", ")}]`);
+    }
+
     const processedData = {
       content,
       senderId,
       userId: user.id,
-      tags: uniqueTags,
+      tags: tagsToUse,
       mediaUrl, // Will be null initially, updated after S3 upload for images
       mediaType, // 'image', 'video', 'audio', 'other'
       mediaContentType, // Original MIME type from Twilio
       messageSid: (body as any).MessageSid || null, // Store MessageSid for deduplication
       isNewUser,
       twilioMediaUrl, // Pass this along for later processing (images only)
+      deferredTags, // Store original hashtags for post-upload processing
     };
 
     log(
@@ -3984,6 +3996,29 @@ Reply STOP to opt out`;
           recordMMSUpload(userId);
           
           log(`[MMS] ✓ Message ${created.id} updated with S3 image key`);
+          
+          // NOW process deferred hashtags - move message from 'untagged' to correct board
+          if ((smsData as any).deferredTags && Array.isArray((smsData as any).deferredTags)) {
+            const deferredTags = (smsData as any).deferredTags;
+            log(`[MMS] 🔄 Processing deferred hashtags: [${deferredTags.join(", ")}] for message ${created.id}`);
+            
+            // Update message tags in database
+            await storage.updateMessage(created.id, {
+              tags: deferredTags
+            });
+            
+            log(`[MMS] ✓ Message ${created.id} moved from 'untagged' to boards: [${deferredTags.join(", ")}]`);
+            
+            // Broadcast the updated message to all connected clients via WebSocket
+            wsManager.broadcastToUser(userId, {
+              type: 'message_updated',
+              message: {
+                ...created,
+                tags: deferredTags,
+                mediaUrl: uploadResult.key
+              }
+            });
+          }
         } catch (error) {
           log(`[MMS] Error processing image for message ${created.id}:`, error instanceof Error ? error.message : String(error));
           // Don't fail the whole request if image processing fails
