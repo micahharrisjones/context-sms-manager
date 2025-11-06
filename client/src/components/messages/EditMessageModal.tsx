@@ -58,7 +58,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Update content and tags when message changes
+  // Update content and tags when editing a DIFFERENT message (not on every re-render)
   React.useEffect(() => {
     if (message) {
       // Extract hashtags from content (for legacy messages)
@@ -73,7 +73,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
       // Strip hashtags from content for display
       setContent(stripHashtags(message.content));
     }
-  }, [message]);
+  }, [message?.id]);
 
   const updateMessageMutation = useMutation({
     mutationFn: async ({ messageId, content, tags }: { messageId: number; content: string; tags: string[] }) => {
