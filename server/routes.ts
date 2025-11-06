@@ -4000,24 +4000,17 @@ Reply STOP to opt out`;
           // NOW process deferred hashtags - move message from 'untagged' to correct board
           if ((smsData as any).deferredTags && Array.isArray((smsData as any).deferredTags)) {
             const deferredTags = (smsData as any).deferredTags;
-            log(`[MMS] 🔄 Processing deferred hashtags: [${deferredTags.join(", ")}] for message ${created.id}`);
+            log(`[MMS] 🔄 Processing deferred hashtags for message ${created.id}:`, deferredTags);
             
             // Update message tags in database
             await storage.updateMessage(created.id, {
               tags: deferredTags
             });
             
-            log(`[MMS] ✓ Message ${created.id} moved from 'untagged' to boards: [${deferredTags.join(", ")}]`);
+            log(`[MMS] ✓ Message ${created.id} moved from 'untagged' to boards:`, deferredTags);
             
-            // Broadcast the updated message to all connected clients via WebSocket
-            wsManager.broadcastToUser(userId, {
-              type: 'message_updated',
-              message: {
-                ...created,
-                tags: deferredTags,
-                mediaUrl: uploadResult.key
-              }
-            });
+            // Broadcast message update to user via WebSocket
+            wsManager.broadcastNewMessageToUser(userId);
           }
         } catch (error) {
           log(`[MMS] Error processing image for message ${created.id}:`, error instanceof Error ? error.message : String(error));
