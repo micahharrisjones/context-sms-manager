@@ -3890,6 +3890,13 @@ Reply STOP to opt out`;
         `📨 ONBOARDING CHECK: isNewUser=${isNewUser}, senderId=${smsData.senderId}`,
       );
 
+      // CRITICAL: Extract deferredTags BEFORE parse() strips it out
+      // This preserves hashtags for MMS messages that need post-S3-upload processing
+      const deferredTags = (smsData as any).deferredTags;
+      if (deferredTags) {
+        log(`🏷️ Preserved deferredTags before parse: ${JSON.stringify(deferredTags)}`);
+      }
+
       log("Parsing smsData with insertMessageSchema");
       const message = insertMessageSchema.parse(smsData);
       log("insertMessageSchema parsing complete");
@@ -3998,16 +4005,13 @@ Reply STOP to opt out`;
           log(`[MMS] ✓ Message ${created.id} updated with S3 image key`);
           
           // NOW process deferred hashtags - move message from 'untagged' to correct board
-          if ((smsData as any).deferredTags && Array.isArray((smsData as any).deferredTags)) {
-            const deferredTags = (smsData as any).deferredTags;
-            log(`[MMS] 🔄 Processing deferred hashtags for message ${created.id}:`, deferredTags);
+          if (deferredTags && Array.isArray(deferredTags)) {
+            log(`[MMS] 🔄 Processing deferred hashtags for message ${created.id}: ${JSON.stringify(deferredTags)}`);
             
             // Update message tags in database
-            await storage.updateMessage(created.id, {
-              tags: deferredTags
-            });
+            await storage.updateMessage(created.id, created.content, deferredTags);
             
-            log(`[MMS] ✓ Message ${created.id} moved from 'untagged' to boards:`, deferredTags);
+            log(`[MMS] ✓ Message ${created.id} moved from 'untagged' to boards: ${JSON.stringify(deferredTags)}`);
             
             // Broadcast message update to user via WebSocket
             wsManager.broadcastNewMessageToUser(userId);
