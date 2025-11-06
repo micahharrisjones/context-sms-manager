@@ -431,6 +431,16 @@ function extractHashtags(content: string): string[] {
   return Array.from(new Set(tags)); // Remove duplicates
 }
 
+// Helper function to remove hashtags from content
+function removeHashtags(content: string): string {
+  // Remove hashtags but preserve other text
+  // Regex matches: # followed by word characters or hyphens
+  return content
+    .replace(/#[\w-]+/g, '') // Remove hashtags
+    .replace(/\s+/g, ' ')     // Normalize multiple spaces to single space
+    .trim();                   // Remove leading/trailing whitespace
+}
+
 const twilioWebhookSchema = z.object({
   Body: z.string(),
   From: z.string(),
@@ -902,8 +912,12 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           newUserTags = ["untagged"]; // Default for new users with no hashtags
         }
 
+        // Remove hashtags from content for new users too
+        const cleanNewUserContent = removeHashtags(content);
+        const finalNewUserContent = cleanNewUserContent || (hasMedia ? "Image" : "");
+
         const basicMessage = {
-          content,
+          content: finalNewUserContent,
           senderId,
           userId: user.id,
           tags: newUserTags, // Extract hashtags for new users too
@@ -1250,8 +1264,20 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       log(`🔄 Deferring hashtag processing for MMS - original tags: [${uniqueTags.join(", ")}], using: [${tagsToUse.join(", ")}]`);
     }
 
+    // Remove hashtags from content before storing
+    // This ensures cards show clean content instead of "# family"
+    const cleanContent = removeHashtags(content);
+    
+    // Determine final content:
+    // - If there's text after removing hashtags → use it
+    // - If empty but has media → use "Image"
+    // - If empty with no media (hashtag-only message) → allow empty string
+    const finalContent = cleanContent || (numMedia > 0 ? "Image" : "");
+    
+    log(`Content transformation: "${content}" → "${finalContent}"`);
+
     const processedData = {
-      content,
+      content: finalContent,
       senderId,
       userId: user.id,
       tags: tagsToUse,
