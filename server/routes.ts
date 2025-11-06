@@ -3890,11 +3890,19 @@ Reply STOP to opt out`;
         `📨 ONBOARDING CHECK: isNewUser=${isNewUser}, senderId=${smsData.senderId}`,
       );
 
-      // CRITICAL: Extract deferredTags BEFORE parse() strips it out
-      // This preserves hashtags for MMS messages that need post-S3-upload processing
+      // CRITICAL: Extract MMS fields BEFORE parse() strips them out
+      // insertMessageSchema only knows about the message table fields, so it strips:
+      // - deferredTags (hashtags for post-S3 processing)
+      // - twilioMediaUrl (temp Twilio URL for downloading image)
+      // - mediaType (image/video/audio classification)
+      // - mediaContentType (original MIME type)
       const deferredTags = (smsData as any).deferredTags;
-      if (deferredTags) {
-        log(`🏷️ Preserved deferredTags before parse: ${JSON.stringify(deferredTags)}`);
+      const twilioMediaUrl = (smsData as any).twilioMediaUrl;
+      const mediaType = (smsData as any).mediaType;
+      const mediaContentType = (smsData as any).mediaContentType;
+      
+      if (deferredTags || twilioMediaUrl) {
+        log(`🏷️ Preserved MMS fields before parse: deferredTags=${JSON.stringify(deferredTags)}, twilioMediaUrl=${twilioMediaUrl}, mediaType=${mediaType}`);
       }
 
       log("Parsing smsData with insertMessageSchema");
@@ -3914,10 +3922,8 @@ Reply STOP to opt out`;
       // Process MMS image if present (download from Twilio, upload to S3)
       // Upload synchronously to ensure the image is available before continuing
       // Only images are supported - videos/audio are logged but not processed
-      if ((smsData as any).twilioMediaUrl && (smsData as any).mediaType === 'image') {
+      if (twilioMediaUrl && mediaType === 'image') {
         try {
-          const twilioMediaUrl = (smsData as any).twilioMediaUrl;
-          const mediaContentType = (smsData as any).mediaContentType;
           const userId = created.userId;
           const senderId = smsData.senderId;
             
