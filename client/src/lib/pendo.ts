@@ -23,6 +23,12 @@ interface PendoOptions {
   account?: PendoAccount;
 }
 
+interface PendoDesigner {
+  isDesignerActive?: () => boolean;
+  on?: (event: string, callback: () => void) => void;
+  off?: (event: string, callback: () => void) => void;
+}
+
 interface PendoAgent {
   initialize: (options: PendoOptions) => void;
   identify: (options: PendoOptions) => void;
@@ -31,6 +37,7 @@ interface PendoAgent {
   pageLoad: (url?: string) => void;
   clearVisitor?: () => void;
   updateOptions: (options: Partial<PendoOptions>) => void;
+  designer?: PendoDesigner;
   _q: any[];
 }
 
@@ -49,6 +56,8 @@ class PendoService {
   private initialized = false;
   private currentUser: any = null;
   private initializationPromise: Promise<void> | null = null;
+  private designerActivateCallback?: () => void;
+  private designerDeactivateCallback?: () => void;
 
   public static getInstance(): PendoService {
     if (!PendoService.instance) {
@@ -59,6 +68,69 @@ class PendoService {
 
   private constructor() {
     // Pendo script is now loaded via HTML head, no need for dynamic loading
+    // Initialize design mode detection
+    this.initializeDesignModeDetection();
+  }
+
+  private initializeDesignModeDetection(): void {
+    // Wait for Pendo to load, then set up designer event listeners
+    this.waitForPendo().then((ready) => {
+      if (ready && window.pendo.designer) {
+        this.setupDesignerListeners();
+      } else {
+        // Retry after a delay if designer API isn't available yet
+        setTimeout(() => {
+          if (window.pendo?.designer) {
+            this.setupDesignerListeners();
+          }
+        }, 2000);
+      }
+    });
+  }
+
+  private setupDesignerListeners(): void {
+    if (!window.pendo?.designer?.on) {
+      console.log('Pendo Designer API not available - manual toggle required');
+      return;
+    }
+
+    // Create callbacks for designer activate/deactivate events
+    this.designerActivateCallback = () => {
+      document.body.classList.add('pendo-design-mode');
+      console.log('Pendo Design Mode activated - modal overlays now allow click-through for tagging');
+    };
+
+    this.designerDeactivateCallback = () => {
+      document.body.classList.remove('pendo-design-mode');
+      console.log('Pendo Design Mode deactivated - modal overlays restored to normal behavior');
+    };
+
+    // Listen for designer activate/deactivate events
+    window.pendo.designer.on('activate', this.designerActivateCallback);
+    window.pendo.designer.on('deactivate', this.designerDeactivateCallback);
+
+    // Check if designer is already active
+    if (window.pendo.designer.isDesignerActive?.()) {
+      this.designerActivateCallback();
+    }
+
+    console.log('Pendo Designer listeners initialized');
+  }
+
+  /**
+   * Manual toggle for Pendo design mode
+   * Use this function in the browser console if automatic detection isn't working:
+   * window.pendo_service.toggleDesignMode(true)  // Enable
+   * window.pendo_service.toggleDesignMode(false) // Disable
+   */
+  public toggleDesignMode(enabled: boolean): void {
+    if (enabled) {
+      document.body.classList.add('pendo-design-mode');
+      console.log('Pendo Design Mode manually enabled - modal overlays now allow click-through');
+    } else {
+      document.body.classList.remove('pendo-design-mode');
+      console.log('Pendo Design Mode manually disabled - modal overlays restored');
+    }
   }
 
   private async waitForPendo(): Promise<boolean> {
@@ -295,6 +367,10 @@ class PendoService {
 }
 
 export const pendo = PendoService.getInstance();
+
+// Make pendo service available globally for manual design mode toggle
+// Usage in browser console: window.pendo_service.toggleDesignMode(true)
+(window as any).pendo_service = pendo;
 
 // Export types for use in other modules
 export type { PendoVisitor, PendoAccount, PendoOptions };

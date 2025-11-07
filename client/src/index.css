@@ -79,13 +79,15 @@
   overflow: hidden;
 }
 
-/* Modal backdrop fix for Pendo tagging - Allow clicks through dialog overlay to reach modal content */
-/* Scope specifically to dialog overlays only, not all Radix components with data-state="open" */
-[data-radix-dialog-overlay][data-state="open"] {
+/* Pendo Visual Design Studio modal tagging support */
+/* Only disable overlay pointer-events when Pendo design mode is active */
+/* This allows Pendo's tagging tool to click through overlays to tag modal buttons */
+/* Normal users retain full overlay shielding and modal behavior */
+body.pendo-design-mode [data-dialog-overlay="true"][data-state="open"] {
   pointer-events: none !important;
 }
 
-/* Ensure modal dialog content remains clickable */
+/* Ensure modal dialog content remains clickable in all modes */
 [role="dialog"] {
   pointer-events: auto !important;
 }
