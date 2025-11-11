@@ -1,6 +1,7 @@
 import { log } from "./vite";
 import type { IStorage } from "./storage";
 import { twilioService } from "./twilio-service";
+import { pendoServerService } from "./pendo-service";
 
 interface FeedbackReminderResult {
   oneMonth: {
@@ -90,6 +91,24 @@ export class FeedbackReminderService {
             await this.storage.markFeedbackReminderSent(user.id, months);
             result.sent++;
             log(`✓ Sent ${months}-month reminder to user ${user.id}`);
+            
+            // Track anniversary message sent in Pendo
+            try {
+              await pendoServerService.trackEvent(
+                "Anniversary_Message_Sent",
+                user.phoneNumber,
+                "aside",
+                {
+                  anniversaryMonths: months,
+                  userId: user.id,
+                  messageType: 'feedback_reminder',
+                }
+              );
+              log(`✓ Tracked Anniversary_Message_Sent event for user ${user.id} (${months} months)`);
+            } catch (pendoError) {
+              log(`⚠️  Failed to track Pendo event: ${pendoError instanceof Error ? pendoError.message : String(pendoError)}`);
+              // Don't fail the whole operation if Pendo tracking fails
+            }
           } else {
             result.failed++;
             log(`✗ Failed to send ${months}-month reminder to user ${user.id}`);
