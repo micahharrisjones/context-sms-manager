@@ -1547,13 +1547,7 @@ export class DatabaseStorage implements IStorage {
         .delete(boardMemberships)
         .where(eq(boardMemberships.userId, userId));
 
-      // 7. NOW it's safe to delete invites created by this user
-      // All board memberships are either gone or have invitedBy nulled out
-      await db
-        .delete(invites)
-        .where(eq(invites.invitedBy, userId));
-
-      // 8. Delete auth sessions (both by user phone number and any orphaned sessions)
+      // 7. Delete auth sessions (both by user phone number and any orphaned sessions)
       await db
         .delete(authSessions)
         .where(eq(authSessions.phoneNumber, existingUser.phoneNumber));
@@ -1803,16 +1797,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Referral tracking (simplified - no invite codes)
-  async updateUserReferral(userId: number, referralSource: string): Promise<void> {
+  async updateUserReferral(userId: number, signupMethod: string): Promise<void> {
     try {
       await db
         .update(users)
         .set({
-          referralSource: referralSource
+          signupMethod: signupMethod
         })
         .where(eq(users.id, userId));
       
-      log(`Updated user ${userId} referral source: ${referralSource}`);
+      log(`Updated user ${userId} signup method: ${signupMethod}`);
     } catch (error) {
       log("Error updating user referral:", error instanceof Error ? error.message : String(error));
       throw error;

@@ -745,25 +745,19 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
             `✅ YES confirmation received for invite ${pendingSignup.inviteCode} from ${senderId}`,
           );
 
-          // Import invite service
-          const { inviteService } = await import("./invite-service");
-
           try {
             // Check if user already exists (idempotency check)
             const existingUser = await storage.getUserByPhoneNumber(senderId);
 
             if (existingUser) {
               log(
-                `User already exists for ${senderId}, tracking conversion only`,
+                `User already exists for ${senderId}`,
               );
 
-              // Still track conversion if not already tracked
-              if (!existingUser.referredBy) {
-                await inviteService.trackConversion(
-                  pendingSignup.inviteCode,
-                  existingUser.id,
-                );
-                log(`Tracked conversion for existing user ${existingUser.id}`);
+              // Track signup method if not already set
+              if (!existingUser.signupMethod || existingUser.signupMethod === 'direct') {
+                await storage.updateUserReferral(existingUser.id, 'invite_link');
+                log(`Tracked signup method for existing user ${existingUser.id}`);
               }
 
               // Track Pendo conversion completed for existing user
@@ -790,18 +784,11 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
               firstName: "User",
               lastName: senderId.slice(-4),
               onboardingStep: "welcome_sent",
-              referredBy: pendingSignup.inviteCode,
-              signupMethod: "invite_link",
+              signupMethod: 'invite_link',
             });
 
             log(
-              `🎉 Created invite user ${newUser.id} via code ${pendingSignup.inviteCode}`,
-            );
-
-            // Track conversion
-            await inviteService.trackConversion(
-              pendingSignup.inviteCode,
-              newUser.id,
+              `🎉 Created new user ${newUser.id} via invite link`,
             );
 
             // Track Pendo conversion completed
