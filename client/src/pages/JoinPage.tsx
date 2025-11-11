@@ -174,7 +174,7 @@ export default function JoinPage() {
         </div>
 
         <p className="text-center text-sm text-[#263d57]/50">
-          By signing up via this form, I agree to get text messages from Aside (formerly Context) for the purpose of saving ideas to a dashboard. Message frequency varies. Message & data rates may apply. Read our{' '}
+          By signing up via this form, I agree to get text messages from Aside for the purpose of saving ideas to a dashboard. Message frequency varies. Message & data rates may apply. Read our{' '}
           <a 
             href="https://www.textaside.com/privacy-policy" 
             target="_blank" 
