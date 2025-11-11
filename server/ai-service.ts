@@ -383,50 +383,25 @@ Examples that are NOT help requests:
         return { isRequest: false };
       }
 
-      // Generate a helpful response about how to use Aside
-      const responsePrompt = `
-User asked: "${messageContent}"
+      // Return standard help message from brand guidelines
+      const helpMessage = `I'm here to help! 
 
-Provide a helpful, concise response explaining how to use Aside. Focus on practical examples.
+Common questions:
+- How does Aside work?
+- How do I create a board?
+- How do I add to a board?
+- What's my dashboard link?
+- How do I invite a friend?
 
-Key Aside features to mention:
-- Text anything to save it automatically
-- Use #hashtags to organize messages 
-- AI categorizes messages without hashtags
-- Share boards with others using hashtags
-- Access dashboard at textaside.app
-- Everything is searchable and organized
+Text "Hey Aside..." followed by any question and I'll do my best to answer.
 
-Guidelines:
-- Use a warm, encouraging tone
-- Give 2-3 specific usage examples
-- Keep response under 160 characters if possible (SMS friendly)
-- Make it actionable and easy to understand
-- Focus on the value proposition: "Save anything from anywhere, with just a text"
-`;
+Reply STOP to unsubscribe. Msg&Data rates may apply.`;
 
-      const responseGeneration = await this.client.chat.completions.create({
-        model: "deepseek-chat",
-        messages: [
-          {
-            role: "system",
-            content: "You are Aside's helpful assistant. Provide clear, concise instructions on how to use Aside effectively."
-          },
-          {
-            role: "user", 
-            content: responsePrompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 200
-      });
-
-      const response = responseGeneration.choices[0].message.content?.trim();
-      this.log(`Generated help response: "${response}"`);
+      this.log(`Returning standard help message`);
 
       return {
         isRequest: true,
-        response: response || "Aside helps you save and organize anything via text! Use #hashtags to categorize messages, or let AI organize them for you. Visit textaside.app to see your organized content!"
+        response: helpMessage
       };
 
     } catch (error) {

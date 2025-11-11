@@ -11,7 +11,7 @@ const openai = new OpenAI({
 
 export interface AsideAIResponse {
   response: string;
-  intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'login' | 'unknown';
+  intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'login' | 'help' | 'unknown';
   searchPerformed?: boolean;
 }
 
@@ -50,6 +50,9 @@ class AsideAIService {
         case 'login':
           return await this.handleLoginQuery(userId);
         
+        case 'help':
+          return await this.handleHelpQuery(query, userId, storage);
+        
         default:
           // For unknown intents, provide a helpful response
           return {
@@ -69,7 +72,7 @@ class AsideAIService {
   /**
    * Analyze user's intent using OpenAI
    */
-  private async analyzeIntent(query: string): Promise<{ intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'login' | 'unknown', extractedQuery?: string }> {
+  private async analyzeIntent(query: string): Promise<{ intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'login' | 'help' | 'unknown', extractedQuery?: string, topic?: string }> {
     try {
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -83,11 +86,13 @@ Users can ask you to:
 - SUMMARIZE: Get overview of saved content ("what have I saved about cooking?", "summarize my tech articles")
 - RECOMMEND: Get recommendations ("what's the best gift idea I saved?", "recommend something to read")
 - ANALYZE: Get insights ("what topics do I save the most?", "analyze my interests")
-- LOGIN: Request a login link for the web dashboard ("how do I login?", "send me a login link", "I need to access the website")
+- LOGIN: Request a login link for the web dashboard ("what's my login?", "send me a login link", "what's my dashboard link?", "how do I access the website?")
+- HELP: Ask how-to questions about using Aside features ("how does Aside work?", "how do I create a board?", "how do I add to a board?", "how do I invite someone?", "how do I delete a board?", "how do I move an item?")
 
-Respond with ONLY a JSON object: {"intent": "search|summarize|recommend|analyze|login|unknown", "query": "cleaned up search keywords"}
+Respond with ONLY a JSON object: {"intent": "search|summarize|recommend|analyze|login|help|unknown", "query": "cleaned up keywords", "topic": "specific help topic if help intent"}
 
 For SEARCH intent, extract just the core search keywords without action verbs.
+For HELP intent, include a "topic" field with the specific question category.
 
 Examples:
 "cookie" → {"intent": "search", "query": "cookie"}
@@ -97,8 +102,15 @@ Examples:
 "what have I saved about cooking?" → {"intent": "summarize", "query": "cooking"}
 "recommend a good restaurant" → {"intent": "recommend", "query": "restaurants"}
 "what do I save most?" → {"intent": "analyze", "query": "saved topics"}
-"how do I login?" → {"intent": "login", "query": "login"}
-"send me a login link" → {"intent": "login", "query": "login link"}`,
+"what's my login?" → {"intent": "login", "query": "login"}
+"send me a login link" → {"intent": "login", "query": "login link"}
+"how does Aside work?" → {"intent": "help", "query": "how aside works", "topic": "how_it_works"}
+"how do I create a board?" → {"intent": "help", "query": "create board", "topic": "create_board"}
+"how do I add to a board?" → {"intent": "help", "query": "add to board", "topic": "add_to_board"}
+"what's my dashboard link?" → {"intent": "login", "query": "dashboard link"}
+"what boards do I have?" → {"intent": "help", "query": "list boards", "topic": "list_boards"}
+"how do I invite a friend?" → {"intent": "help", "query": "invite", "topic": "invite"}
+"how do I delete a board?" → {"intent": "help", "query": "delete board", "topic": "delete_board"}`,
           },
           {
             role: "user",
@@ -113,6 +125,7 @@ Examples:
       return {
         intent: result.intent || 'unknown',
         extractedQuery: result.query || query,
+        topic: result.topic,
       };
     } catch (error) {
       log(`Error analyzing intent: ${error instanceof Error ? error.message : String(error)}`);
@@ -343,6 +356,196 @@ Examples:
       return {
         response: "Sorry, I couldn't generate a login link right now. Please try again in a moment.",
         intent: 'login',
+      };
+    }
+  }
+
+  /**
+   * Handle help queries - provide specific instructions based on topic
+   * Returns deterministic responses that match brand guidelines from spreadsheet
+   */
+  private async handleHelpQuery(
+    query: string,
+    userId: number,
+    storage: IStorage
+  ): Promise<AsideAIResponse> {
+    try {
+      // Generate magic link for responses that need it
+      const { MagicLinkService } = await import('./magic-link-service');
+      let dashboardLink = 'https://textaside.app';
+      try {
+        const { url } = await MagicLinkService.createMagicLink(userId);
+        dashboardLink = url;
+      } catch (error) {
+        log(`Could not generate magic link for help response: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      // Normalize query for pattern matching
+      const normalizedQuery = query.toLowerCase().trim();
+
+      // Match specific help topics from spreadsheet
+      if (normalizedQuery.includes('how') && normalizedQuery.includes('aside') && normalizedQuery.includes('work')) {
+        return {
+          response: `Aside lets you save anything just by texting it here!
+
+Here's how it works:
+- Text me anything you want to remember: quotes, links, recipes, random ideas, you name it  
+- Add a hashtag like #movies or #recipes to keep things organized  
+- Everything you save lives in your dashboard, ready when you need it   
+
+🤔 Questions? Just text me "Hey Aside..." followed by your question and I'll help out.   
+
+💬 Got feedback or found something weird? We'd love to hear about it: textaside.app/feedback`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('dashboard') || normalizedQuery.includes('add')) {
+        return {
+          response: `Just text me whatever you want to save and it'll show up in your dashboard automatically. 
+
+Want to organize things? Add hashtags like #recipes or #movies. 
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('create') && normalizedQuery.includes('board')) {
+        return {
+          response: `Super easy! Just add a hashtag to any message. 
+
+Like this: "Check out this recipe #dinner"
+
+That'll create a #dinner board automatically.
+
+All your boards live in your dashboard. 🔗 See all your boards: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if ((normalizedQuery.includes('add') || normalizedQuery.includes('post') || normalizedQuery.includes('send')) && normalizedQuery.includes('board')) {
+        return {
+          response: `Just include the hashtag in your message!
+
+Like: "This movie looks great #watchlist"
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('shared') && normalizedQuery.includes('board')) {
+        return {
+          response: `Head to your dashboard. You can either create a new shared board or convert a private one.   
+
+🔗 Your dashboard: ${dashboardLink}   
+
+For a new shared board: Click the + next to Shared Boards in the menu and follow the prompts.   
+
+To convert a private board: Go to the private board and click the Invite button in the upper right corner, then follow the prompts.`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('invite')) {
+        return {
+          response: `Go to your dashboard, open the shared board, and click the Invite button in the upper right corner.   
+
+Easy as that!   
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('what') && normalizedQuery.includes('board')) {
+        // Get user's boards
+        const [privateTags, sharedBoards] = await Promise.all([
+          storage.getTags(userId),
+          storage.getSharedBoards(userId),
+        ]);
+
+        const privateBoards = privateTags.filter(tag => tag !== 'untagged');
+        const sharedBoardNames = sharedBoards.map(b => b.name);
+
+        let response = "Here's what you've got:\n\n";
+        
+        if (privateBoards.length > 0) {
+          response += "Private:\n";
+          privateBoards.slice(0, 10).forEach(board => {
+            response += `- #${board}\n`;
+          });
+          if (privateBoards.length > 10) {
+            response += `...and ${privateBoards.length - 10} more\n`;
+          }
+          response += "\n";
+        }
+
+        if (sharedBoardNames.length > 0) {
+          response += "Shared:\n";
+          sharedBoardNames.forEach(board => {
+            response += `- #${board}\n`;
+          });
+        }
+
+        if (privateBoards.length === 0 && sharedBoardNames.length === 0) {
+          response = "You don't have any boards yet! Create one by adding a hashtag to your next message, like: \"Great recipe #dinner\"";
+        }
+
+        response += `\n🔗 Your dashboard: ${dashboardLink}`;
+
+        return {
+          response,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('move') || normalizedQuery.includes('wrong')) {
+        return {
+          response: `No worries! Go to your dashboard, find the item, and click the edit icon. You can move it wherever you want.   
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('delete') && (normalizedQuery.includes('item') || normalizedQuery.includes('message'))) {
+        return {
+          response: `Head to your dashboard, find the item you want to remove, and click the delete icon. Done!   
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('delete') && normalizedQuery.includes('board')) {
+        return {
+          response: `Go to your dashboard, open the board you want to delete, and click the Delete button in the upper right corner. That's it!   
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      // Default help response if no specific topic matches
+      return {
+        response: `I can help you with:
+
+- How Aside works
+- Creating and managing boards
+- Inviting friends to shared boards
+- Finding your dashboard link
+- Moving or deleting items
+
+Just ask me a specific question, like "Hey Aside, how do I create a board?"`,
+        intent: 'help',
+      };
+    } catch (error) {
+      log(`Error in help query: ${error instanceof Error ? error.message : String(error)}`);
+      return {
+        response: "I'm here to help! Try asking me a specific question like 'How does Aside work?' or 'How do I create a board?'",
+        intent: 'help',
       };
     }
   }

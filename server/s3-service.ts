@@ -12,6 +12,7 @@ const s3Client = new S3Client({
 });
 
 const BUCKET_NAME = process.env.S3_BUCKET || "";
+const S3_ASSET_BASE_URL = process.env.S3_ASSET_BASE_URL || ""; // Public base URL for permanent assets (e.g., CloudFront or S3 public URL)
 const MAX_IMAGE_WIDTH = 1200;
 const IMAGE_QUALITY = 85;
 const SIGNED_URL_EXPIRY = 900; // 15 minutes in seconds
@@ -169,9 +170,80 @@ async function generateSignedUrlsForMessages(messages: Array<{ mediaUrl?: string
   );
 }
 
+async function uploadStaticAsset(buffer: Buffer, key: string, contentType: string): Promise<void> {
+  try {
+    const putCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType,
+    });
+
+    await s3Client.send(putCommand);
+    log(`[S3] Static asset uploaded successfully - key: ${key}, size: ${buffer.length} bytes`);
+  } catch (error) {
+    log(`[S3] Static asset upload failed: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Failed to upload static asset to S3: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
+
+async function getPublicSignedUrl(key: string, expirySeconds: number = SIGNED_URL_EXPIRY): Promise<string> {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    const signedUrl = await getSignedUrl(s3Client, command, {
+      expiresIn: expirySeconds,
+    });
+
+    return signedUrl;
+  } catch (error) {
+    log(`[S3] Failed to generate public signed URL for key ${key}: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`Failed to generate signed URL: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
+
+/**
+ * Get permanent public URL for static assets in the assets/ folder
+ * Requires S3_ASSET_BASE_URL environment variable to be set
+ * Falls back to 7-day signed URL if not configured (with loud logging)
+ * 
+ * @param key - S3 key (must start with "assets/")
+ * @returns Permanent public URL or signed URL fallback
+ */
+async function getPublicAssetUrl(key: string): Promise<string> {
+  // Validate that key starts with assets/ prefix for security
+  if (!key.startsWith('assets/')) {
+    const error = `[S3] getPublicAssetUrl called with non-asset key: ${key}. Only keys starting with "assets/" are allowed for public access.`;
+    log(error);
+    throw new Error(error);
+  }
+
+  // Check if S3_ASSET_BASE_URL is configured
+  if (S3_ASSET_BASE_URL) {
+    // Construct permanent public URL
+    const publicUrl = `${S3_ASSET_BASE_URL}/${key}`;
+    log(`[S3] Generated permanent public asset URL: ${publicUrl}`);
+    return publicUrl;
+  }
+
+  // FALLBACK: If S3_ASSET_BASE_URL not configured, use 7-day signed URL
+  // This is a temporary fallback until proper infrastructure is set up
+  log(`[S3] ⚠️ WARNING: S3_ASSET_BASE_URL not configured! Using 7-day signed URL fallback for ${key}.`);
+  log(`[S3] ⚠️ To fix: Set S3_ASSET_BASE_URL environment variable and configure S3 bucket policy to allow public read on assets/* prefix.`);
+  
+  // Use maximum AWS presigned URL duration (7 days)
+  return getPublicSignedUrl(key, 604800);
+}
+
 export const s3Service = {
   testConnection,
   uploadImage,
   getSignedImageUrl,
   generateSignedUrlsForMessages,
+  uploadStaticAsset,
+  getPublicSignedUrl,
+  getPublicAssetUrl,
 };

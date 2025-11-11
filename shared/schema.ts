@@ -15,6 +15,9 @@ export const users = pgTable("users", {
   onboardingCompletedAt: timestamp("onboarding_completed_at"), // When they completed onboarding
   referredBy: varchar("referred_by", { length: 10 }), // Invite code that referred this user
   signupMethod: varchar("signup_method", { length: 20 }).default("direct"), // "invite_link" | "direct" | "squarespace"
+  feedbackReminder1Month: timestamp("feedback_reminder_1_month"), // When 1-month feedback reminder was sent
+  feedbackReminder3Months: timestamp("feedback_reminder_3_months"), // When 3-month feedback reminder was sent
+  feedbackReminder6Months: timestamp("feedback_reminder_6_months"), // When 6-month feedback reminder was sent
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
 });

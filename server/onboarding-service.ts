@@ -70,18 +70,18 @@ export class OnboardingService {
       log(`Warning: Could not find user for phone ${cleanPhoneNumber} when generating welcome message`);
     }
     
-    return `👋 Welcome to Aside! This is your personal space to save anything from anywhere just by texting it here.
+    return `🎉 Welcome to Aside! This is your personal space to save anything from anywhere. Just text it here.
 
-📱 How it works:
-• Text me anything - quotes, links, lyrics, ideas, recipes, etc
-• Add a hashtag like #movies or #recipes to organize your messages into boards
-• Everything is saved and searchable in your dashboard
+Here's how it works:
+- Text me anything you want to remember: quotes, links, recipes, random ideas, you name it
+- Add a hashtag like #movies or #recipes to keep things organized
+- Everything you save lives in your dashboard, ready when you need it
 
-🙋 Need help? Just text me a question like "What boards do I have?" and I'll do my best to answer. 
+🤔 Questions? Just text me "Hey Aside..." and ask away
 
-🔗 Access your dashboard: ${dashboardUrl}
+💬 Got feedback or found something weird? We'd love to hear it: textaside.app/feedback
 
-(Link expires in 30 minutes for security)`;
+🔗 Your dashboard: ${dashboardUrl}`;
   }
 
   private isValidPhoneNumber(phoneNumber: string): boolean {

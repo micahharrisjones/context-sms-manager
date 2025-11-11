@@ -105,9 +105,7 @@ export class InviteService {
   static getInviteMessage(code: string): string {
     const url = this.getInviteUrl(code);
     
-    return `Hey! I've been using Aside to save links and ideas by texting. Super simple - no app needed.
-
-Try it: ${url}`;
+    return url;
   }
 }
 

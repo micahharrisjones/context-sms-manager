@@ -154,6 +154,10 @@ export interface IStorage {
   keywordSearch(userId: number, query: string, limit: number): Promise<Message[]>;
   hybridSearch(userId: number, query: string, queryEmbedding: number[], alpha: number, limit: number): Promise<Message[]>;
   getAllMessagesWithoutEmbeddings(limit?: number): Promise<Message[]>;
+  
+  // Feedback reminder methods
+  getEligibleFeedbackReminderUsers(months: number, startDate: Date, endDate: Date): Promise<User[]>;
+  markFeedbackReminderSent(userId: number, months: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2145,6 +2149,94 @@ export class DatabaseStorage implements IStorage {
       return results.map(r => r.messages);
     } catch (error) {
       log(`Error getting messages without embeddings:`, error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getEligibleFeedbackReminderUsers(months: number, startDate: Date, endDate: Date): Promise<User[]> {
+    try {
+      // Determine which reminder field to check based on months
+      let reminderField;
+      if (months === 1) {
+        reminderField = users.feedbackReminder1Month;
+      } else if (months === 3) {
+        reminderField = users.feedbackReminder3Months;
+      } else if (months === 6) {
+        reminderField = users.feedbackReminder6Months;
+      } else {
+        throw new Error(`Invalid months parameter: ${months}. Must be 1, 3, or 6.`);
+      }
+
+      // Calculate the date 30 days ago for activity check
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Find users created in the target window who haven't received this reminder
+      // and have been active (sent/received messages) in the last 30 days
+      const result = await db.execute(sql`
+        SELECT DISTINCT u.*
+        FROM ${users} u
+        INNER JOIN ${messages} m ON m.user_id = u.id
+        WHERE u.created_at >= ${startDate}
+          AND u.created_at < ${endDate}
+          AND ${reminderField} IS NULL
+          AND m.timestamp >= ${thirtyDaysAgo}
+      `);
+
+      const eligibleUsers = result.rows as any[];
+      log(`Found ${eligibleUsers.length} eligible users for ${months}-month feedback reminder (created between ${startDate.toISOString()} and ${endDate.toISOString()})`);
+      
+      // Map to User type
+      return eligibleUsers.map(row => ({
+        id: row.id,
+        phoneNumber: row.phone_number,
+        displayName: row.display_name,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        avatarUrl: row.avatar_url,
+        onboardingStep: row.onboarding_step,
+        onboardingCompletedAt: row.onboarding_completed_at,
+        referredBy: row.referred_by,
+        signupMethod: row.signup_method,
+        feedbackReminder1Month: row.feedback_reminder_1_month,
+        feedbackReminder3Months: row.feedback_reminder_3_months,
+        feedbackReminder6Months: row.feedback_reminder_6_months,
+        createdAt: row.created_at,
+        lastLoginAt: row.last_login_at,
+      }));
+    } catch (error) {
+      log(`Error getting eligible feedback reminder users: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+
+  async markFeedbackReminderSent(userId: number, months: number): Promise<void> {
+    try {
+      const now = new Date();
+      
+      // Update the appropriate reminder timestamp based on months
+      if (months === 1) {
+        await db
+          .update(users)
+          .set({ feedbackReminder1Month: now })
+          .where(eq(users.id, userId));
+      } else if (months === 3) {
+        await db
+          .update(users)
+          .set({ feedbackReminder3Months: now })
+          .where(eq(users.id, userId));
+      } else if (months === 6) {
+        await db
+          .update(users)
+          .set({ feedbackReminder6Months: now })
+          .where(eq(users.id, userId));
+      } else {
+        throw new Error(`Invalid months parameter: ${months}. Must be 1, 3, or 6.`);
+      }
+      
+      log(`Marked ${months}-month feedback reminder as sent for user ${userId}`);
+    } catch (error) {
+      log(`Error marking feedback reminder as sent: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }

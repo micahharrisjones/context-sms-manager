@@ -20,6 +20,7 @@ import { asideAIService } from "./aside-ai-service";
 import { UrlEnrichmentService } from "./url-enrichment-service";
 import { shortLinkService } from "./short-link-service";
 import { s3Service } from "./s3-service";
+import { feedbackReminderService } from "./feedback-reminder-service";
 import { sql, asc } from "drizzle-orm";
 import { fileTypeFromBuffer } from "file-type";
 
@@ -1056,7 +1057,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           // Send the invite message to the user
           await twilioService.sendSMS(
             senderId,
-            `I'll send you the invite message in a separate text. You can copy and paste it to share with your friend!`,
+            `I love it! I'll send you a one-time invite message in a separate text so you can easily copy and share it with your friend.`,
           );
 
           // Send the shareable message in a second text
@@ -1081,6 +1082,48 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           await twilioService.sendSMS(
             senderId,
             "Sorry, there was an error creating your invite link. Please try again.",
+          );
+        }
+
+        // Skip storing this message since it was a command
+        return null;
+      }
+
+      // Check if this is a QR code request (matches substring, not just exact)
+      const qrPattern = /(qr|qr\s*code|qrcode)/i;
+      if (qrPattern.test(normalizedContent)) {
+        log(`📷 Detected QR code request from user ${user.id}`);
+        try {
+          // Import s3Service
+          const { s3Service } = await import("./s3-service");
+
+          // Get permanent public URL for QR code asset
+          // Uses S3_ASSET_BASE_URL if configured, falls back to 7-day signed URL with warning
+          const QR_CODE_S3_KEY = 'assets/aside-qr-code.png';
+          const qrCodeUrl = await s3Service.getPublicAssetUrl(QR_CODE_S3_KEY);
+          
+          log(`Generated QR code URL for user ${user.id}`);
+
+          // Send QR code via MMS with no text message
+          await twilioService.sendMMS(senderId, qrCodeUrl);
+          log(`Sent QR code MMS to ${senderId}`);
+
+          // Track QR code request
+          await pendoServerService.trackEvent(
+            "QR_Code_Requested",
+            senderId,
+            "aside",
+            {
+              userId: user.id,
+            },
+          );
+        } catch (error) {
+          log(
+            `Error sending QR code: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          await twilioService.sendSMS(
+            senderId,
+            "Sorry, there was an error sending the QR code. Please try again.",
           );
         }
 
@@ -2461,10 +2504,25 @@ Reply STOP to opt out`;
           invitedBy: userId,
         });
 
-        // Send SMS notification to the invited user
+        // Get inviter name for personalized message
+        const inviterUser = await storage.getUserById(userId);
+        const inviterName = inviterUser?.displayName || 'Someone';
+
+        // Generate magic link with redirect to the shared board
+        const { MagicLinkService } = await import("./magic-link-service");
+        const { url: boardLink } = await MagicLinkService.createMagicLink(
+          inviteeUser.id,
+          `/board/${encodeURIComponent(boardName)}`
+        );
+
+        // Send SMS notification to the invited user (existing user message)
         await twilioService.sendSMS(
           inviteeUser.phoneNumber,
-          `You've been invited to the shared board #${boardName} on Aside! Check your dashboard: https://textaside.app`,
+          `👋 Hey! ${inviterName} has invited you to the "${boardName}" board on Aside!
+
+You can now text anything with #${boardName} to share with everyone on the board.
+
+🔗 Check it out: ${boardLink}`,
         );
 
         log(
@@ -2936,6 +2994,40 @@ Reply STOP to opt out`;
         `Error clearing OG cache: ${error instanceof Error ? error.message : String(error)}`,
       );
       res.status(500).json({ error: "Failed to clear cache" });
+    }
+  });
+
+  // Admin endpoint to send feedback reminders to eligible users
+  app.post("/api/admin/send-feedback-reminders", requireAdmin, async (req, res) => {
+    try {
+      log("📅 Admin triggering feedback reminder job...");
+      
+      const service = feedbackReminderService(storage);
+      const results = await service.runFeedbackReminders();
+      
+      log(`✅ Feedback reminder job completed: ${JSON.stringify(results)}`);
+      
+      const totalSent = results.oneMonth.sent + results.threeMonths.sent + results.sixMonths.sent;
+      const totalFailed = results.oneMonth.failed + results.threeMonths.failed + results.sixMonths.failed;
+      
+      res.json({
+        success: true,
+        message: `Feedback reminders sent successfully`,
+        results: {
+          oneMonth: results.oneMonth,
+          threeMonths: results.threeMonths,
+          sixMonths: results.sixMonths,
+          summary: {
+            totalSent,
+            totalFailed,
+          }
+        }
+      });
+    } catch (error) {
+      log(
+        `Error running feedback reminder job: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      res.status(500).json({ error: "Failed to send feedback reminders" });
     }
   });
 

@@ -126,6 +126,61 @@ class TwilioService {
     }
   }
 
+  async sendMMS(to: string, mediaUrl: string, message: string = ''): Promise<boolean> {
+    if (!this.accountSid || !this.authToken || !this.fromNumber) {
+      log("Cannot send MMS: Missing Twilio configuration");
+      return false;
+    }
+
+    // Format the phone number to E164 format
+    const formattedTo = this.formatPhoneNumber(to);
+    log(`Formatted phone number from ${to} to ${formattedTo}`);
+
+    try {
+      // Use Twilio REST API to send MMS
+      const auth = Buffer.from(`${this.accountSid}:${this.authToken}`).toString('base64');
+      
+      const params: Record<string, string> = {
+        From: this.fromNumber,
+        To: formattedTo,
+        MediaUrl: mediaUrl,
+      };
+      
+      // Only include Body if message is provided
+      if (message) {
+        params.Body = message;
+      }
+      
+      const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${this.accountSid}/Messages.json`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams(params),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        log(`Failed to send MMS to ${formattedTo}: ${response.status} - ${errorData}`);
+        return false;
+      }
+
+      const result = await response.json();
+      log(`MMS sent successfully to ${formattedTo}: ${result.sid}`);
+      return true;
+    } catch (error) {
+      // If it's a phone number validation error, just log and return false without spam
+      if (error instanceof Error && error.message.includes('Invalid phone number format')) {
+        log(`Skipping MMS to invalid phone number: ${to} - ${error.message}`);
+        return false;
+      }
+      
+      log(`Error sending MMS to ${formattedTo}:`, error instanceof Error ? error.message : String(error));
+      return false;
+    }
+  }
+
   async sendWelcomeMessage(phoneNumber: string, onboardingService?: any): Promise<void> {
     let welcomeMessage = `👋 Welcome to Aside! This is your space to save any text by sending it here.
 
