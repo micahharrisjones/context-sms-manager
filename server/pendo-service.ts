@@ -9,6 +9,15 @@ interface PendoTrackEventPayload {
   properties?: Record<string, any>;
 }
 
+interface PendoIdentifyPayload {
+  type: 'identify';
+  visitorId: string;
+  accountId: string;
+  timestamp: number;
+  visitor?: Record<string, any>;
+  account?: Record<string, any>;
+}
+
 class PendoServerService {
   private trackSecretKey: string;
   private apiEndpoint = 'https://app.pendo.io/data/track';
@@ -217,6 +226,52 @@ class PendoServerService {
         timestamp: timestamp.toISOString()
       }
     );
+  }
+
+  /**
+   * Identify a visitor with metadata for Pendo visitor profiles
+   * This updates the visitor profile with all the metadata fields
+   */
+  async identifyVisitor(
+    visitorId: string,
+    visitorData: Record<string, any>,
+    accountId: string = 'aside'
+  ): Promise<boolean> {
+    if (!this.trackSecretKey) {
+      log("Pendo identify visitor skipped (no secret key):", visitorId);
+      return false;
+    }
+
+    const payload: PendoIdentifyPayload = {
+      type: 'identify',
+      visitorId,
+      accountId,
+      timestamp: Date.now(),
+      visitor: visitorData
+    };
+
+    try {
+      const response = await fetch(this.apiEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-pendo-integration-key': this.trackSecretKey
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        log(`Pendo identify visitor failed: ${response.status} - ${errorText}`);
+        return false;
+      }
+
+      log(`Pendo visitor identified: ${visitorId}`);
+      return true;
+    } catch (error) {
+      log('Pendo identify visitor error:', error instanceof Error ? error.message : String(error));
+      return false;
+    }
   }
 }
 
