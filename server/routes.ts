@@ -14,6 +14,7 @@ import aiService from "./ai-service";
 import { OnboardingService } from "./onboarding-service";
 import { MagicLinkService } from "./magic-link-service";
 import { pendoServerService } from "./pendo-service";
+import { createPendoProfileService } from "./pendo-profile-service";
 import { embeddingService } from "./embedding-service";
 import { microlinkQueue } from "./request-queue";
 import { asideAIService } from "./aside-ai-service";
@@ -4494,6 +4495,25 @@ You can now text anything with #${boardName} to share with everyone on the board
 
       log("After broadcastNewMessage");
       log("Broadcast complete");
+
+      // Update Pendo visitor profile with SMS metadata (async, non-blocking)
+      setImmediate(async () => {
+        try {
+          log(`Updating Pendo visitor profile for ${smsData.senderId}`);
+          const pendoProfileService = createPendoProfileService(storage);
+          const visitorMetadata = await pendoProfileService.buildVisitorMetadata(smsData.senderId);
+          
+          if (visitorMetadata) {
+            await pendoServerService.identifyVisitor(smsData.senderId, visitorMetadata);
+            log(`Pendo visitor profile updated for ${smsData.senderId}`);
+          } else {
+            log(`Failed to build visitor metadata for ${smsData.senderId}`);
+          }
+        } catch (error) {
+          log(`Error updating Pendo visitor profile:`, error instanceof Error ? error.message : String(error));
+          // Don't fail the SMS processing if Pendo update fails
+        }
+      })();
 
       res.json(created);
     } catch (error) {
