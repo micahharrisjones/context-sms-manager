@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { useRoute } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +7,6 @@ import { Loader2, CheckCircle } from "lucide-react";
 import { pendo } from "@/lib/pendo";
 
 export default function JoinPage() {
-  const [, params] = useRoute("/join/:code");
-  const inviteCode = params?.code || "";
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -17,13 +14,10 @@ export default function JoinPage() {
 
   // Track landing page view
   useEffect(() => {
-    if (inviteCode) {
-      pendo.track('Invite Landing Viewed', {
-        inviteCode,
-        source: 'invite_link'
-      });
-    }
-  }, [inviteCode]);
+    pendo.track('Invite Landing Viewed', {
+      source: 'invite_link'
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +37,7 @@ export default function JoinPage() {
       const res = await apiRequest("/api/invite/submit", {
         method: "POST",
         body: JSON.stringify({
-          phoneNumber: phoneNumber.trim(),
-          inviteCode
+          phoneNumber: phoneNumber.trim()
         })
       });
 
@@ -55,7 +48,6 @@ export default function JoinPage() {
         
         // Track phone number submission
         pendo.track('Invite Phone Submitted', {
-          inviteCode,
           phoneNumber: phoneNumber.trim()
         });
         
@@ -182,7 +174,16 @@ export default function JoinPage() {
         </div>
 
         <p className="text-center text-sm text-[#263d57]/50">
-          By continuing, you agree to receive SMS messages. Reply STOP to opt out.
+          By signing up via this form, I agree to get text messages from Aside (formerly Context) for the purpose of saving ideas to a dashboard. Message frequency varies. Message & data rates may apply. Read our{' '}
+          <a 
+            href="https://www.textaside.com/privacy-policy" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[#b95827] hover:underline"
+          >
+            Privacy Policy
+          </a>{' '}
+          for more.
         </p>
       </div>
     </div>

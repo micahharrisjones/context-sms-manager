@@ -62,7 +62,7 @@ function Router() {
       {/* Public routes */}
       <Route path="/login" component={LoginPage} />
       <Route path="/setup" component={SetupPage} />
-      <Route path="/join/:code" component={JoinPage} />
+      <Route path="/join" component={JoinPage} />
       
       {/* Protected routes */}
       <Layout>
