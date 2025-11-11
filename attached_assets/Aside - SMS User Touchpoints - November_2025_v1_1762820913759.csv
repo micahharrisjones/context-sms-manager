@@ -1,0 +1,115 @@
+#,Category,Touchpoint,Message,Sent When,Notes
+1,Invite New User / New User Sign-Up,Invite Request via SMS ,I love it! I'll send you a one-time invite message in a separate text so you can easily copy and share it with your friend.,"Existing user texts ""invite"" to Aside",
+2,Invite New User / New User Sign-Up,Invite Message via SMS (link),https://textaside.app/join/,"Existing user texts ""invite"" to Aside",Immediately follows the previous message
+3,Invite New User / New User Sign-Up,Invite Message via SMS (QR code),[QR CODE],,Best for in-person 
+4,Invite New User / New User Sign-Up,Invite Message via Web,"👋 Hey! You've been invited by [NAME] to join Aside. 
+
+Save anything by texting: links, ideas, recipes, you name it. No app needed, just text.
+
+Get started: textaside.app/join/",Existing user sends invite via web app,
+5,New User Onboarding,Welcome Message,"🎉 Welcome to Aside! This is your personal space to save anything from anywhere. Just text it here.
+
+Here's how it works:
+- Text me anything you want to remember: quotes, links, recipes, random ideas, you name it
+- Add a hashtag like #movies or #recipes to keep things organized
+- Everything you save lives in your dashboard, ready when you need it
+
+🤔 Questions? Just text me ""Hey Aside..."" and ask away
+
+💬 Got feedback or found something weird? We'd love to hear it: textaside.app/feedback
+
+🔗 Your dashboard: [dashboard magic link]",New user signs up via /join page,
+6,Shared Boards,Invited to a Shared Board,"👋 Hey! [NAME] has invited you to the ""[board-name]"" board on Aside!
+
+You can now text anything with #[board-name] to share with everyone on the board.
+
+🔗 Check it out: [shared board link]",User adds an existing Aside user to a shared board,
+7,Shared Boards,Invited to a Shared Board,"👋 Hey! [NAME] invited you to the ""[board-name]"" board on Aside!
+
+Aside lets you save anything from anywhere by text: quotes, links, recipes, you name it. Join the board to collaborate with [NAME].
+
+🔗 Check it out: [shared board link]",User adds a non-Aside user to a shared board,They will be taken to the Shared Board page but will have to sign-up in order to see the page contents (via join modal)
+8,Other Actions,Account Verification,"You're so close! 
+
+Your Aside verification code is: [6-digit-code]
+
+This code expires in 10 minutes. Don't share this code with anyone, promise?",User signs into the web app,
+9,Other Actions,Feedback Reminders (1 month),"🎉 It's our one-month anniversary! Time flies, right?
+
+Got feedback, ideas, or things we could do better? We'd love to hear from you: textaside.app/feedback",Users have been with Aside for 1 month,Do we want to send this to all users or active users?
+10,Other Actions,Feedback Reminders (3 months),"🎉 It's our three-month anniversary! Can you believe it?
+
+Got feedback, ideas, or things we could do better? We'd love to hear from you: textaside.app/feedback",Users have been with Aside for 3 months,Do we want to send this to all users or active users?
+11,Other Actions,Feedback Reminders (6 months),"🎉 It's our six-month anniversary! Remember when we first met?
+
+Got feedback, ideas, or things we could do better? We'd love to hear from you: textaside.app/feedback",Users have been with Aside for 6 months,Do we want to send this to all users or active users?
+12,Help,General Help Response,"I'm here to help! 
+
+Common questions:
+- How does Aside work?
+- How do I create a board?
+- How do I add to a board?
+- What's my dashboard link?
+- How do I invite a friend?
+
+Text ""Hey Aside..."" followed by any question and I'll do my best to answer.
+
+Reply STOP to unsubscribe. Msg&Data rates may apply.","User texts ""help"", ""I need help"", or similar ",
+13,Help,"""How does Aside work?""","Aside lets you save anything just by texting it here!
+
+Here's how it works:
+- Text me anything you want to remember: quotes, links, recipes, random ideas, you name it  
+- Add a hashtag like #movies or #recipes to keep things organized  
+- Everything you save lives in your dashboard, ready when you need it   
+
+🤔 Questions? Just text me ""Hey Aside..."" followed by your question and I'll help out.   
+
+💬 Got feedback or found something weird? We'd love to hear about it: textaside.app/feedback",,
+14,Help,"""How do I add something to my dashboard?""","Just text me whatever you want to save and it'll show up in your dashboard automatically. 
+
+Want to organize things? Add hashtags like #recipes or #movies. 
+
+🔗 Your dashboard: [dashboard magic link]   ",,
+15,Help,"""How do I create a board?""","Super easy! Just add a hashtag to any message. 
+
+Like this: ""Check out this recipe #dinner""
+
+That'll create a #dinner board automatically.
+
+All your boards live in your dashboard. 🔗 See all your boards: [dashboard magic link]   ",,
+16,Help,"""How do I add something to a board?""","Just include the hashtag in your message!
+
+Like: ""This movie looks great #watchlist""
+
+🔗 Your dashboard: [dashboard magic link]   ",,
+17,Help,"""How do I create a shared board?""","Head to your dashboard. You can either create a new shared board or convert a private one.   
+
+🔗 Your dashboard: [dashboard magic link]   
+
+For a new shared board: Click the + next to Shared Boards in the menu and follow the prompts.   
+
+To convert a private board: Go to the private board and click the Invite button in the upper right corner, then follow the prompts.",,
+18,Help,"""How do I invite someone to a shared board?""","Go to your dashboard, open the shared board, and click the Invite button in the upper right corner.   
+
+Easy as that!   
+
+🔗 Your dashboard: [dashboard magic link]   ",,
+19,Help,"""What's my login?""","🔗 Here you go: [dashboard magic link]   
+
+💡 Pro tip: Add Aside to your home screen for one-tap access!",,
+20,Help,"""What boards do I have?""","Here's what you've got:  
+
+- #board-name  
+- #board-name 
+- #board-name   
+
+🔗 Your dashboard: [dashboard magic link]   ",,
+21,Help,"""I accidentally sent something to the wrong board. How do I move the item to the correct board?""","No worries! Go to your dashboard, find the item, and click the edit icon. You can move it wherever you want.   
+
+🔗 Your dashboard: [dashboard magic link]   ",,
+22,Help,"""How do I delete an item from a board?""","Head to your dashboard, find the item you want to remove, and click the delete icon. Done!   
+
+🔗 Your dashboard: [dashboard magic link]   ",,
+23,Help,"""How do I delete a board?""","Go to your dashboard, open the board you want to delete, and click the Delete button in the upper right corner. That's it!   
+
+🔗 Your dashboard: [dashboard magic link]   ",,
