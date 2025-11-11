@@ -1781,11 +1781,11 @@ export async function registerRoutes(app: Express) {
   // Invite landing page phone submission endpoint
   app.post("/api/invite/submit", async (req, res) => {
     try {
-      const { phoneNumber, inviteCode } = req.body;
+      const { phoneNumber } = req.body;
 
-      if (!phoneNumber || !inviteCode) {
+      if (!phoneNumber) {
         return res.status(400).json({
-          error: "Phone number and invite code are required",
+          error: "Phone number is required",
         });
       }
 
@@ -1797,21 +1797,10 @@ export async function registerRoutes(app: Express) {
         });
       }
 
-      // Import invite service
-      const { inviteService } = await import("./invite-service");
-
-      // Validate invite code exists
-      const invite = await inviteService.getInviteByCode(inviteCode);
-      if (!invite) {
-        return res.status(404).json({
-          error: "Invalid invite code",
-        });
-      }
-
       // Format phone number
       const formattedNumber = twilioService.formatPhoneNumber(phoneNumber);
       log(
-        `📱 Invite signup request for ${formattedNumber} using code ${inviteCode}`,
+        `📱 Invite signup request for ${formattedNumber}`,
       );
 
       // Check if user already exists
@@ -1838,20 +1827,20 @@ Reply STOP to opt out`;
         });
       }
 
-      // Store pending signup for YES confirmation
+      // Store pending signup for YES confirmation (without invite code)
       const normalizedPhone = normalizePhoneNumber(formattedNumber);
       pendingInviteSignups.set(normalizedPhone, {
         phoneNumber: formattedNumber,
-        inviteCode: inviteCode,
+        inviteCode: 'standard_join', // Generic code for tracking purposes
         timestamp: Date.now(),
       });
 
-      log(`✅ Sent opt-in SMS to ${formattedNumber} for invite ${inviteCode}`);
+      log(`✅ Sent opt-in SMS to ${formattedNumber}`);
 
       // Track opt-in SMS sent
       await pendoServerService.trackInviteOptInSent(
         formattedNumber,
-        inviteCode,
+        'standard_join',
       );
 
       res.json({
