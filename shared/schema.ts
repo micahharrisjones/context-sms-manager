@@ -160,23 +160,6 @@ export const onboardingMessages = pgTable("onboarding_messages", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Invites table - tracks invite codes and conversions
-export const invites = pgTable("invites", {
-  id: serial("id").primaryKey(),
-  code: varchar("code", { length: 10 }).notNull().unique(), // 5-character invite code
-  invitedBy: integer("invited_by").references(() => users.id).notNull(), // User who created the invite
-  type: varchar("type", { length: 20 }).default("sms_link").notNull(), // "sms_link" | "web" | "qr"
-  conversions: integer("conversions").default(0).notNull(), // Number of signups via this code
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const invitesRelations = relations(invites, ({ one }) => ({
-  inviter: one(users, {
-    fields: [invites.invitedBy],
-    references: [users.id],
-  }),
-}));
-
 // Message embeddings table - stores vector embeddings for hybrid search
 export const messageEmbeddings = pgTable("message_embeddings", {
   id: serial("id").primaryKey(),
@@ -268,12 +251,6 @@ export const updateOnboardingMessageSchema = createInsertSchema(onboardingMessag
   isActive: true,
 });
 
-export const insertInviteSchema = createInsertSchema(invites).omit({
-  id: true,
-  conversions: true,
-  createdAt: true,
-});
-
 export const insertMessageEmbeddingSchema = createInsertSchema(messageEmbeddings).omit({
   id: true,
   createdAt: true,
@@ -311,8 +288,6 @@ export type UpdateNotificationPreference = z.infer<typeof updateNotificationPref
 export type OnboardingMessage = typeof onboardingMessages.$inferSelect;
 export type InsertOnboardingMessage = z.infer<typeof insertOnboardingMessageSchema>;
 export type UpdateOnboardingMessage = z.infer<typeof updateOnboardingMessageSchema>;
-export type Invite = typeof invites.$inferSelect;
-export type InsertInvite = z.infer<typeof insertInviteSchema>;
 export type MessageEmbedding = typeof messageEmbeddings.$inferSelect;
 export type InsertMessageEmbedding = z.infer<typeof insertMessageEmbeddingSchema>;
 export type ShortLink = typeof shortLinks.$inferSelect;
