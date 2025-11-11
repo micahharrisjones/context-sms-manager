@@ -13,6 +13,7 @@ export interface AsideAIResponse {
   response: string;
   intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'login' | 'help' | 'unknown';
   searchPerformed?: boolean;
+  topic?: string;
 }
 
 class AsideAIService {
@@ -33,33 +34,47 @@ class AsideAIService {
       log(`📊 Intent detected: ${intentAnalysis.intent}`);
 
       // Step 2: Based on intent, perform appropriate action
+      let aiResponse: AsideAIResponse;
       switch (intentAnalysis.intent) {
         case 'search':
           // Use AI-extracted query for more accurate search
-          return await this.handleSearchQuery(intentAnalysis.extractedQuery || query, userId, storage);
+          aiResponse = await this.handleSearchQuery(intentAnalysis.extractedQuery || query, userId, storage);
+          break;
         
         case 'summarize':
-          return await this.handleSummarizeQuery(query, userId, storage);
+          aiResponse = await this.handleSummarizeQuery(query, userId, storage);
+          break;
         
         case 'recommend':
-          return await this.handleRecommendQuery(query, userId, storage);
+          aiResponse = await this.handleRecommendQuery(query, userId, storage);
+          break;
         
         case 'analyze':
-          return await this.handleAnalyzeQuery(query, userId, storage);
+          aiResponse = await this.handleAnalyzeQuery(query, userId, storage);
+          break;
         
         case 'login':
-          return await this.handleLoginQuery(userId);
+          aiResponse = await this.handleLoginQuery(userId);
+          break;
         
         case 'help':
-          return await this.handleHelpQuery(query, userId, storage);
+          aiResponse = await this.handleHelpQuery(query, userId, storage);
+          break;
         
         default:
           // For unknown intents, provide a helpful response
-          return {
+          aiResponse = {
             response: "I'm not sure what you're asking. Try:\n\n• Hey Aside, find my recipes\n• Hey Aside, what are my best gift ideas?\n• Hey Aside, show me tech articles",
             intent: 'unknown',
           };
       }
+      
+      // Attach topic to response if it was detected in intent analysis
+      if (intentAnalysis.topic) {
+        aiResponse.topic = intentAnalysis.topic;
+      }
+      
+      return aiResponse;
     } catch (error) {
       log(`Error in AsideAI processing: ${error instanceof Error ? error.message : String(error)}`);
       return {

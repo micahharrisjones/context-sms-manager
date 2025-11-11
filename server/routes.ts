@@ -972,7 +972,19 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       }
 
       try {
-        // Track Hey Aside query
+        // Process with AsideAI service first to get intent
+        const aiResponse = await asideAIService.processQuery(
+          query,
+          user.id,
+          storage,
+        );
+
+        // Determine question_type for categorization
+        // For help queries, use the specific topic (e.g., "create_board", "invite")
+        // For other intents, use the intent itself (e.g., "search", "login")
+        const questionType = aiResponse.topic || aiResponse.intent;
+
+        // Track Hey Aside query with question type
         await pendoServerService.trackEvent(
           "Hey_Aside_Query_Submitted",
           senderId,
@@ -980,14 +992,9 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           {
             query: query,
             queryLength: query.length,
+            questionType: questionType,
+            intent: aiResponse.intent,
           },
-        );
-
-        // Process with AsideAI service
-        const aiResponse = await asideAIService.processQuery(
-          query,
-          user.id,
-          storage,
         );
 
         // Track response
@@ -999,6 +1006,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
             query: query,
             intent: aiResponse.intent,
             searchPerformed: aiResponse.searchPerformed || false,
+            questionType: questionType,
           },
         );
 
