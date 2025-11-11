@@ -102,17 +102,20 @@ export default function JoinPage() {
           <img 
             src="/aside-logo-login.png" 
             alt="Aside Logo" 
-            className="w-32 h-auto mx-auto mb-6 drop-shadow-md"
+            className="w-48 h-auto mx-auto drop-shadow-md"
           />
-          <h1 className="text-3xl font-bold text-[#263d57] mb-3">
-            Welcome to Aside
-          </h1>
-          <p className="text-[#263d57]/70 text-lg">
-            Save links and ideas by texting. Super simple - no app needed.
-          </p>
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg border border-[#e3cac0] p-8 space-y-6">
+          <div className="text-center space-y-3">
+            <h1 className="text-3xl font-bold text-[#263d57]">
+              Welcome to Aside
+            </h1>
+            <p className="text-[#263d57]/70 text-lg">
+              Save links and ideas by texting. Super simple - no app needed.
+            </p>
+          </div>
+
           <div className="space-y-3">
             <h2 className="text-xl font-semibold text-[#263d57]">
               How it works
