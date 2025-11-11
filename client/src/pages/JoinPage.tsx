@@ -102,7 +102,7 @@ export default function JoinPage() {
           <img 
             src="/aside-logo-login.png" 
             alt="Aside Logo" 
-            className="w-48 h-auto mx-auto drop-shadow-md"
+            className="w-48 h-auto mx-auto"
           />
         </div>
 
