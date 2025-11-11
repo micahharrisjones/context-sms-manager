@@ -1051,22 +1051,16 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       if (normalizedContent === "invite") {
         log(`🎁 Detected invite command from user ${user.id}`);
         try {
-          // Import invite service
-          const { inviteService } = await import("./invite-service");
-
           // Track invite command sent
           await pendoServerService.trackInviteCommandSent(senderId);
 
-          // Create a new invite code
-          const invite = await inviteService.createInvite(user.id, "sms_link");
-          const inviteMessage = inviteService.getInviteMessage(invite.code);
-
-          log(`Generated invite ${invite.code} for user ${user.id}`);
+          // Standard invite message with join link
+          const inviteMessage = `Try Aside! Save links and ideas by text - no app needed. Sign up here: https://textaside.app/join`;
 
           // Send the invite message to the user
           await twilioService.sendSMS(
             senderId,
-            `I love it! I'll send you a one-time invite message in a separate text so you can easily copy and share it with your friend.`,
+            `I love it! I'll send you a message in a separate text so you can easily copy and share it with your friend.`,
           );
 
           // Send the shareable message in a second text
@@ -1076,7 +1070,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
               .then(() => {
                 log(`Sent invite message to ${senderId}`);
                 // Track invite link sent
-                pendoServerService.trackInviteLinkSent(senderId, invite.code);
+                pendoServerService.trackInviteLinkSent(senderId, 'standard_join_link');
               })
               .catch((error) => {
                 log(
@@ -1086,11 +1080,11 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           }, 500);
         } catch (error) {
           log(
-            `Error generating invite: ${error instanceof Error ? error.message : String(error)}`,
+            `Error sending invite: ${error instanceof Error ? error.message : String(error)}`,
           );
           await twilioService.sendSMS(
             senderId,
-            "Sorry, there was an error creating your invite link. Please try again.",
+            "Sorry, there was an error sending your invite link. Please try again.",
           );
         }
 
