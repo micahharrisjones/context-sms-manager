@@ -17,8 +17,6 @@ import {
   type UpdateNotificationPreference,
   type OnboardingMessage,
   type UpdateOnboardingMessage,
-  type Invite,
-  type InsertInvite,
   type MessageEmbedding,
   type InsertMessageEmbedding,
   messages, 
@@ -29,7 +27,6 @@ import {
   boardMemberships,
   notificationPreferences,
   onboardingMessages,
-  invites,
   messageEmbeddings
 } from "@shared/schema";
 import { db } from "./db";
@@ -141,11 +138,8 @@ export interface IStorage {
   getOnboardingMessage(step: string): Promise<OnboardingMessage | undefined>;
   updateOnboardingMessage(step: string, data: UpdateOnboardingMessage): Promise<OnboardingMessage>;
 
-  // Invite management
-  createInvite(invite: InsertInvite): Promise<Invite>;
-  getInviteByCode(code: string): Promise<Invite | null>;
-  incrementInviteConversions(inviteId: number): Promise<void>;
-  updateUserReferral(userId: number, inviteCode: string, signupMethod: string): Promise<void>;
+  // Referral tracking (simplified - no invite codes)
+  updateUserReferral(userId: number, referralSource: string): Promise<void>;
   
   // Embedding methods for hybrid search
   saveMessageEmbedding(messageId: number, embedding: number[]): Promise<void>;
@@ -1808,63 +1802,17 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  // Invite management methods
-  async createInvite(invite: InsertInvite): Promise<Invite> {
-    try {
-      const [newInvite] = await db
-        .insert(invites)
-        .values(invite)
-        .returning();
-      
-      log(`Created invite with code ${newInvite.code}`);
-      return newInvite;
-    } catch (error) {
-      log("Error creating invite:", error instanceof Error ? error.message : String(error));
-      throw error;
-    }
-  }
-
-  async getInviteByCode(code: string): Promise<Invite | null> {
-    try {
-      const [invite] = await db
-        .select()
-        .from(invites)
-        .where(eq(invites.code, code));
-      
-      return invite || null;
-    } catch (error) {
-      log("Error getting invite by code:", error instanceof Error ? error.message : String(error));
-      throw error;
-    }
-  }
-
-  async incrementInviteConversions(inviteId: number): Promise<void> {
-    try {
-      await db
-        .update(invites)
-        .set({
-          conversions: sql`${invites.conversions} + 1`
-        })
-        .where(eq(invites.id, inviteId));
-      
-      log(`Incremented conversions for invite ${inviteId}`);
-    } catch (error) {
-      log("Error incrementing invite conversions:", error instanceof Error ? error.message : String(error));
-      throw error;
-    }
-  }
-
-  async updateUserReferral(userId: number, inviteCode: string, signupMethod: string): Promise<void> {
+  // Referral tracking (simplified - no invite codes)
+  async updateUserReferral(userId: number, referralSource: string): Promise<void> {
     try {
       await db
         .update(users)
         .set({
-          referredBy: inviteCode,
-          signupMethod: signupMethod
+          referralSource: referralSource
         })
         .where(eq(users.id, userId));
       
-      log(`Updated user ${userId} referral info: code=${inviteCode}, method=${signupMethod}`);
+      log(`Updated user ${userId} referral source: ${referralSource}`);
     } catch (error) {
       log("Error updating user referral:", error instanceof Error ? error.message : String(error));
       throw error;
