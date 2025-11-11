@@ -4666,6 +4666,134 @@ You can now text anything with #${boardName} to share with everyone on the board
     }
   });
 
+  // Admin endpoint to update Pendo SMS activity metadata for all users
+  // (Daily cron job trigger to refresh daysSinceLastSms)
+  app.post("/api/admin/update-sms-activity", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const userIsAdmin = await isUserAdmin(userId);
+
+      if (!userIsAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      log("🔄 Starting daily Pendo SMS activity update...");
+
+      const allUsers = await storage.getAllUsers();
+      const pendoProfileService = createPendoProfileService(storage);
+      
+      let updated = 0;
+      let errors = 0;
+
+      for (const user of allUsers) {
+        try {
+          const visitorMetadata = await pendoProfileService.buildVisitorMetadata(user.phoneNumber);
+          
+          if (visitorMetadata) {
+            await pendoServerService.identifyVisitor(user.phoneNumber, visitorMetadata);
+            updated++;
+            log(`  User ${user.phoneNumber}: ✅ Updated`);
+          } else {
+            log(`  User ${user.phoneNumber}: ⚠️  No metadata`);
+          }
+
+          // Rate limiting: small delay between requests
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } catch (error) {
+          errors++;
+          log(
+            `  User ${user.phoneNumber}: ❌ Error - ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+
+      log(
+        `🎉 Daily SMS activity update complete: ${updated} updated, ${errors} errors out of ${allUsers.length} total users`,
+      );
+      
+      res.json({
+        success: true,
+        message: "SMS activity update complete",
+        updated,
+        errors,
+        total: allUsers.length,
+      });
+    } catch (error) {
+      log(
+        "Error in update-sms-activity endpoint:",
+        error instanceof Error ? error.message : String(error),
+      );
+      res.status(500).json({ error: "Failed to update SMS activity" });
+    }
+  });
+
+  // Admin endpoint to backfill Pendo metadata for all existing users
+  // (One-time migration to populate historical data)
+  app.post("/api/admin/backfill-pendo-metadata", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const userIsAdmin = await isUserAdmin(userId);
+
+      if (!userIsAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      log("🔄 Starting Pendo metadata backfill for all users...");
+
+      const allUsers = await storage.getAllUsers();
+      const pendoProfileService = createPendoProfileService(storage);
+      
+      let processed = 0;
+      let errors = 0;
+
+      for (const user of allUsers) {
+        try {
+          const visitorMetadata = await pendoProfileService.buildVisitorMetadata(user.phoneNumber);
+          
+          if (visitorMetadata) {
+            await pendoServerService.identifyVisitor(user.phoneNumber, visitorMetadata);
+            processed++;
+            
+            // Log detailed metadata for first few users to verify
+            if (processed <= 3) {
+              log(`  Sample user ${user.phoneNumber} metadata:`, JSON.stringify(visitorMetadata, null, 2));
+            }
+            
+            log(`  User ${user.phoneNumber}: ✅ Backfilled (${processed}/${allUsers.length})`);
+          } else {
+            log(`  User ${user.phoneNumber}: ⚠️  No metadata generated`);
+          }
+
+          // Rate limiting: small delay between requests
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        } catch (error) {
+          errors++;
+          log(
+            `  User ${user.phoneNumber}: ❌ Error - ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+      }
+
+      log(
+        `🎉 Pendo metadata backfill complete: ${processed} processed, ${errors} errors out of ${allUsers.length} total users`,
+      );
+      
+      res.json({
+        success: true,
+        message: "Pendo metadata backfill complete",
+        processed,
+        errors,
+        total: allUsers.length,
+      });
+    } catch (error) {
+      log(
+        "Error in backfill-pendo-metadata endpoint:",
+        error instanceof Error ? error.message : String(error),
+      );
+      res.status(500).json({ error: "Failed to backfill Pendo metadata" });
+    }
+  });
+
   // Test endpoint to send welcome message
   app.post("/api/test-welcome", async (req, res) => {
     try {
