@@ -826,6 +826,66 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       }
     }
 
+    // ========== SWEEPSTAKES ENTRY CHECK ==========
+    // Check for #launch hashtag for sweepstakes entry (no account required)
+    const launchHashtagPattern = /#launch\b/i;
+    if (launchHashtagPattern.test(content)) {
+      log(`🎯 SWEEPSTAKES ENTRY: #launch detected from ${senderId}`);
+      
+      try {
+        // Check if they already have an entry
+        const existingEntry = await storage.getSweepstakesEntry(senderId);
+        
+        if (existingEntry) {
+          log(`Duplicate sweepstakes entry attempt from ${senderId}`);
+          await twilioService.sendSMS(
+            senderId,
+            "You're already entered in the Aside launch sweepstakes! Winner will be notified by 11/25 via SMS. Good luck!"
+          );
+          return null;
+        }
+        
+        // Create sweepstakes entry
+        const entry = await storage.createSweepstakesEntry({
+          phoneNumber: senderId,
+        });
+        
+        log(`✅ Created sweepstakes entry for ${senderId} - Entry ID: ${entry.id}`);
+        
+        // Track in Pendo
+        await pendoServerService.trackEvent(
+          "Sweepstakes_Entry_Created",
+          senderId,
+          "sweepstakes",
+          {
+            entryId: entry.id,
+            timestamp: entry.createdAt,
+          }
+        ).catch((error) => {
+          log("Pendo tracking failed for sweepstakes entry:", error instanceof Error ? error.message : String(error));
+        });
+        
+        // Send confirmation SMS
+        await twilioService.sendSMS(
+          senderId,
+          "You're entered in the Aside launch sweepstakes! Winner will be notified by 11/25 via SMS. Good luck!"
+        );
+        
+        log(`Sent sweepstakes confirmation to ${senderId}`);
+        
+        // Don't save the #launch message or create a user account
+        return null;
+      } catch (error) {
+        log(`Error processing sweepstakes entry: ${error instanceof Error ? error.message : String(error)}`);
+        await twilioService.sendSMS(
+          senderId,
+          "Sorry, there was an error processing your sweepstakes entry. Please try again later."
+        );
+        return null;
+      }
+    }
+    // ========== END SWEEPSTAKES ENTRY CHECK ==========
+
     // IMPORTANT: For SMS messages sent TO the Context phone number,
     // we need to find which user account this message belongs to.
     // Since we currently have one Twilio number shared across users,
