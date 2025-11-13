@@ -19,6 +19,8 @@ import {
   type UpdateOnboardingMessage,
   type MessageEmbedding,
   type InsertMessageEmbedding,
+  type SweepstakesEntry,
+  type InsertSweepstakesEntry,
   messages, 
   users, 
   authSessions,
@@ -27,7 +29,8 @@ import {
   boardMemberships,
   notificationPreferences,
   onboardingMessages,
-  messageEmbeddings
+  messageEmbeddings,
+  sweepstakesEntries
 } from "@shared/schema";
 import { db } from "./db";
 import { desc, eq, sql, gte, lt, and, inArray, or, like, count, asc } from "drizzle-orm";
@@ -152,6 +155,11 @@ export interface IStorage {
   // Feedback reminder methods
   getEligibleFeedbackReminderUsers(months: number, startDate: Date, endDate: Date): Promise<User[]>;
   markFeedbackReminderSent(userId: number, months: number): Promise<void>;
+  
+  // Sweepstakes methods
+  createSweepstakesEntry(entry: InsertSweepstakesEntry): Promise<SweepstakesEntry>;
+  getSweepstakesEntry(phoneNumber: string): Promise<SweepstakesEntry | undefined>;
+  getAllSweepstakesEntries(): Promise<SweepstakesEntry[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2179,6 +2187,49 @@ export class DatabaseStorage implements IStorage {
       log(`Marked ${months}-month feedback reminder as sent for user ${userId}`);
     } catch (error) {
       log(`Error marking feedback reminder as sent: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  }
+  
+  // Sweepstakes methods
+  async createSweepstakesEntry(entry: InsertSweepstakesEntry): Promise<SweepstakesEntry> {
+    try {
+      log("Creating sweepstakes entry:", JSON.stringify(entry, null, 2));
+      const [sweepstakesEntry] = await db
+        .insert(sweepstakesEntries)
+        .values(entry)
+        .returning();
+      return sweepstakesEntry;
+    } catch (error) {
+      log("Error creating sweepstakes entry:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+  
+  async getSweepstakesEntry(phoneNumber: string): Promise<SweepstakesEntry | undefined> {
+    try {
+      const [entry] = await db
+        .select()
+        .from(sweepstakesEntries)
+        .where(eq(sweepstakesEntries.phoneNumber, phoneNumber));
+      
+      return entry || undefined;
+    } catch (error) {
+      log("Error fetching sweepstakes entry:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+  
+  async getAllSweepstakesEntries(): Promise<SweepstakesEntry[]> {
+    try {
+      const entries = await db
+        .select()
+        .from(sweepstakesEntries)
+        .orderBy(desc(sweepstakesEntries.createdAt));
+      
+      return entries;
+    } catch (error) {
+      log("Error fetching all sweepstakes entries:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
