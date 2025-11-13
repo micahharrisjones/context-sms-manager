@@ -3019,6 +3019,19 @@ You can now text anything with #${boardName} to share with everyone on the board
     }
   });
 
+  // Admin endpoint to fetch sweepstakes entries
+  app.get("/api/admin/sweepstakes", requireAdmin, async (req, res) => {
+    try {
+      const entries = await storage.getAllSweepstakesEntries();
+      res.json(entries);
+    } catch (error) {
+      log(
+        `Error fetching sweepstakes entries: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      res.status(500).json({ error: "Failed to fetch sweepstakes entries" });
+    }
+  });
+
   // Admin endpoint to clear Open Graph cache (useful when API key is added/changed)
   app.post("/api/admin/clear-og-cache", requireAdmin, async (req, res) => {
     try {

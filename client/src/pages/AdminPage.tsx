@@ -38,6 +38,12 @@ interface FeedbackMessage {
   mediaType?: string;
 }
 
+interface SweepstakesEntry {
+  id: number;
+  phoneNumber: string;
+  notified: string;
+  createdAt: string;
+}
 
 export function AdminPage() {
   const { toast } = useToast();
@@ -62,6 +68,12 @@ export function AdminPage() {
   // Fetch feedback messages
   const { data: feedbackMessages, isLoading: feedbackLoading, error: feedbackError } = useQuery<FeedbackMessage[]>({
     queryKey: ['/api/admin/feedback'],
+    retry: false
+  });
+
+  // Fetch sweepstakes entries
+  const { data: sweepstakesEntries } = useQuery<SweepstakesEntry[]>({
+    queryKey: ['/api/admin/sweepstakes'],
     retry: false
   });
 
@@ -541,6 +553,56 @@ export function AdminPage() {
         </CardContent>
       </Card>
 
+      {/* Sweepstakes Entries */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Sweepstakes Entries</CardTitle>
+          <CardDescription>
+            View all entries for the Aside launch sweepstakes. Users entered by texting #launch without creating an account.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Entry ID</TableHead>
+                  <TableHead>Phone Number</TableHead>
+                  <TableHead>Entry Date</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sweepstakesEntries && sweepstakesEntries.length > 0 ? (
+                  sweepstakesEntries.map((entry) => (
+                    <TableRow key={entry.id}>
+                      <TableCell className="font-medium">{entry.id}</TableCell>
+                      <TableCell>{entry.phoneNumber}</TableCell>
+                      <TableCell>{formatDate(entry.createdAt)}</TableCell>
+                      <TableCell>
+                        <Badge variant={entry.notified === "true" ? "default" : "secondary"}>
+                          {entry.notified === "true" ? "Notified" : "Pending"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                      No sweepstakes entries yet
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {sweepstakesEntries && sweepstakesEntries.length > 0 && (
+            <div className="mt-4 text-sm text-[#263d57]/70">
+              Total entries: {sweepstakesEntries.length}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Feedback Messages */}
       <Card>
