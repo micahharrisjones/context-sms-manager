@@ -184,6 +184,14 @@ export const shortLinks = pgTable("short_links", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Sweepstakes entries table - for launch event sweepstakes (no account required)
+export const sweepstakesEntries = pgTable("sweepstakes_entries", {
+  id: serial("id").primaryKey(),
+  phoneNumber: varchar("phone_number", { length: 20 }).notNull().unique(), // One entry per phone number
+  notified: text("notified").default("false").notNull(), // "true" if winner has been notified
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Schema exports
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -262,6 +270,12 @@ export const insertShortLinkSchema = createInsertSchema(shortLinks).omit({
   createdAt: true,
 });
 
+export const insertSweepstakesEntrySchema = createInsertSchema(sweepstakesEntries).omit({
+  id: true,
+  createdAt: true,
+  notified: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -292,3 +306,5 @@ export type MessageEmbedding = typeof messageEmbeddings.$inferSelect;
 export type InsertMessageEmbedding = z.infer<typeof insertMessageEmbeddingSchema>;
 export type ShortLink = typeof shortLinks.$inferSelect;
 export type InsertShortLink = z.infer<typeof insertShortLinkSchema>;
+export type SweepstakesEntry = typeof sweepstakesEntries.$inferSelect;
+export type InsertSweepstakesEntry = z.infer<typeof insertSweepstakesEntrySchema>;
