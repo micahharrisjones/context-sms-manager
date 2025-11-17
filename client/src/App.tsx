@@ -16,14 +16,12 @@ import BoardPreviewPage from "@/pages/BoardPreviewPage";
 import LaunchRulesPage from "@/pages/LaunchRulesPage";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
 import { pendo } from "@/lib/pendo";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { needsProfileSetup, isLoading: profileLoading } = useProfile();
 
-  if (authLoading || profileLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff2ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
         <div className="text-center">
@@ -42,10 +40,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   if (!isAuthenticated) {
     return <Redirect to="/login" />;
-  }
-
-  if (needsProfileSetup) {
-    return <Redirect to="/setup" />;
   }
 
   return <Component />;
