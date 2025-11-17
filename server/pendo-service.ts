@@ -1,4 +1,5 @@
 import { log } from "./vite";
+import type { IStorage } from "./storage";
 
 interface PendoTrackEventPayload {
   type: 'track';
@@ -272,6 +273,104 @@ class PendoServerService {
       log('Pendo identify visitor error:', error instanceof Error ? error.message : String(error));
       return false;
     }
+  }
+
+  /**
+   * Get SMS activity statistics for a user
+   * @param storage - Storage interface for database queries
+   * @param userId - User ID
+   * @returns SMS activity stats
+   */
+  async getSMSActivityStats(storage: IStorage, userId: number): Promise<{
+    totalMessages: number;
+    last7Days: number;
+    last30Days: number;
+    lastMessageDate: Date | null;
+  }> {
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    try {
+      // Get all messages for the user
+      const allMessages = await storage.getMessages(userId);
+      
+      // Calculate counts
+      const totalMessages = allMessages.length;
+      const last7Days = allMessages.filter(m => new Date(m.createdAt) >= sevenDaysAgo).length;
+      const last30Days = allMessages.filter(m => new Date(m.createdAt) >= thirtyDaysAgo).length;
+      
+      // Find last message date
+      const lastMessage = allMessages.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0];
+      
+      return {
+        totalMessages,
+        last7Days,
+        last30Days,
+        lastMessageDate: lastMessage ? new Date(lastMessage.createdAt) : null
+      };
+    } catch (error) {
+      log('Error getting SMS activity stats:', error instanceof Error ? error.message : String(error));
+      return {
+        totalMessages: 0,
+        last7Days: 0,
+        last30Days: 0,
+        lastMessageDate: null
+      };
+    }
+  }
+
+  /**
+   * Calculate user engagement level based on activity
+   * @param smsLast30Days - SMS messages in last 30 days
+   * @param daysSinceLastWebVisit - Days since last web visit (null if never visited)
+   * @returns Engagement level
+   */
+  calculateEngagementLevel(smsLast30Days: number, daysSinceLastWebVisit: number | null): string {
+    // Consider both SMS and web activity
+    const recentWebActivity = daysSinceLastWebVisit !== null && daysSinceLastWebVisit < 30;
+
+    if (smsLast30Days >= 10 || (smsLast30Days >= 5 && recentWebActivity)) {
+      return 'power_user';
+    } else if (smsLast30Days >= 3 || recentWebActivity) {
+      return 'active';
+    } else if (smsLast30Days >= 1) {
+      return 'casual';
+    } else {
+      return 'dormant';
+    }
+  }
+
+  /**
+   * Calculate platform preference based on SMS vs web activity
+   * @param smsLast30Days - SMS messages in last 30 days
+   * @param webVisitsLast30Days - Web visits in last 30 days (estimated from daysSinceLastWebVisit)
+   * @returns Platform preference data
+   */
+  calculatePlatformPreference(smsLast30Days: number, webVisitsLast30Days: number): {
+    primaryPlatform: string;
+    smsPercentage: number;
+  } {
+    const totalActivity = smsLast30Days + webVisitsLast30Days;
+    const smsPercentage = totalActivity > 0
+      ? Math.round((smsLast30Days / totalActivity) * 100)
+      : 100;
+
+    let primaryPlatform: string;
+    if (smsPercentage > 70) {
+      primaryPlatform = 'sms';
+    } else if (smsPercentage < 30) {
+      primaryPlatform = 'web';
+    } else {
+      primaryPlatform = 'balanced';
+    }
+
+    return {
+      primaryPlatform,
+      smsPercentage
+    };
   }
 }
 

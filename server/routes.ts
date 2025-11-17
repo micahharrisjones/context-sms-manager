@@ -24,6 +24,7 @@ import { s3Service } from "./s3-service";
 import { feedbackReminderService } from "./feedback-reminder-service";
 import { sql, asc } from "drizzle-orm";
 import { fileTypeFromBuffer } from "file-type";
+import * as cron from "node-cron";
 
 // Helper function to check MMS rate limit for a user
 function checkMMSRateLimit(userId: number): { allowed: boolean; remaining: number } {
@@ -4593,6 +4594,115 @@ You can now text anything with #${boardName} to share with everyone on the board
         }
       }
 
+      // Update Pendo visitor profile with SMS activity metadata
+      if (smsData.userId) {
+        (async () => {
+          try {
+            const user = await storage.getUserById(smsData.userId);
+            if (!user) {
+              log(`User not found for Pendo profile update: ${smsData.userId}`);
+              return;
+            }
+
+            // Get SMS activity stats
+            const smsStats = await pendoServerService.getSMSActivityStats(storage, smsData.userId);
+
+            // Calculate days since signup
+            const daysSinceSignup = Math.floor(
+              (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+            );
+
+            // Calculate days since last web visit (we'll estimate based on lastLoginAt)
+            const daysSinceLastWebVisit = user.lastLoginAt
+              ? Math.floor((Date.now() - new Date(user.lastLoginAt).getTime()) / (1000 * 60 * 60 * 24))
+              : null;
+
+            // Estimate web visits in last 30 days (rough estimate: if they logged in recently, count as 1-5 visits)
+            const webVisitsLast30Days = daysSinceLastWebVisit !== null && daysSinceLastWebVisit < 30
+              ? Math.max(1, Math.floor(30 / Math.max(daysSinceLastWebVisit, 1)))
+              : 0;
+
+            // Calculate platform preference
+            const platformPreference = pendoServerService.calculatePlatformPreference(
+              smsStats.last30Days,
+              webVisitsLast30Days
+            );
+
+            // Calculate engagement level
+            const engagementLevel = pendoServerService.calculateEngagementLevel(
+              smsStats.last30Days,
+              daysSinceLastWebVisit
+            );
+
+            // Calculate days since last SMS
+            const daysSinceLastSms = smsStats.lastMessageDate
+              ? Math.floor((Date.now() - smsStats.lastMessageDate.getTime()) / (1000 * 60 * 60 * 24))
+              : null;
+
+            // Get board counts
+            const userBoards = await storage.getUserBoardMemberships(smsData.userId);
+            const sharedBoardCount = userBoards.length;
+            
+            // Get private board count (estimate from unique tags)
+            const userTags = await storage.getTags(smsData.userId);
+            const privateBoardCount = userTags.filter(tag => tag !== 'untagged').length;
+
+            // Update Pendo visitor profile
+            await pendoServerService.identifyVisitor(
+              user.phoneNumber,
+              {
+                // Basic user info
+                phone: user.phoneNumber,
+                firstName: user.firstName || null,
+                lastName: user.lastName || null,
+
+                // Signup info
+                signupDate: user.createdAt.toISOString(),
+                signupMethod: user.signupMethod || 'sms',
+                daysSinceSignup: daysSinceSignup,
+
+                // SMS Activity Metadata (CRITICAL FOR SEGMENTATION)
+                lastSmsDate: new Date().toISOString(),
+                totalSmsMessages: smsStats.totalMessages,
+                smsMessagesLast7Days: smsStats.last7Days,
+                smsMessagesLast30Days: smsStats.last30Days,
+                daysSinceLastSms: 0, // Just sent a message!
+
+                // Web Activity Metadata
+                daysSinceLastWebVisit: daysSinceLastWebVisit,
+
+                // Platform Preference
+                primaryPlatform: platformPreference.primaryPlatform,
+                smsActivityPercentage: platformPreference.smsPercentage,
+
+                // User Engagement Level
+                engagementLevel: engagementLevel,
+
+                // Content Stats
+                totalBoards: privateBoardCount + sharedBoardCount,
+                privateBoardCount: privateBoardCount,
+                sharedBoardCount: sharedBoardCount,
+                hasSharedBoards: sharedBoardCount > 0,
+
+                // Feature Adoption
+                hasCreatedBoard: privateBoardCount > 0,
+                hasJoinedSharedBoard: sharedBoardCount > 0,
+
+                // Last updated
+                profileLastUpdated: new Date().toISOString()
+              }
+            );
+
+            log(`✓ Pendo visitor profile updated for ${user.phoneNumber}`);
+          } catch (error) {
+            log(
+              'Error updating Pendo visitor profile:',
+              error instanceof Error ? error.message : String(error)
+            );
+          }
+        })();
+      }
+
       // Handle onboarding flow for existing users (new users already got welcome message above)
       if (smsData.userId && !isNewUser) {
         try {
@@ -5158,6 +5268,185 @@ You can now text anything with #${boardName} to share with everyone on the board
   // Register single primary webhook endpoint for Twilio
   // CRITICAL FIX: Use only ONE webhook endpoint to prevent duplicate SMS notifications
   app.post("/api/webhook/twilio", handleWebhook); // Primary Twilio webhook endpoint
+
+  // Backfill endpoint for SMS metadata (one-time use)
+  app.post("/api/admin/backfill-sms-metadata", requireAuth, async (req, res) => {
+    try {
+      log("Starting SMS metadata backfill...");
+
+      const allUsers = await storage.getAdminUsers();
+      let processed = 0;
+      const errors: string[] = [];
+
+      for (const userInfo of allUsers) {
+        try {
+          const user = await storage.getUserByPhoneNumber(userInfo.phoneNumber);
+          if (!user) continue;
+
+          // Get SMS activity stats
+          const smsStats = await pendoServerService.getSMSActivityStats(storage, user.id);
+
+          // Calculate days since signup
+          const daysSinceSignup = Math.floor(
+            (Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          // Calculate days since last SMS
+          const daysSinceLastSms = smsStats.lastMessageDate
+            ? Math.floor((Date.now() - smsStats.lastMessageDate.getTime()) / (1000 * 60 * 60 * 24))
+            : null;
+
+          // Calculate days since last web visit
+          const daysSinceLastWebVisit = user.lastLoginAt
+            ? Math.floor((Date.now() - new Date(user.lastLoginAt).getTime()) / (1000 * 60 * 60 * 24))
+            : null;
+
+          // Estimate web visits
+          const webVisitsLast30Days = daysSinceLastWebVisit !== null && daysSinceLastWebVisit < 30
+            ? Math.max(1, Math.floor(30 / Math.max(daysSinceLastWebVisit, 1)))
+            : 0;
+
+          // Calculate platform preference
+          const platformPreference = pendoServerService.calculatePlatformPreference(
+            smsStats.last30Days,
+            webVisitsLast30Days
+          );
+
+          // Calculate engagement level
+          const engagementLevel = pendoServerService.calculateEngagementLevel(
+            smsStats.last30Days,
+            daysSinceLastWebVisit
+          );
+
+          // Get board counts
+          const userBoards = await storage.getUserBoardMemberships(user.id);
+          const sharedBoardCount = userBoards.length;
+          const userTags = await storage.getTags(user.id);
+          const privateBoardCount = userTags.filter(tag => tag !== 'untagged').length;
+
+          // Update Pendo
+          await pendoServerService.identifyVisitor(
+            user.phoneNumber,
+            {
+              // Basic user info
+              phone: user.phoneNumber,
+              firstName: user.firstName || null,
+              lastName: user.lastName || null,
+
+              // Signup info
+              signupDate: user.createdAt.toISOString(),
+              signupMethod: user.signupMethod || 'sms',
+              daysSinceSignup: daysSinceSignup,
+
+              // SMS Activity Metadata
+              lastSmsDate: smsStats.lastMessageDate ? smsStats.lastMessageDate.toISOString() : null,
+              totalSmsMessages: smsStats.totalMessages,
+              smsMessagesLast7Days: smsStats.last7Days,
+              smsMessagesLast30Days: smsStats.last30Days,
+              daysSinceLastSms: daysSinceLastSms,
+
+              // Web Activity Metadata
+              daysSinceLastWebVisit: daysSinceLastWebVisit,
+
+              // Platform Preference
+              primaryPlatform: platformPreference.primaryPlatform,
+              smsActivityPercentage: platformPreference.smsPercentage,
+
+              // User Engagement Level
+              engagementLevel: engagementLevel,
+
+              // Content Stats
+              totalBoards: privateBoardCount + sharedBoardCount,
+              privateBoardCount: privateBoardCount,
+              sharedBoardCount: sharedBoardCount,
+              hasSharedBoards: sharedBoardCount > 0,
+
+              // Feature Adoption
+              hasCreatedBoard: privateBoardCount > 0,
+              hasJoinedSharedBoard: sharedBoardCount > 0,
+
+              // Last updated
+              profileLastUpdated: new Date().toISOString()
+            }
+          );
+
+          processed++;
+          log(`✓ Backfilled SMS metadata for ${user.phoneNumber} (${processed}/${allUsers.length})`);
+        } catch (error) {
+          const errorMsg = `Error backfilling ${userInfo.phoneNumber}: ${error instanceof Error ? error.message : String(error)}`;
+          log(errorMsg);
+          errors.push(errorMsg);
+        }
+      }
+
+      log("Finished SMS metadata backfill");
+      res.json({
+        success: true,
+        processed,
+        total: allUsers.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
+    } catch (error) {
+      log(
+        "Error in SMS metadata backfill:",
+        error instanceof Error ? error.message : String(error)
+      );
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  // Daily cron job to update daysSinceLastSms for all users
+  // Runs every day at midnight
+  cron.schedule('0 0 * * *', async () => {
+    log("Starting daily SMS activity update...");
+
+    try {
+      const allUsers = await storage.getAdminUsers();
+
+      for (const userInfo of allUsers) {
+        try {
+          const user = await storage.getUserByPhoneNumber(userInfo.phoneNumber);
+          if (!user) continue;
+
+          // Get SMS stats to find last message date
+          const smsStats = await pendoServerService.getSMSActivityStats(storage, user.id);
+
+          if (smsStats.lastMessageDate) {
+            const daysSinceLastSms = Math.floor(
+              (Date.now() - smsStats.lastMessageDate.getTime()) / (1000 * 60 * 60 * 24)
+            );
+
+            // Update Pendo profile with fresh daysSinceLastSms
+            await pendoServerService.identifyVisitor(
+              user.phoneNumber,
+              {
+                daysSinceLastSms: daysSinceLastSms,
+                profileLastUpdated: new Date().toISOString()
+              }
+            );
+          }
+        } catch (error) {
+          log(
+            `Error updating SMS days for ${userInfo.phoneNumber}:`,
+            error instanceof Error ? error.message : String(error)
+          );
+          // Continue with next user
+        }
+      }
+
+      log("Finished daily SMS activity update");
+    } catch (error) {
+      log(
+        "Error in daily SMS activity update:",
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  });
+
+  log("✓ Daily SMS activity cron job initialized (runs at midnight)");
 
   return httpServer;
 }
