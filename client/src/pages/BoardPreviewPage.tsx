@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Layout } from "@/components/layout/Layout";
 import { Loader2 } from "lucide-react";
 import { pendo } from "@/lib/pendo";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 
 interface BoardPreview {
   id: number;
@@ -19,8 +21,11 @@ interface BoardPreview {
 export default function BoardPreviewPage() {
   const params = useParams();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [step, setStep] = useState<'phone' | 'code'>('phone');
   
   const boardId = params.boardId;
 
@@ -56,6 +61,80 @@ export default function BoardPreviewPage() {
     },
   });
 
+  // Send verification code mutation
+  const sendCodeMutation = useMutation({
+    mutationFn: async (phone: string) => {
+      const res = await fetch('/api/board-invite/send-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber: phone, boardId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to send code');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setStep('code');
+      toast({
+        title: "Code Sent!",
+        description: `We sent a verification code to ${phoneNumber}`,
+      });
+      pendo.track('Board Invite Code Sent', {
+        boardId: boardId || 'unknown',
+        boardName: boardPreview?.name || 'unknown',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Verify code and join board mutation
+  const verifyCodeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await fetch('/api/board-invite/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneNumber, code, boardId }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Invalid code');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Invalidate user query to refresh auth state
+      queryClient.invalidateQueries({ queryKey: ['/api/user'] });
+      
+      toast({
+        title: "Welcome!",
+        description: `You're now part of #${boardPreview?.name}`,
+      });
+      
+      pendo.track('Board Invite Verified', {
+        boardId: boardId || 'unknown',
+        boardName: boardPreview?.name || 'unknown',
+      });
+      
+      // Redirect to the board
+      setLocation(`/tag/shared/${data.boardName}`);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Verification Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   // Redirect authenticated users directly to the board after auto-joining
   useEffect(() => {
     if (user && boardId && !autoJoinMutation.isPending && !autoJoinMutation.isSuccess) {
@@ -63,23 +142,12 @@ export default function BoardPreviewPage() {
     }
   }, [user, boardId]);
 
-  // Store board ID in localStorage as soon as we have it (before preview loads)
-  useEffect(() => {
-    if (boardId && !user) {
-      localStorage.setItem('pendingBoardId', boardId);
-    }
-  }, [boardId, user]);
-
   // Show join modal for non-authenticated users
   useEffect(() => {
     if (boardId && !user) {
       setShowJoinModal(true);
-      // Update board name once preview loads
-      if (boardPreview) {
-        localStorage.setItem('pendingBoardName', boardPreview.name);
-      }
     }
-  }, [boardPreview, user, boardId]);
+  }, [user, boardId]);
 
   // Track landing page view
   useEffect(() => {
@@ -89,13 +157,30 @@ export default function BoardPreviewPage() {
     });
   }, [boardId, boardPreview]);
 
-  const handleJoinClick = () => {
-    pendo.track('Join Button Clicked', {
-      source: 'board_preview',
-      boardId: boardId || 'unknown',
-      boardName: boardPreview?.name || 'unknown',
-    });
-    setLocation('/login');
+  const handleSendCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phoneNumber.trim()) {
+      toast({
+        title: "Phone Required",
+        description: "Please enter your phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+    sendCodeMutation.mutate(phoneNumber);
+  };
+
+  const handleVerifyCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!verificationCode.trim()) {
+      toast({
+        title: "Code Required",
+        description: "Please enter the verification code",
+        variant: "destructive",
+      });
+      return;
+    }
+    verifyCodeMutation.mutate(verificationCode);
   };
 
   // Show loading state
@@ -161,31 +246,100 @@ export default function BoardPreviewPage() {
                 Join #{boardPreview.name}
               </DialogTitle>
               <DialogDescription className="text-[#263d57]/70">
-                You've been invited to view this shared board. Sign in or create an account to see {boardPreview.totalMessages} saved {boardPreview.totalMessages === 1 ? 'message' : 'messages'}.
+                {step === 'phone' 
+                  ? `You've been invited to view this shared board with ${boardPreview.totalMessages} saved ${boardPreview.totalMessages === 1 ? 'message' : 'messages'}. Enter your number to join.`
+                  : `Enter the code we sent to ${phoneNumber}`
+                }
               </DialogDescription>
             </DialogHeader>
             
-            <div className="space-y-4 pt-4">
-              <Button 
-                onClick={handleJoinClick}
-                className="w-full bg-[#b95827] hover:bg-[#a04d20] text-white"
-                data-testid="button-join-board"
-              >
-                Join Board
-              </Button>
-              
-              <p className="text-xs text-[#263d57]/60 text-center">
-                By joining, you agree to our{" "}
-                <a 
-                  href="https://textaside.com/privacy-policy" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="underline hover:text-[#b95827]"
+            {step === 'phone' ? (
+              <form onSubmit={handleSendCode} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="+1 (555) 123-4567"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    disabled={sendCodeMutation.isPending}
+                    data-testid="input-phone"
+                  />
+                </div>
+                
+                <Button 
+                  type="submit"
+                  className="w-full bg-[#b95827] hover:bg-[#a04d20] text-white"
+                  disabled={sendCodeMutation.isPending}
+                  data-testid="button-send-code"
                 >
-                  Privacy Policy
-                </a>
-              </p>
-            </div>
+                  {sendCodeMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending Code...
+                    </>
+                  ) : (
+                    'Send Code'
+                  )}
+                </Button>
+                
+                <p className="text-xs text-[#263d57]/60 text-center">
+                  By joining, you agree to our{" "}
+                  <a 
+                    href="https://textaside.com/privacy-policy" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="underline hover:text-[#b95827]"
+                  >
+                    Privacy Policy
+                  </a>
+                </p>
+              </form>
+            ) : (
+              <form onSubmit={handleVerifyCode} className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="code">Verification Code</Label>
+                  <Input
+                    id="code"
+                    type="text"
+                    placeholder="123456"
+                    value={verificationCode}
+                    onChange={(e) => setVerificationCode(e.target.value)}
+                    disabled={verifyCodeMutation.isPending}
+                    autoFocus
+                    data-testid="input-code"
+                  />
+                </div>
+                
+                <Button 
+                  type="submit"
+                  className="w-full bg-[#b95827] hover:bg-[#a04d20] text-white"
+                  disabled={verifyCodeMutation.isPending}
+                  data-testid="button-verify-code"
+                >
+                  {verifyCodeMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Join Board'
+                  )}
+                </Button>
+                
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => setStep('phone')}
+                  disabled={verifyCodeMutation.isPending}
+                  data-testid="button-back"
+                >
+                  Change Phone Number
+                </Button>
+              </form>
+            )}
           </DialogContent>
         </Dialog>
       </div>

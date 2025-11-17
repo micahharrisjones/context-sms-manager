@@ -684,6 +684,21 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
 
           if (existingUser) {
             log(`User already exists for ${senderId}`);
+            
+            // Check if they haven't completed onboarding yet (board invite user)
+            if (!existingUser.onboardingCompletedAt) {
+              log(`Completing onboarding for board invite user ${existingUser.id}`);
+              
+              // Send welcome message and mark onboarding complete
+              await twilioService.sendWelcomeMessage(senderId, onboardingService);
+              await storage.markOnboardingCompleted(existingUser.id);
+              
+              pendingDirectInvites.delete(normalizedPhone);
+              log(`✅ Board invite user ${existingUser.id} completed onboarding`);
+              return null;
+            }
+            
+            // User already fully onboarded
             pendingDirectInvites.delete(normalizedPhone);
             await twilioService.sendSMS(
               senderId,
@@ -3449,6 +3464,127 @@ You can now text anything with #${boardName} to share with everyone on the board
         `Error auto-joining board: ${error instanceof Error ? error.message : String(error)}`,
       );
       res.status(500).json({ error: "Failed to join board" });
+    }
+  });
+
+  // Board invite: Send verification code
+  app.post("/api/board-invite/send-code", async (req, res) => {
+    try {
+      const { phoneNumber, boardId } = req.body;
+
+      if (!phoneNumber || typeof phoneNumber !== "string") {
+        return res.status(400).json({ error: "Phone number is required" });
+      }
+
+      if (!boardId) {
+        return res.status(400).json({ error: "Board ID is required" });
+      }
+
+      // Verify board exists
+      const board = await storage.getSharedBoard(parseInt(boardId));
+      if (!board) {
+        return res.status(404).json({ error: "Board not found" });
+      }
+
+      // Send verification code using existing auth system
+      const result = await AuthService.initializeVerification(phoneNumber);
+
+      if (result.success) {
+        log(`Sent board invite verification code to ${phoneNumber} for board ${boardId}`);
+        res.json({ success: true, message: result.message });
+      } else {
+        res.status(400).json({ error: result.message });
+      }
+    } catch (error) {
+      log(
+        `Error sending board invite code: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      res.status(500).json({ error: "Failed to send verification code" });
+    }
+  });
+
+  // Board invite: Verify code and join board
+  app.post("/api/board-invite/verify-code", async (req, res) => {
+    try {
+      const { phoneNumber, code, boardId } = req.body;
+
+      if (!phoneNumber || !code || !boardId) {
+        return res.status(400).json({ error: "Phone number, code, and board ID are required" });
+      }
+
+      // Verify board exists
+      const board = await storage.getSharedBoard(parseInt(boardId));
+      if (!board) {
+        return res.status(404).json({ error: "Board not found" });
+      }
+
+      // Verify the code using existing auth system
+      const authResult = await AuthService.verifyAndAuthenticate(phoneNumber, code);
+
+      if (!authResult.success || !authResult.user) {
+        return res.status(400).json({ error: authResult.message });
+      }
+
+      const user = authResult.user;
+
+      // Log the user in by creating a session
+      req.login(user, (err) => {
+        if (err) {
+          log(`Error creating session for user ${user.id}:`, err);
+          return res.status(500).json({ error: "Failed to create session" });
+        }
+      });
+
+      // Check if user is already a member of the board
+      const existingMemberships = await storage.getUserBoardMemberships(user.id);
+      const alreadyMember = existingMemberships.some((m) => m.board.id === board.id);
+
+      if (!alreadyMember) {
+        // Add user to board
+        await storage.addBoardMember({
+          boardId: board.id,
+          userId: user.id,
+          role: "member",
+          invitedBy: board.createdBy,
+        });
+
+        log(`User ${user.id} joined board ${board.id} (${board.name}) via invite link`);
+      }
+
+      // Check if this is a new user (needs onboarding)
+      const isNewUser = !user.onboardingCompletedAt;
+
+      // If new user, send welcome/opt-in SMS
+      if (isNewUser) {
+        try {
+          const welcomeMessage = `🎉 Welcome to Aside! You're now part of #${board.name}. Say YES to unlock all features and start saving your own content too!`;
+          await twilioService.sendSMS(phoneNumber, welcomeMessage);
+          log(`Sent welcome/opt-in SMS to new user ${user.id}`);
+
+          // Store this user as pending board invite opt-in for YES handler
+          // Use the same Map as direct invites for now
+          const normalizedPhone = normalizePhoneNumber(phoneNumber);
+          pendingDirectInvites.set(normalizedPhone, {
+            inviterName: board.name,
+            timestamp: Date.now(),
+          });
+        } catch (smsError) {
+          log(`Failed to send welcome SMS: ${smsError instanceof Error ? smsError.message : String(smsError)}`);
+          // Don't fail the request if SMS fails
+        }
+      }
+
+      res.json({
+        success: true,
+        boardName: board.name,
+        userId: user.id,
+        isNewUser,
+      });
+    } catch (error) {
+      log(
+        `Error verifying board invite code: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      res.status(500).json({ error: "Failed to verify code" });
     }
   });
 
