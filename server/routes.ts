@@ -3407,6 +3407,51 @@ You can now text anything with #${boardName} to share with everyone on the board
     }
   });
 
+  // Auto-join authenticated user to shared board (from preview link)
+  app.post("/api/shared-boards/:boardId/auto-join", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = parseInt(req.params.boardId);
+      
+      if (isNaN(boardId)) {
+        return res.status(400).json({ error: "Invalid board ID" });
+      }
+
+      // Get board by ID
+      const board = await storage.getSharedBoard(boardId);
+      if (!board) {
+        return res.status(404).json({ error: "Board not found" });
+      }
+
+      // Check if user is already a member
+      const existingMemberships = await storage.getUserBoardMemberships(userId);
+      const alreadyMember = existingMemberships.some((m) => m.board.id === board.id);
+
+      if (!alreadyMember) {
+        // Add user to board (no specific inviter since they came via link)
+        await storage.addBoardMember({
+          boardId: board.id,
+          userId: userId,
+          role: "member",
+          invitedBy: board.createdBy, // Attribute to board creator
+        });
+        
+        log(`User ${userId} auto-joined board ${board.id} (${board.name}) via preview link`);
+      }
+
+      // Return board name for redirect
+      res.json({
+        boardName: board.name,
+        alreadyMember,
+      });
+    } catch (error) {
+      log(
+        `Error auto-joining board: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      res.status(500).json({ error: "Failed to join board" });
+    }
+  });
+
   // Get shared boards with message counts for dashboard
   app.get("/api/shared-boards-with-counts", requireAuth, async (req, res) => {
     try {

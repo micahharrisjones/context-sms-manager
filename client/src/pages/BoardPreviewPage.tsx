@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -41,12 +41,27 @@ export default function BoardPreviewPage() {
     queryKey: ['/api/user'],
   });
 
-  // Redirect authenticated users directly to the board
+  // Auto-join authenticated users to the board
+  const autoJoinMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/shared-boards/${boardId}/auto-join`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to join board');
+      return res.json();
+    },
+    onSuccess: (data) => {
+      // Redirect to the board using the slug from the response
+      setLocation(`/tag/shared/${data.boardName}`);
+    },
+  });
+
+  // Redirect authenticated users directly to the board after auto-joining
   useEffect(() => {
-    if (user && boardPreview) {
-      setLocation(`/tag/shared/${boardPreview.name}`);
+    if (user && boardId && !autoJoinMutation.isPending && !autoJoinMutation.isSuccess) {
+      autoJoinMutation.mutate();
     }
-  }, [user, boardPreview, setLocation]);
+  }, [user, boardId]);
 
   // Store board ID in localStorage as soon as we have it (before preview loads)
   useEffect(() => {
