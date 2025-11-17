@@ -3373,6 +3373,40 @@ You can now text anything with #${boardName} to share with everyone on the board
     }
   });
 
+  // Public board preview endpoint (no auth required) - for invited non-users
+  // Returns only safe metadata - no actual message content for security
+  app.get("/api/shared-boards/:boardId/preview", async (req, res) => {
+    try {
+      const boardId = parseInt(req.params.boardId);
+      
+      if (isNaN(boardId)) {
+        return res.status(400).json({ error: "Invalid board ID" });
+      }
+
+      // Get board by ID
+      const board = await storage.getSharedBoard(boardId);
+      if (!board) {
+        return res.status(404).json({ error: "Board not found" });
+      }
+
+      // Get message count only - don't expose actual content to unauthenticated users
+      const messages = await storage.getMessagesByTag(board.createdBy, board.name);
+
+      res.json({
+        id: board.id,
+        name: board.name,
+        totalMessages: messages.length,
+        // Only return safe metadata, no actual message content
+        hasContent: messages.length > 0,
+      });
+    } catch (error) {
+      log(
+        `Error fetching board preview: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      res.status(500).json({ error: "Failed to fetch board preview" });
+    }
+  });
+
   // Get shared boards with message counts for dashboard
   app.get("/api/shared-boards-with-counts", requireAuth, async (req, res) => {
     try {
@@ -3583,16 +3617,31 @@ You can now text anything with #${boardName} to share with everyone on the board
 
         // Find user by phone number
         const invitedUser = await storage.getUserByPhoneNumber(phoneNumber);
+        
         if (!invitedUser) {
-          return res
-            .status(404)
-            .json({
-              error:
-                "User with this phone number not found. They need to create an account first.",
+          // User doesn't exist yet - send them an invite SMS with join link
+          const joinUrl = `https://textaside.app/join?board=${board.id}`;
+          
+          try {
+            await twilioService.sendSMS(
+              phoneNumber,
+              `You've been invited to the Aside board "#${boardName}"! Join to view and contribute: ${joinUrl}`
+            );
+            
+            log(`Sent invite SMS to ${phoneNumber} for board ${board.id} (${boardName})`);
+            
+            return res.status(200).json({
+              success: true,
+              message: `Invitation SMS sent to ${phoneNumber}. They'll be added to #${boardName} when they join Aside.`,
+              pendingInvite: true,
             });
+          } catch (smsError) {
+            log(`Failed to send invite SMS: ${smsError instanceof Error ? smsError.message : String(smsError)}`);
+            return res.status(500).json({ error: "Failed to send invitation SMS" });
+          }
         }
 
-        // Check if user is already a member
+        // User exists - check if already a member
         const existingMemberships = await storage.getUserBoardMemberships(
           invitedUser.id,
         );
@@ -3613,6 +3662,18 @@ You can now text anything with #${boardName} to share with everyone on the board
           role: "member",
           invitedBy: userId,
         });
+        
+        // Send notification SMS to existing user
+        try {
+          const joinUrl = `https://textaside.app/join?board=${board.id}`;
+          await twilioService.sendSMS(
+            phoneNumber,
+            `You've been added to the Aside board "#${boardName}"! View it here: ${joinUrl}`
+          );
+        } catch (smsError) {
+          log(`Failed to send board notification SMS: ${smsError instanceof Error ? smsError.message : String(smsError)}`);
+          // Don't fail the request if SMS fails
+        }
 
         log(`Added user ${invitedUser.id} to board ${board.id} (${boardName})`);
         res.status(201).json({

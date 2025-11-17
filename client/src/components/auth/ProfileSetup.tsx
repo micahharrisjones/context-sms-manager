@@ -2,6 +2,7 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ interface ProfileSetupProps {
 export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const form = useForm<ProfileSetupData>({
     resolver: zodResolver(profileSetupSchema),
@@ -49,13 +51,44 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
         body: JSON.stringify(profileData),
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast({
         title: "Profile Created!",
         description: "Your profile has been set up successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
-      onComplete();
+      
+      // Check if there's a pending board to redirect to
+      const pendingBoardId = localStorage.getItem('pendingBoardId');
+      const pendingBoardName = localStorage.getItem('pendingBoardName');
+      
+      if (pendingBoardId && pendingBoardName) {
+        // Clear the pending board data
+        localStorage.removeItem('pendingBoardId');
+        localStorage.removeItem('pendingBoardName');
+        
+        try {
+          // Verify board still exists before redirecting
+          const res = await fetch(`/api/shared-boards/${pendingBoardId}/preview`);
+          if (res.ok) {
+            // Use router navigation instead of window.location
+            setLocation(`/tag/shared/${pendingBoardName}`);
+          } else {
+            // Board doesn't exist anymore, go to dashboard
+            toast({
+              title: "Board Not Found",
+              description: "The board you were invited to no longer exists.",
+              variant: "destructive",
+            });
+            onComplete();
+          }
+        } catch (error) {
+          // If verification fails, just go to dashboard
+          onComplete();
+        }
+      } else {
+        onComplete();
+      }
     },
     onError: (error: any) => {
       toast({
@@ -76,9 +109,40 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
         }),
       });
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
-      onComplete();
+      
+      // Check if there's a pending board to redirect to
+      const pendingBoardId = localStorage.getItem('pendingBoardId');
+      const pendingBoardName = localStorage.getItem('pendingBoardName');
+      
+      if (pendingBoardId && pendingBoardName) {
+        // Clear the pending board data
+        localStorage.removeItem('pendingBoardId');
+        localStorage.removeItem('pendingBoardName');
+        
+        try {
+          // Verify board still exists before redirecting
+          const res = await fetch(`/api/shared-boards/${pendingBoardId}/preview`);
+          if (res.ok) {
+            // Use router navigation instead of window.location
+            setLocation(`/tag/shared/${pendingBoardName}`);
+          } else {
+            // Board doesn't exist anymore, go to dashboard
+            toast({
+              title: "Board Not Found",
+              description: "The board you were invited to no longer exists.",
+              variant: "destructive",
+            });
+            onComplete();
+          }
+        } catch (error) {
+          // If verification fails, just go to dashboard
+          onComplete();
+        }
+      } else {
+        onComplete();
+      }
     },
     onError: (error: any) => {
       toast({
