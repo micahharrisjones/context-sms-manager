@@ -459,6 +459,18 @@ const twilioWebhookSchema = z.object({
   SmsStatus: z.string().optional(),
 });
 
+// Board invite validation schemas
+const boardInviteSendCodeSchema = z.object({
+  phoneNumber: z.string().min(10).max(20),
+  boardId: z.coerce.number().int().positive(),
+});
+
+const boardInviteVerifyCodeSchema = z.object({
+  phoneNumber: z.string().min(10).max(20),
+  code: z.coerce.string().min(4).max(6),
+  boardId: z.coerce.number().int().positive(),
+});
+
 // Helper function to get recent tags from the same sender for a specific user
 async function getRecentTagsFromSender(
   userId: number,
@@ -3470,18 +3482,19 @@ You can now text anything with #${boardName} to share with everyone on the board
   // Board invite: Send verification code
   app.post("/api/board-invite/send-code", async (req, res) => {
     try {
-      const { phoneNumber, boardId } = req.body;
-
-      if (!phoneNumber || typeof phoneNumber !== "string") {
-        return res.status(400).json({ error: "Phone number is required" });
+      // Validate request body
+      const validation = boardInviteSendCodeSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Invalid request", 
+          details: validation.error.issues 
+        });
       }
 
-      if (!boardId) {
-        return res.status(400).json({ error: "Board ID is required" });
-      }
+      const { phoneNumber, boardId } = validation.data;
 
       // Verify board exists
-      const board = await storage.getSharedBoard(parseInt(boardId));
+      const board = await storage.getSharedBoard(boardId);
       if (!board) {
         return res.status(404).json({ error: "Board not found" });
       }
@@ -3506,14 +3519,19 @@ You can now text anything with #${boardName} to share with everyone on the board
   // Board invite: Verify code and join board
   app.post("/api/board-invite/verify-code", async (req, res) => {
     try {
-      const { phoneNumber, code, boardId } = req.body;
-
-      if (!phoneNumber || !code || !boardId) {
-        return res.status(400).json({ error: "Phone number, code, and board ID are required" });
+      // Validate request body
+      const validation = boardInviteVerifyCodeSchema.safeParse(req.body);
+      if (!validation.success) {
+        return res.status(400).json({ 
+          error: "Invalid request", 
+          details: validation.error.issues 
+        });
       }
 
+      const { phoneNumber, code, boardId } = validation.data;
+
       // Verify board exists
-      const board = await storage.getSharedBoard(parseInt(boardId));
+      const board = await storage.getSharedBoard(boardId);
       if (!board) {
         return res.status(404).json({ error: "Board not found" });
       }
