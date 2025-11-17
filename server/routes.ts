@@ -3546,11 +3546,12 @@ You can now text anything with #${boardName} to share with everyone on the board
       const user = authResult.user;
 
       // Log the user in by creating a session
-      req.login(user, (err) => {
-        if (err) {
-          log(`Error creating session for user ${user.id}:`, err);
-          return res.status(500).json({ error: "Failed to create session" });
-        }
+      req.session.userId = user.id;
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err: any) => {
+          if (err) reject(err);
+          else resolve();
+        });
       });
 
       // Check if user is already a member of the board
@@ -3583,6 +3584,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           // Use the same Map as direct invites for now
           const normalizedPhone = normalizePhoneNumber(phoneNumber);
           pendingDirectInvites.set(normalizedPhone, {
+            phoneNumber: normalizedPhone,
             inviterName: board.name,
             timestamp: Date.now(),
           });
