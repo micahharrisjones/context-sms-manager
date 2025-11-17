@@ -3619,13 +3619,13 @@ You can now text anything with #${boardName} to share with everyone on the board
         const invitedUser = await storage.getUserByPhoneNumber(phoneNumber);
         
         if (!invitedUser) {
-          // User doesn't exist yet - send them an invite SMS with join link
-          const joinUrl = `https://textaside.app/join?board=${board.id}`;
+          // User doesn't exist yet - send them an invite SMS with board preview link
+          const boardPreviewUrl = `https://textaside.app/board/${board.id}/preview`;
           
           try {
             await twilioService.sendSMS(
               phoneNumber,
-              `You've been invited to the Aside board "#${boardName}"! Join to view and contribute: ${joinUrl}`
+              `You've been invited to the Aside board "#${boardName}"! Join to view and contribute: ${boardPreviewUrl}`
             );
             
             log(`Sent invite SMS to ${phoneNumber} for board ${board.id} (${boardName})`);
@@ -3665,10 +3665,10 @@ You can now text anything with #${boardName} to share with everyone on the board
         
         // Send notification SMS to existing user
         try {
-          const joinUrl = `https://textaside.app/join?board=${board.id}`;
+          const boardPreviewUrl = `https://textaside.app/board/${board.id}/preview`;
           await twilioService.sendSMS(
             phoneNumber,
-            `You've been added to the Aside board "#${boardName}"! View it here: ${joinUrl}`
+            `You've been added to the Aside board "#${boardName}"! View it here: ${boardPreviewUrl}`
           );
         } catch (smsError) {
           log(`Failed to send board notification SMS: ${smsError instanceof Error ? smsError.message : String(smsError)}`);
