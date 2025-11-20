@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +21,20 @@ export function AdminButton({ onClose, location }: AdminButtonProps) {
     },
   });
 
+  // Fetch unread feedback count
+  const { data: unreadFeedbackData } = useQuery<{ count: number }>({
+    queryKey: ['/api/admin/feedback/unread-count'],
+    retry: false,
+    enabled: !!hasAdminAccess, // Only fetch if user has admin access
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
   // Only render the admin button if the user has admin access
   if (!hasAdminAccess) {
     return null;
   }
+
+  const unreadCount = unreadFeedbackData?.count || 0;
 
   return (
     <Link href="/admin" data-pendo="link-admin-panel">
@@ -38,6 +49,15 @@ export function AdminButton({ onClose, location }: AdminButtonProps) {
       >
         <Settings className="h-4 w-4 mr-2" />
         Admin Panel
+        {unreadCount > 0 && (
+          <Badge 
+            variant="destructive" 
+            className="ml-auto bg-red-500 text-white"
+            data-testid="badge-unread-feedback"
+          >
+            {unreadCount}
+          </Badge>
+        )}
       </Button>
     </Link>
   );

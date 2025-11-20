@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Hash, X, Users, User, Plus, LogOut, Settings, Bell, Trash2, Search, UserPlus } from "lucide-react";
+import { Hash, X, Users, User, Plus, LogOut, Settings, Bell, Trash2, Search, UserPlus, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { useAuth } from "@/hooks/useAuth";
@@ -221,6 +221,19 @@ export function Sidebar({ onClose }: SidebarProps) {
           <UserPlus className="h-4 w-4 mr-2" />
           Invite Friends
         </Button>
+        
+        <Link href="/feedback" data-pendo="link-feedback">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-[#263d57]/70 hover:text-[#263d57] hover:bg-[#e3cac0]/20"
+            onClick={onClose}
+            data-testid="button-feedback"
+            data-pendo="button-feedback"
+          >
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Feedback
+          </Button>
+        </Link>
         
         <Button
           variant="ghost"

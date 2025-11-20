@@ -21,6 +21,8 @@ import {
   type InsertMessageEmbedding,
   type SweepstakesEntry,
   type InsertSweepstakesEntry,
+  type FeedbackSubmission,
+  type InsertFeedbackSubmission,
   messages, 
   users, 
   authSessions,
@@ -30,7 +32,8 @@ import {
   notificationPreferences,
   onboardingMessages,
   messageEmbeddings,
-  sweepstakesEntries
+  sweepstakesEntries,
+  feedbackSubmissions
 } from "@shared/schema";
 import { db } from "./db";
 import { desc, eq, sql, gte, lt, and, inArray, or, like, count, asc } from "drizzle-orm";
@@ -160,6 +163,12 @@ export interface IStorage {
   createSweepstakesEntry(entry: InsertSweepstakesEntry): Promise<SweepstakesEntry>;
   getSweepstakesEntry(phoneNumber: string): Promise<SweepstakesEntry | undefined>;
   getAllSweepstakesEntries(): Promise<SweepstakesEntry[]>;
+  
+  // Feedback methods
+  createFeedbackSubmission(feedback: InsertFeedbackSubmission): Promise<FeedbackSubmission>;
+  getAllFeedbackSubmissions(): Promise<FeedbackSubmission[]>;
+  getUnreadFeedbackCount(): Promise<number>;
+  markFeedbackAsReviewed(feedbackId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -2230,6 +2239,67 @@ export class DatabaseStorage implements IStorage {
       return entries;
     } catch (error) {
       log("Error fetching all sweepstakes entries:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  // Feedback methods
+  async createFeedbackSubmission(feedback: InsertFeedbackSubmission): Promise<FeedbackSubmission> {
+    try {
+      log("Creating feedback submission:", JSON.stringify(feedback, null, 2));
+      const [submission] = await db
+        .insert(feedbackSubmissions)
+        .values(feedback)
+        .returning();
+      
+      log(`Successfully created feedback submission ${submission.id}`);
+      return submission;
+    } catch (error) {
+      log("Error creating feedback submission:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getAllFeedbackSubmissions(): Promise<FeedbackSubmission[]> {
+    try {
+      const submissions = await db
+        .select()
+        .from(feedbackSubmissions)
+        .orderBy(desc(feedbackSubmissions.createdAt));
+      
+      log(`Fetched ${submissions.length} feedback submissions`);
+      return submissions;
+    } catch (error) {
+      log("Error fetching feedback submissions:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getUnreadFeedbackCount(): Promise<number> {
+    try {
+      const [result] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(feedbackSubmissions)
+        .where(eq(feedbackSubmissions.isReviewed, "false"));
+      
+      log(`Unread feedback count: ${result.count}`);
+      return result.count;
+    } catch (error) {
+      log("Error getting unread feedback count:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async markFeedbackAsReviewed(feedbackId: number): Promise<void> {
+    try {
+      await db
+        .update(feedbackSubmissions)
+        .set({ isReviewed: "true" })
+        .where(eq(feedbackSubmissions.id, feedbackId));
+      
+      log(`Marked feedback ${feedbackId} as reviewed`);
+    } catch (error) {
+      log("Error marking feedback as reviewed:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }

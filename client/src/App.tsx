@@ -9,6 +9,7 @@ import SearchPage from "@/pages/search";
 import { AdminPage } from "@/pages/AdminPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { NotificationSettingsPage } from "@/pages/NotificationSettingsPage";
+import FeedbackPage from "@/pages/FeedbackPage";
 import LoginPage from "@/pages/login";
 import SetupPage from "@/pages/setup";
 import JoinPage from "@/pages/JoinPage";
@@ -91,6 +92,9 @@ function Router() {
           </Route>
           <Route path="/notifications">
             {() => <ProtectedRoute component={NotificationSettingsPage} />}
+          </Route>
+          <Route path="/feedback">
+            {() => <ProtectedRoute component={FeedbackPage} />}
           </Route>
           <Route component={NotFound} />
         </Switch>

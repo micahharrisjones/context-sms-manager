@@ -5448,6 +5448,183 @@ You can now text anything with #${boardName} to share with everyone on the board
 
   log("✓ Daily SMS activity cron job initialized (runs at midnight)");
 
+  // ======================
+  // FEEDBACK ENDPOINTS
+  // ======================
+
+  // POST /api/feedback - Submit feedback with optional image attachment
+  app.post("/api/feedback", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const { feedbackType, name, email, subject, message, imageData } = req.body;
+
+      // Validate required fields
+      if (!feedbackType || !email || !subject || !message) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (!["bug", "suggestion", "general"].includes(feedbackType)) {
+        return res.status(400).json({ error: "Invalid feedback type" });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Invalid email address" });
+      }
+
+      // Validate lengths
+      if (subject.length > 100) {
+        return res.status(400).json({ error: "Subject must be 100 characters or less" });
+      }
+
+      if (message.length > 2000) {
+        return res.status(400).json({ error: "Message must be 2000 characters or less" });
+      }
+
+      let attachmentUrl = null;
+
+      // Handle optional image attachment (base64 encoded)
+      if (imageData) {
+        try {
+          // imageData should be in format: "data:image/jpeg;base64,/9j/4AAQ..."
+          const matches = imageData.match(/^data:image\/(\w+);base64,(.+)$/);
+          if (!matches) {
+            return res.status(400).json({ error: "Invalid image data format" });
+          }
+
+          const imageType = matches[1];
+          const base64Data = matches[2];
+          const buffer = Buffer.from(base64Data, 'base64');
+
+          // Check file size (5 MB max)
+          const MAX_SIZE = 5 * 1024 * 1024;
+          if (buffer.length > MAX_SIZE) {
+            return res.status(400).json({ error: "Image must be under 5 MB" });
+          }
+
+          // Upload to S3 (using existing s3Service)
+          // Create a temporary message ID for the feedback image
+          const tempMessageId = Date.now();
+          const uploadResult = await s3Service.uploadImage({
+            buffer,
+            userId,
+            messageId: tempMessageId,
+            originalFilename: `feedback-${userId}-${tempMessageId}.${imageType}`
+          });
+
+          attachmentUrl = uploadResult.key;
+          log(`Feedback image uploaded to S3: ${attachmentUrl}`);
+        } catch (uploadError) {
+          log("Error uploading feedback image:", uploadError instanceof Error ? uploadError.message : String(uploadError));
+          return res.status(500).json({ error: "Failed to upload image" });
+        }
+      }
+
+      // Create feedback submission
+      const feedback = await storage.createFeedbackSubmission({
+        userId,
+        feedbackType,
+        name: name || null,
+        email,
+        subject,
+        message,
+        attachmentUrl
+      });
+
+      log(`Feedback submission created: ${feedback.id} from user ${userId}`);
+
+      // Track in Pendo
+      const user = await storage.getUserById(userId);
+      if (user?.phoneNumber) {
+        try {
+          await pendoServerService.trackEvent(user.phoneNumber, 'Feedback Submitted', {
+            feedbackId: feedback.id,
+            feedbackType,
+            hasAttachment: !!attachmentUrl,
+            subject
+          });
+        } catch (pendoError) {
+          log("Pendo tracking failed for feedback submission:", pendoError instanceof Error ? pendoError.message : String(pendoError));
+        }
+      }
+
+      res.status(201).json({ 
+        success: true, 
+        feedbackId: feedback.id,
+        message: "Thank you for your feedback! We've received your submission." 
+      });
+    } catch (error) {
+      log("Error creating feedback submission:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: "Failed to submit feedback" });
+    }
+  });
+
+  // GET /api/admin/feedback - Get all feedback submissions (admin only)
+  app.get("/api/admin/feedback", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const userIsAdmin = await isUserAdmin(userId);
+
+      if (!userIsAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const submissions = await storage.getAllFeedbackSubmissions();
+      log(`Admin fetched ${submissions.length} feedback submissions`);
+
+      res.json(submissions);
+    } catch (error) {
+      log("Error fetching feedback submissions:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: "Failed to fetch feedback" });
+    }
+  });
+
+  // GET /api/admin/feedback/unread-count - Get count of unread feedback (admin only)
+  app.get("/api/admin/feedback/unread-count", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const userIsAdmin = await isUserAdmin(userId);
+
+      if (!userIsAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const count = await storage.getUnreadFeedbackCount();
+      log(`Admin fetched unread feedback count: ${count}`);
+
+      res.json({ count });
+    } catch (error) {
+      log("Error fetching unread feedback count:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: "Failed to fetch count" });
+    }
+  });
+
+  // PATCH /api/admin/feedback/:id/mark-reviewed - Mark feedback as reviewed (admin only)
+  app.patch("/api/admin/feedback/:id/mark-reviewed", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const userIsAdmin = await isUserAdmin(userId);
+
+      if (!userIsAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const feedbackId = parseInt(req.params.id);
+      if (isNaN(feedbackId)) {
+        return res.status(400).json({ error: "Invalid feedback ID" });
+      }
+
+      await storage.markFeedbackAsReviewed(feedbackId);
+      log(`Admin marked feedback ${feedbackId} as reviewed`);
+
+      res.json({ success: true });
+    } catch (error) {
+      log("Error marking feedback as reviewed:", error instanceof Error ? error.message : String(error));
+      res.status(500).json({ error: "Failed to mark as reviewed" });
+    }
+  });
+
   return httpServer;
 }
 

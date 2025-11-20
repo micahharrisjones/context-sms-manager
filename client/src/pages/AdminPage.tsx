@@ -45,6 +45,19 @@ interface SweepstakesEntry {
   createdAt: string;
 }
 
+interface FeedbackSubmission {
+  id: number;
+  userId: number;
+  feedbackType: string;
+  name: string | null;
+  email: string;
+  subject: string;
+  message: string;
+  attachmentUrl: string | null;
+  isReviewed: string;
+  createdAt: string;
+}
+
 export function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -65,15 +78,21 @@ export function AdminPage() {
     retry: false
   });
 
-  // Fetch feedback messages
+  // Fetch feedback messages (SMS messages tagged with #feedback)
   const { data: feedbackMessages, isLoading: feedbackLoading, error: feedbackError } = useQuery<FeedbackMessage[]>({
-    queryKey: ['/api/admin/feedback'],
+    queryKey: ['/api/admin/messages/feedback'],
     retry: false
   });
 
   // Fetch sweepstakes entries
   const { data: sweepstakesEntries } = useQuery<SweepstakesEntry[]>({
     queryKey: ['/api/admin/sweepstakes'],
+    retry: false
+  });
+
+  // Fetch feedback submissions (form submissions from /feedback page)
+  const { data: feedbackSubmissions, isLoading: feedbackSubmissionsLoading } = useQuery<FeedbackSubmission[]>({
+    queryKey: ['/api/admin/feedback'],
     retry: false
   });
 
@@ -179,7 +198,30 @@ export function AdminPage() {
     }
   });
 
-
+  // Mark feedback as reviewed mutation
+  const markFeedbackAsReviewedMutation = useMutation({
+    mutationFn: async (feedbackId: number) => {
+      const response = await apiRequest(`/api/admin/feedback/${feedbackId}/mark-reviewed`, {
+        method: 'PATCH'
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/feedback'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/feedback/unread-count'] });
+      toast({
+        title: "Feedback marked as reviewed",
+        description: "The feedback submission has been marked as reviewed."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to mark as reviewed",
+        description: error.message || "An error occurred",
+        variant: "destructive"
+      });
+    }
+  });
 
   const handleDeleteUser = (userId: number) => {
     deleteUserMutation.mutate(userId);
@@ -599,6 +641,109 @@ export function AdminPage() {
           {sweepstakesEntries && sweepstakesEntries.length > 0 && (
             <div className="mt-4 text-sm text-[#263d57]/70">
               Total entries: {sweepstakesEntries.length}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Feedback Submissions */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5" />
+            Feedback Submissions
+          </CardTitle>
+          <CardDescription>
+            User feedback submitted via the feedback form
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {feedbackSubmissionsLoading ? (
+            <div className="animate-pulse space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-24 bg-[#263d57]/10 rounded"></div>
+              ))}
+            </div>
+          ) : feedbackSubmissions && feedbackSubmissions.length > 0 ? (
+            <div className="space-y-4">
+              {feedbackSubmissions.map((submission) => (
+                <div 
+                  key={submission.id} 
+                  className={`border rounded-lg p-4 ${
+                    submission.isReviewed === "true" 
+                      ? "bg-gray-50 border-gray-300" 
+                      : "bg-[#fff2ea] border-[#b95827]"
+                  }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={
+                          submission.feedbackType === "bug" 
+                            ? "destructive" 
+                            : submission.feedbackType === "suggestion" 
+                            ? "default" 
+                            : "secondary"
+                        }
+                      >
+                        {submission.feedbackType === "bug" 
+                          ? "Bug Report" 
+                          : submission.feedbackType === "suggestion" 
+                          ? "Suggestion" 
+                          : "General"}
+                      </Badge>
+                      {submission.isReviewed === "true" && (
+                        <Badge variant="outline" className="text-xs">
+                          Reviewed
+                        </Badge>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDate(submission.createdAt)}
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 mb-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[#263d57]">{submission.subject}</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                      {submission.name && <span>Name: {submission.name}</span>}
+                      <span>Email: {submission.email}</span>
+                      <span>User ID: {submission.userId}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-sm bg-white p-3 rounded border mb-3">
+                    {submission.message}
+                  </div>
+
+                  {submission.attachmentUrl && (
+                    <div className="mb-3">
+                      <Badge variant="secondary" className="text-xs">
+                        Attachment: Image
+                      </Badge>
+                    </div>
+                  )}
+
+                  {submission.isReviewed === "false" && (
+                    <Button
+                      size="sm"
+                      onClick={() => markFeedbackAsReviewedMutation.mutate(submission.id)}
+                      disabled={markFeedbackAsReviewedMutation.isPending}
+                      className="bg-[#b95827] hover:bg-[#a04a1f] text-white"
+                    >
+                      {markFeedbackAsReviewedMutation.isPending ? "Marking..." : "Mark as Reviewed"}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              <Send className="h-12 w-12 mx-auto mb-2 text-[#263d57]/50" />
+              <p>No feedback submissions yet</p>
+              <p className="text-xs mt-1">Users can submit feedback via the /feedback page</p>
             </div>
           )}
         </CardContent>

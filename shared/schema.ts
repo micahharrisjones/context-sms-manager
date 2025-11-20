@@ -192,6 +192,20 @@ export const sweepstakesEntries = pgTable("sweepstakes_entries", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Feedback submissions table - for user feedback, bug reports, and suggestions
+export const feedbackSubmissions = pgTable("feedback_submissions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  feedbackType: varchar("feedback_type", { length: 50 }).notNull(), // "bug" | "suggestion" | "general"
+  name: varchar("name", { length: 100 }), // Optional name for personalization
+  email: varchar("email", { length: 255 }).notNull(), // Required for follow-up
+  subject: varchar("subject", { length: 100 }).notNull(), // Brief title
+  message: text("message").notNull(), // Detailed description
+  attachmentUrl: text("attachment_url"), // Optional image attachment (S3 URL)
+  isReviewed: text("is_reviewed").default("false").notNull(), // "true" | "false"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Schema exports
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -276,6 +290,12 @@ export const insertSweepstakesEntrySchema = createInsertSchema(sweepstakesEntrie
   notified: true,
 });
 
+export const insertFeedbackSubmissionSchema = createInsertSchema(feedbackSubmissions).omit({
+  id: true,
+  createdAt: true,
+  isReviewed: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -308,3 +328,5 @@ export type ShortLink = typeof shortLinks.$inferSelect;
 export type InsertShortLink = z.infer<typeof insertShortLinkSchema>;
 export type SweepstakesEntry = typeof sweepstakesEntries.$inferSelect;
 export type InsertSweepstakesEntry = z.infer<typeof insertSweepstakesEntrySchema>;
+export type FeedbackSubmission = typeof feedbackSubmissions.$inferSelect;
+export type InsertFeedbackSubmission = z.infer<typeof insertFeedbackSubmissionSchema>;
