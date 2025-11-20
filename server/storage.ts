@@ -1004,13 +1004,23 @@ export class DatabaseStorage implements IStorage {
   async removeBoardMember(boardId: number, userId: number): Promise<void> {
     try {
       log(`Removing user ${userId} from board ${boardId}`);
+      
+      // First delete notification preferences for this user and board
+      await db
+        .delete(notificationPreferences)
+        .where(and(
+          eq(notificationPreferences.boardId, boardId),
+          eq(notificationPreferences.userId, userId)
+        ));
+      
+      // Then delete the board membership
       await db
         .delete(boardMemberships)
         .where(and(
           eq(boardMemberships.boardId, boardId),
           eq(boardMemberships.userId, userId)
         ));
-      log(`Successfully removed board member`);
+      log(`Successfully removed board member and their notification preferences`);
     } catch (error) {
       log("Error removing board member:", error instanceof Error ? error.message : String(error));
       throw error;
@@ -1021,17 +1031,22 @@ export class DatabaseStorage implements IStorage {
     try {
       log(`Deleting shared board ${boardId}`);
       
-      // First delete all board memberships
+      // First delete all notification preferences for this board
+      await db
+        .delete(notificationPreferences)
+        .where(eq(notificationPreferences.boardId, boardId));
+      
+      // Then delete all board memberships
       await db
         .delete(boardMemberships)
         .where(eq(boardMemberships.boardId, boardId));
       
-      // Then delete the board itself
+      // Finally delete the board itself
       await db
         .delete(sharedBoards)
         .where(eq(sharedBoards.id, boardId));
         
-      log(`Successfully deleted shared board ${boardId} and all its memberships`);
+      log(`Successfully deleted shared board ${boardId}, all memberships, and notification preferences`);
     } catch (error) {
       log("Error deleting shared board:", error instanceof Error ? error.message : String(error));
       throw error;

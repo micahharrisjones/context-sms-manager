@@ -1,8 +1,10 @@
 import { MessageList } from "@/components/messages/MessageList";
-import { useParams } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Edit, UserPlus, X, Eye, Trash2, Plus, ArrowUpDown, User, Users } from "lucide-react";
+import { Edit, UserPlus, X, Eye, Trash2, Plus, ArrowUpDown, User, Users, LogOut } from "lucide-react";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { DeleteTagModal } from "@/components/layout/DeleteTagModal";
 import { InviteUserModal } from "@/components/shared-boards/InviteUserModal";
@@ -49,6 +51,46 @@ export default function AllTexts() {
 
   const currentBoard = sharedBoards?.find(board => board.name === boardName);
   const isOwner = currentBoard?.role === "owner";
+  const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  // Leave shared board mutation
+  const leaveBoardMutation = useMutation({
+    mutationFn: async ({ boardId, boardName }: { boardId: number; boardName: string }) => {
+      const response = await apiRequest(`/api/shared-boards/${boardId}/leave`, {
+        method: 'POST'
+      });
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      // Invalidate all related queries
+      queryClient.invalidateQueries({ queryKey: ['/api/shared-boards'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/shared-boards', variables.boardId] });
+      queryClient.invalidateQueries({ queryKey: [`/api/shared-boards/${variables.boardName}/messages`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+      toast({
+        title: "Left board",
+        description: "You have successfully left the shared board",
+      });
+      // Redirect to home after leaving
+      setLocation('/');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error leaving board",
+        description: error.message || "Failed to leave the board",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleLeaveBoard = () => {
+    if (!currentBoard || !boardName) return;
+    
+    if (confirm(`Are you sure you want to leave #${boardName}? You will no longer have access to this board's content.`)) {
+      leaveBoardMutation.mutate({ boardId: currentBoard.id, boardName });
+    }
+  };
 
   // Fetch messages based on context
   const getQueryKey = () => {
@@ -232,6 +274,24 @@ export default function AllTexts() {
                     <Eye className="h-4 w-4 lg:mr-2" />
                     <span className="hidden lg:inline">Members</span>
                   </Button>
+                  {!isOwner && currentBoard && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleLeaveBoard}
+                      disabled={leaveBoardMutation.isPending}
+                      className="h-8 px-2 lg:px-3 hover:bg-orange-50 hover:text-orange-600"
+                      aria-label={`Leave board ${boardName}`}
+                      data-pendo="button-leave-shared-board"
+                      data-board-name={boardName}
+                      data-testid="button-leave-board"
+                    >
+                      <LogOut className="h-4 w-4 lg:mr-2" />
+                      <span className="hidden lg:inline">
+                        {leaveBoardMutation.isPending ? "Leaving..." : "Leave"}
+                      </span>
+                    </Button>
+                  )}
                   {isOwner && (
                     <>
                       <Button

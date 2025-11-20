@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Upload, X, CheckCircle2 } from "lucide-react";
+import { Logo } from "@/components/layout/Logo";
 
 const feedbackSchema = z.object({
   feedbackType: z.enum(["bug", "suggestion", "general"], {
@@ -182,6 +183,9 @@ export default function FeedbackPage() {
     <div className="flex-1 overflow-y-auto bg-[#fff2ea] p-6">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
+          <div className="flex justify-center mb-6">
+            <Logo className="w-auto h-12" />
+          </div>
           <h1 className="text-3xl font-bold text-[#263d57] mb-2">Submit Feedback for Aside</h1>
           <p className="text-gray-600 mb-6">
             We value your input to enhance Aside. Use this form to report bugs, share suggestions, or provide general feedback.

@@ -4031,7 +4031,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           .json({ error: "Only the board owner can delete this board" });
       }
 
-      // Delete the board (this will cascade delete memberships)
+      // Delete the board (this will cascade delete memberships and notification preferences)
       await storage.deleteSharedBoard(boardId);
 
       log(`Deleted shared board ${boardId} (${board.name}) by user ${userId}`);
@@ -4044,6 +4044,53 @@ You can now text anything with #${boardName} to share with everyone on the board
         `Error deleting shared board: ${error instanceof Error ? error.message : String(error)}`,
       );
       res.status(500).json({ error: "Failed to delete shared board" });
+    }
+  });
+
+  // Leave shared board (non-owners can leave)
+  app.post("/api/shared-boards/:boardId/leave", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const boardId = parseInt(req.params.boardId);
+
+      if (isNaN(boardId)) {
+        return res.status(400).json({ error: "Invalid board ID" });
+      }
+
+      // Check if board exists
+      const board = await storage.getSharedBoard(boardId);
+      if (!board) {
+        return res.status(404).json({ error: "Shared board not found" });
+      }
+
+      // Check if user is the owner (owners cannot leave their own board)
+      if (board.createdBy === userId) {
+        return res
+          .status(403)
+          .json({ error: "Board owners cannot leave their own board. Delete the board instead." });
+      }
+
+      // Check if user is a member
+      const members = await storage.getBoardMembers(boardId);
+      const isMember = members.some(m => m.user.id === userId);
+      
+      if (!isMember) {
+        return res.status(404).json({ error: "You are not a member of this board" });
+      }
+
+      // Remove the user from the board
+      await storage.removeBoardMember(boardId, userId);
+
+      log(`User ${userId} left shared board ${boardId} (${board.name})`);
+      res.json({
+        success: true,
+        message: `Successfully left shared board #${board.name}`,
+      });
+    } catch (error) {
+      log(
+        `Error leaving shared board: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      res.status(500).json({ error: "Failed to leave shared board" });
     }
   });
 
