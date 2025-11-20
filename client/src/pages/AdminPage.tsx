@@ -91,7 +91,7 @@ export function AdminPage() {
   });
 
   // Fetch feedback submissions (form submissions from /feedback page)
-  const { data: feedbackSubmissions, isLoading: feedbackSubmissionsLoading } = useQuery<FeedbackSubmission[]>({
+  const { data: feedbackSubmissions, isLoading: feedbackSubmissionsLoading, error: feedbackSubmissionsError } = useQuery<FeedbackSubmission[]>({
     queryKey: ['/api/admin/feedback'],
     retry: false
   });
@@ -663,6 +663,11 @@ export function AdminPage() {
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="h-24 bg-[#263d57]/10 rounded"></div>
               ))}
+            </div>
+          ) : feedbackSubmissionsError ? (
+            <div className="text-center text-red-500 py-8">
+              <p>Error loading feedback submissions</p>
+              <p className="text-xs mt-1">{feedbackSubmissionsError.message}</p>
             </div>
           ) : feedbackSubmissions && feedbackSubmissions.length > 0 ? (
             <div className="space-y-4">

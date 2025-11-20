@@ -5585,12 +5585,16 @@ You can now text anything with #${boardName} to share with everyone on the board
       const user = await storage.getUserById(userId);
       if (user?.phoneNumber) {
         try {
-          await pendoServerService.trackEvent(user.phoneNumber, 'Feedback Submitted', {
-            feedbackId: feedback.id,
-            feedbackType,
-            hasAttachment: !!attachmentUrl,
-            subject
-          });
+          await pendoServerService.trackEvent(
+            user.phoneNumber, 
+            'Feedback Submitted',
+            JSON.stringify({
+              feedbackId: feedback.id,
+              feedbackType,
+              hasAttachment: !!attachmentUrl,
+              subject
+            })
+          );
         } catch (pendoError) {
           log("Pendo tracking failed for feedback submission:", pendoError instanceof Error ? pendoError.message : String(pendoError));
         }
