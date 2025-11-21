@@ -239,7 +239,7 @@ class PendoServerService {
     accountId: string = 'aside'
   ): Promise<boolean> {
     if (!this.trackSecretKey) {
-      log("Pendo identify visitor skipped (no secret key):", visitorId);
+      log("⚠️  Pendo identify visitor skipped (no secret key):", visitorId);
       return false;
     }
 
@@ -252,6 +252,9 @@ class PendoServerService {
     };
 
     try {
+      log(`📤 Sending Pendo identify for ${visitorId} with ${Object.keys(visitorData).length} fields`);
+      log(`   Fields: ${Object.keys(visitorData).slice(0, 10).join(', ')}${Object.keys(visitorData).length > 10 ? '...' : ''}`);
+      
       const response = await fetch(this.apiEndpoint, {
         method: 'POST',
         headers: {
@@ -263,14 +266,15 @@ class PendoServerService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        log(`Pendo identify visitor failed: ${response.status} - ${errorText}`);
+        log(`❌ Pendo identify visitor failed for ${visitorId}: ${response.status} - ${errorText}`);
+        log(`   Payload was:`, JSON.stringify(payload, null, 2));
         return false;
       }
 
-      log(`Pendo visitor identified: ${visitorId}`);
+      log(`✅ Pendo visitor identified successfully: ${visitorId}`);
       return true;
     } catch (error) {
-      log('Pendo identify visitor error:', error instanceof Error ? error.message : String(error));
+      log(`❌ Pendo identify visitor error for ${visitorId}:`, error instanceof Error ? error.message : String(error));
       return false;
     }
   }
