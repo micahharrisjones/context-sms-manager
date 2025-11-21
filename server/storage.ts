@@ -43,6 +43,7 @@ export interface IStorage {
   // User management
   getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined>;
   getUserById(userId: number): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUserLastLogin(userId: number): Promise<void>;
   updateUserProfile(userId: number, profileData: UpdateProfile): Promise<User | undefined>;
@@ -218,6 +219,21 @@ export class DatabaseStorage implements IStorage {
       return user || undefined;
     } catch (error) {
       log("Error fetching user by phone number:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const allUsers = await db
+        .select()
+        .from(users)
+        .orderBy(desc(users.createdAt));
+      
+      log(`Fetched ${allUsers.length} total users`);
+      return allUsers;
+    } catch (error) {
+      log("Error fetching all users:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
