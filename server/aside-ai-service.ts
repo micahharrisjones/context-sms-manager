@@ -801,6 +801,20 @@ Want to organize things? Add hashtags like #recipes or #movies.
         };
       }
 
+      // Check for "shared board" queries BEFORE generic "board" queries (more specific first)
+      if (normalizedQuery.includes('shared') && normalizedQuery.includes('board')) {
+        return {
+          response: `Head to your dashboard. You can either create a new shared board or convert a private one.   
+
+🔗 Your dashboard: ${dashboardLink}   
+
+For a new shared board: Click the + next to Shared Boards in the menu and follow the prompts.   
+
+To convert a private board: Go to the private board and click the Invite button in the upper right corner, then follow the prompts.`,
+          intent: 'help',
+        };
+      }
+
       if (normalizedQuery.includes('create') && normalizedQuery.includes('board')) {
         return {
           response: `Super easy! Just add a hashtag to any message. 
@@ -821,19 +835,6 @@ All your boards live in your dashboard. 🔗 See all your boards: ${dashboardLin
 Like: "This movie looks great #watchlist"
 
 🔗 Your dashboard: ${dashboardLink}`,
-          intent: 'help',
-        };
-      }
-
-      if (normalizedQuery.includes('shared') && normalizedQuery.includes('board')) {
-        return {
-          response: `Head to your dashboard. You can either create a new shared board or convert a private one.   
-
-🔗 Your dashboard: ${dashboardLink}   
-
-For a new shared board: Click the + next to Shared Boards in the menu and follow the prompts.   
-
-To convert a private board: Go to the private board and click the Invite button in the upper right corner, then follow the prompts.`,
           intent: 'help',
         };
       }
