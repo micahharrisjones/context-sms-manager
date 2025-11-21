@@ -5247,6 +5247,57 @@ You can now text anything with #${boardName} to share with everyone on the board
     }
   });
 
+  // Test endpoint to verify Pendo profile update for a single user
+  // This shows the exact metadata being sent to Pendo for verification
+  app.post("/api/admin/test-pendo-profile", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const userIsAdmin = await isUserAdmin(userId);
+
+      if (!userIsAdmin) {
+        return res.status(403).json({ error: "Admin access required" });
+      }
+
+      const { phoneNumber } = req.body as { phoneNumber: string };
+      
+      if (!phoneNumber) {
+        return res.status(400).json({ error: "Phone number required" });
+      }
+
+      log(`🧪 Testing Pendo profile update for ${phoneNumber}...`);
+
+      const pendoProfileService = createPendoProfileService(storage);
+      const visitorMetadata = await pendoProfileService.buildVisitorMetadata(phoneNumber);
+      
+      if (!visitorMetadata) {
+        return res.status(404).json({ 
+          success: false,
+          error: "User not found or unable to build metadata" 
+        });
+      }
+
+      log(`📊 Generated metadata for ${phoneNumber}:`, JSON.stringify(visitorMetadata, null, 2));
+
+      // Send to Pendo
+      const success = await pendoServerService.identifyVisitor(phoneNumber, visitorMetadata);
+      
+      res.json({
+        success,
+        phoneNumber,
+        metadata: visitorMetadata,
+        message: success 
+          ? "✅ Pendo profile updated successfully! Check Pendo dashboard for visitor profile." 
+          : "❌ Failed to update Pendo profile. Check server logs for details."
+      });
+    } catch (error) {
+      log(
+        "Error in test-pendo-profile endpoint:",
+        error instanceof Error ? error.message : String(error),
+      );
+      res.status(500).json({ error: "Failed to test Pendo profile" });
+    }
+  });
+
   // Test endpoint to send welcome message
   app.post("/api/test-welcome", async (req, res) => {
     try {
