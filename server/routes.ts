@@ -4952,18 +4952,28 @@ You can now text anything with #${boardName} to share with everyone on the board
       // Update Pendo visitor profile with SMS metadata (async, non-blocking)
       setImmediate(async () => {
         try {
-          log(`Updating Pendo visitor profile for ${smsData.senderId}`);
+          log(`📊 [Pendo] Updating visitor profile for ${smsData.senderId}...`);
           const pendoProfileService = createPendoProfileService(storage);
           const visitorMetadata = await pendoProfileService.buildVisitorMetadata(smsData.senderId);
           
           if (visitorMetadata) {
-            await pendoServerService.identifyVisitor(smsData.senderId, visitorMetadata);
-            log(`Pendo visitor profile updated for ${smsData.senderId}`);
+            log(`📊 [Pendo] Built metadata with ${Object.keys(visitorMetadata).length} fields:`, 
+                `SMS: ${visitorMetadata.smsMessagesLast30Days} msgs/30d, ` +
+                `Engagement: ${visitorMetadata.engagementLevel}, ` +
+                `Platform: ${visitorMetadata.primaryPlatform}`);
+            
+            const success = await pendoServerService.identifyVisitor(smsData.senderId, visitorMetadata);
+            
+            if (success) {
+              log(`✅ [Pendo] Visitor profile updated successfully for ${smsData.senderId}`);
+            } else {
+              log(`⚠️  [Pendo] Failed to update visitor profile for ${smsData.senderId} (check Pendo logs above)`);
+            }
           } else {
-            log(`Failed to build visitor metadata for ${smsData.senderId}`);
+            log(`❌ [Pendo] Failed to build visitor metadata for ${smsData.senderId}`);
           }
         } catch (error) {
-          log(`Error updating Pendo visitor profile:`, error instanceof Error ? error.message : String(error));
+          log(`❌ [Pendo] Error updating visitor profile:`, error instanceof Error ? error.message : String(error));
           // Don't fail the SMS processing if Pendo update fails
         }
       })();
