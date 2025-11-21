@@ -1135,7 +1135,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           // Send the first message
           await twilioService.sendSMS(
             senderId,
-            `I love it! I'll send you a link that you can share with them.`,
+            `I love it! I'll send you a link that you can share in a separate message.`,
           );
 
           // Send the shareable message in a second text
