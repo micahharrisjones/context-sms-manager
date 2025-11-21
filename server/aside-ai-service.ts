@@ -395,9 +395,384 @@ Examples:
         log(`Could not generate magic link for help response: ${error instanceof Error ? error.message : String(error)}`);
       }
 
+      // Get user information for personalized responses
+      const user = await storage.getUserById(userId);
+      const asidePhoneNumber = process.env.TWILIO_PHONE_NUMBER || '(615) 999-1772';
+
       // Normalize query for pattern matching
       const normalizedQuery = query.toLowerCase().trim();
 
+      // === GETTING STARTED ===
+      
+      if (normalizedQuery.includes('sign up') || normalizedQuery.includes('signup') || normalizedQuery.includes('get started') || normalizedQuery.includes('start using')) {
+        return {
+          response: `You're already signed up! Since you're texting me, you're all set.
+
+Every message you send here gets saved automatically. Try sending something with a hashtag like #ideas or #recipes to organize it.
+
+🔗 View everything: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('aside') && normalizedQuery.includes('phone') && normalizedQuery.includes('number')) {
+        return {
+          response: `Your Aside number is: ${asidePhoneNumber}
+
+Text anything here to save it! Add hashtags to organize (#recipes, #ideas, etc).`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('download') || (normalizedQuery.includes('app') && !normalizedQuery.includes('webapp'))) {
+        return {
+          response: `No app needed! Aside works entirely through text messages - just save this number: ${asidePhoneNumber}
+
+Want a web view? Check out your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('any phone') || normalizedQuery.includes('what phone') || normalizedQuery.includes('iphone') || normalizedQuery.includes('android')) {
+        return {
+          response: `Yep! Aside works on any phone that can send text messages - iPhone, Android, flip phone, you name it.
+
+Just text to: ${asidePhoneNumber}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('save') && (normalizedQuery.includes('first') || normalizedQuery.includes('item'))) {
+        return {
+          response: `Super easy! Just text me whatever you want to save:
+
+"Check out this cool recipe"
+
+Want to organize it? Add a hashtag:
+
+"Check out this cool recipe #dinner"
+
+That's it! Everything you text me gets saved automatically.`,
+          intent: 'help',
+        };
+      }
+
+      // === BASIC USAGE ===
+
+      if (normalizedQuery.includes('hashtag') && (normalizedQuery.includes('add') || normalizedQuery.includes('use'))) {
+        return {
+          response: `Just include # followed by a word anywhere in your message:
+
+"This looks amazing #recipes"
+"Remember to call mom #reminders"
+
+You can use any hashtag you want - they're your personal organization system!`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('multiple') && normalizedQuery.includes('hashtag')) {
+        return {
+          response: `Totally! Just add as many as you want:
+
+"Great Italian restaurant #restaurants #datenight #boston"
+
+Your message will show up in all those boards.`,
+          intent: 'help',
+        };
+      }
+
+      if ((normalizedQuery.includes('search') || normalizedQuery.includes('find')) && !normalizedQuery.includes('board')) {
+        return {
+          response: `Easy! Just text me "Hey Aside" followed by what you're looking for:
+
+"Hey Aside, find my recipes"
+"Hey Aside, gift ideas"
+"Hey Aside, restaurants"
+
+I'll search everything you've saved and send you the results.
+
+You can also search on the web: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('edit') && !normalizedQuery.includes('delete')) {
+        return {
+          response: `Head to your dashboard, find the item, and click the edit icon. You can change the text, add/remove hashtags, or move it to a different board.
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('photo') || normalizedQuery.includes('image') || normalizedQuery.includes('picture')) {
+        return {
+          response: `Right now, Aside saves text and links. If you send a photo, I'll save any text that comes with it.
+
+Pro tip: Share links to images/photos and I'll save those with previews!`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('forward')) {
+        return {
+          response: `Yep! Just forward any text message to ${asidePhoneNumber} and I'll save it.
+
+Want to organize it? Add a hashtag when you forward.`,
+          intent: 'help',
+        };
+      }
+
+      // === ORGANIZATION & SEARCH ===
+
+      if ((normalizedQuery.includes('view') || normalizedQuery.includes('see')) && normalizedQuery.includes('hashtag')) {
+        return {
+          response: `Go to your dashboard and click on any hashtag board to see everything in it.
+
+Want to search? Text me "Hey Aside, find [hashtag]"
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('rename') && normalizedQuery.includes('hashtag')) {
+        return {
+          response: `You can't rename a hashtag directly, but here's a workaround:
+
+1. Go to your dashboard
+2. Find items with the old hashtag
+3. Edit each one to use the new hashtag
+
+We know it's not ideal - we're working on a better solution!
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if ((normalizedQuery.includes('see everything') || normalizedQuery.includes('view all') || normalizedQuery.includes('everything')) && normalizedQuery.includes('saved')) {
+        return {
+          response: `Check out your dashboard! Everything you've ever saved is there, organized by hashtags.
+
+🔗 Your dashboard: ${dashboardLink}
+
+You can also text "Hey Aside, find [anything]" to search.`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('without') && normalizedQuery.includes('hashtag')) {
+        return {
+          response: `Absolutely! Just text me normally:
+
+"Call the dentist next week"
+
+Messages without hashtags go into an "Untagged" board. You can add hashtags later from your dashboard.`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('how far') || normalizedQuery.includes('old')) {
+        return {
+          response: `Forever! We keep everything you've ever saved. Search goes back to your very first message.
+
+Text "Hey Aside, find [anything]" to search your entire history.`,
+          intent: 'help',
+        };
+      }
+
+      // === BOARDS & SHARING ===
+
+      if (normalizedQuery.includes('difference') && normalizedQuery.includes('shared')) {
+        return {
+          response: `Private boards: Just for you. Created automatically when you use a hashtag.
+
+Shared boards: Invite friends/family! Everyone can add, view, and search together. Perfect for planning trips, sharing recipes, gift ideas, etc.
+
+Create one at: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('who can see') && normalizedQuery.includes('shared')) {
+        return {
+          response: `Only people you invite can see your shared boards. They're completely private otherwise.
+
+You control who has access - add or remove people anytime from your dashboard.
+
+🔗 Manage access: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('remove') && normalizedQuery.includes('shared')) {
+        return {
+          response: `Go to your dashboard, open the shared board, and click the Manage Members button. You'll see an option to remove people.
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('make') && normalizedQuery.includes('private')) {
+        return {
+          response: `Not yet! Once a board is shared, it stays shared. But you can remove all other members to make it effectively private.
+
+We're working on a proper "unshare" feature!
+
+🔗 Manage members: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('how many') && normalizedQuery.includes('shared')) {
+        return {
+          response: `Add as many people as you want! There's no limit.
+
+Great for family boards, friend groups, team planning, etc.
+
+🔗 Invite people: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      // === ACCOUNT & SETTINGS ===
+
+      if (normalizedQuery.includes('change') && normalizedQuery.includes('phone')) {
+        return {
+          response: `Email us at hello@textaside.app and we'll help you migrate your account to a new number.
+
+We're working on making this automatic!`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('cancel') || normalizedQuery.includes('delete account')) {
+        return {
+          response: `We're sorry to see you go! 
+
+To delete your account, go to your dashboard settings and click "Delete Account". This will permanently remove all your data.
+
+🔗 Your dashboard: ${dashboardLink}
+
+Questions? Email hello@textaside.app`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('private') || normalizedQuery.includes('data')) {
+        return {
+          response: `Your data is 100% private. We never share it with anyone.
+
+Only you can see your private boards. Shared boards are only visible to people you invite.
+
+We take privacy seriously - read our full policy at textaside.app/privacy`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('delete') && normalizedQuery.includes('phone')) {
+        return {
+          response: `No worries! Deleting texts from your phone doesn't affect Aside.
+
+Everything you've sent is safely saved in your dashboard: ${dashboardLink}
+
+That's the whole point - never lose anything!`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('export')) {
+        return {
+          response: `Not yet, but it's on our roadmap!
+
+For now, you can copy/paste from your dashboard. We're working on a proper export feature (CSV, JSON, etc).
+
+Want to request this? Let us know: textaside.app/feedback`,
+          intent: 'help',
+        };
+      }
+
+      // === PRICING & PLANS ===
+
+      if (normalizedQuery.includes('free') || normalizedQuery.includes('cost') || normalizedQuery.includes('price') || normalizedQuery.includes('premium')) {
+        return {
+          response: `Aside is currently free while we're in beta!
+
+We'll let you know before we introduce any paid plans. Early users like you will get special perks.
+
+🔗 Check updates: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      // === TROUBLESHOOTING ===
+
+      if (normalizedQuery.includes("didn't") && normalizedQuery.includes('save')) {
+        return {
+          response: `Hmm, that's unusual! A few things to check:
+
+- Make sure you're texting ${asidePhoneNumber}
+- Check if you have service/wifi
+- Look in your "Untagged" board if you didn't use hashtags
+
+Still missing? Email hello@textaside.app with details and we'll investigate!
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('not receiving') || normalizedQuery.includes("don't get")) {
+        return {
+          response: `Let's troubleshoot:
+
+1. Check if ${asidePhoneNumber} is in your contacts
+2. Make sure you can receive texts from other numbers
+3. Check your spam/blocked messages
+
+Still not working? Text "test" and if you don't get a reply within a few minutes, email hello@textaside.app`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('recover') && normalizedQuery.includes('delete')) {
+        return {
+          response: `Unfortunately, deleted items can't be recovered right now.
+
+We're working on a "trash" feature that'll let you undo deletions for 30 days!
+
+Pro tip: Be careful with that delete button for now.`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('international')) {
+        return {
+          response: `Aside works in the US and Canada right now.
+
+International expansion is on our roadmap! If you're outside North America and want to use Aside, let us know: textaside.app/feedback
+
+We'll notify you when we expand!`,
+          intent: 'help',
+        };
+      }
+
+      if (normalizedQuery.includes('group') && normalizedQuery.includes('text')) {
+        return {
+          response: `Aside doesn't work with group texts right now - only one-on-one messages to ${asidePhoneNumber}
+
+But shared boards are kind of like group texts! Everyone you invite can add messages to the board.
+
+🔗 Try shared boards: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
+      // === EXISTING PATTERNS ===
+      
       // Match specific help topics from spreadsheet
       if (normalizedQuery.includes('how') && normalizedQuery.includes('aside') && normalizedQuery.includes('work')) {
         return {
