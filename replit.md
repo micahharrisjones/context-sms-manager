@@ -21,3 +21,83 @@ The system uses a TypeScript React frontend (Vite) and a Node.js Express backend
 - **Microlink.io**: Primary service for rich link previews and bot protection.
 - **TMDB API**: Integrated for enhanced IMDB link previews.
 - **Social Media Platforms (Instagram, Pinterest, X/Twitter, Reddit, Facebook, YouTube, TikTok)**: Integrated for rich iframe embeds and link preview parsing.
+- **Pendo**: Analytics platform for tracking user behavior and engagement across SMS and web platforms.
+
+### Pendo Analytics Implementation
+
+**Status**: Fully implemented and ready for testing (November 21, 2025)
+
+**Purpose**: Track SMS activity metadata in Pendo visitor profiles to accurately measure user engagement across both SMS and web platforms. Without this, SMS-only users appear "inactive" even if they send 50+ messages per month.
+
+**Implementation Components**:
+
+1. **Real-Time SMS Updates** (server/routes.ts ~line 4956)
+   - After each SMS webhook, automatically updates Pendo visitor profile
+   - Calculates 20+ metadata fields including SMS activity, engagement level, platform preference
+   - Non-blocking async execution to avoid slowing down SMS processing
+
+2. **Daily Cron Job** (server/routes.ts ~line 5433)
+   - Runs every day at midnight (0 0 * * *)
+   - Updates `daysSinceLastSms` for all users
+   - Keeps "last activity" metrics fresh in Pendo
+
+3. **Profile Service** (server/pendo-profile-service.ts)
+   - `PendoProfileService`: Centralized service for building visitor metadata
+   - Helper functions: `getSMSActivityStats()`, `calculateEngagementLevel()`, `calculatePlatformPreference()`
+   - Generates 20+ visitor profile fields for Pendo segmentation
+
+4. **Visitor Profile Fields Sent to Pendo**:
+   - **Basic**: phone, firstName, lastName
+   - **Signup**: signupDate, signupMethod, daysSinceSignup
+   - **SMS Activity**: lastSmsDate, totalSmsMessages, smsMessagesLast7Days, smsMessagesLast30Days, daysSinceLastSms
+   - **Web Activity**: daysSinceLastWebVisit
+   - **Platform**: primaryPlatform (sms/web/balanced), smsActivityPercentage
+   - **Engagement**: engagementLevel (power_user/active/casual/dormant)
+   - **Content**: totalBoards, privateBoardCount, sharedBoardCount, hasSharedBoards, hasCreatedBoard, hasJoinedSharedBoard
+   - **System**: profileLastUpdated
+
+**Testing & Verification**:
+
+1. **Test Single User** (Admin Panel or API):
+   ```
+   POST /api/admin/test-pendo-profile
+   { "phoneNumber": "+1234567890" }
+   ```
+   Returns the full metadata being sent to Pendo + success status
+
+2. **Backfill All Users**:
+   ```
+   POST /api/admin/backfill-pendo-metadata
+   ```
+   Populates Pendo with historical data for all existing users
+
+3. **Manual Trigger Daily Update**:
+   ```
+   POST /api/admin/update-sms-activity
+   ```
+   Updates `daysSinceLastSms` for all users (normally runs via cron)
+
+4. **Real-Time Testing**:
+   - Send a test SMS to Twilio number
+   - Check logs for `[Pendo]` messages showing profile update
+   - Verify Pendo dashboard shows updated visitor profile within 30 seconds
+
+5. **Log Verification**:
+   - Look for `✅ [Pendo] Visitor profile updated successfully` in server logs
+   - `📊 [Pendo] Built metadata with X fields` shows data generation
+   - `📤 Sending Pendo identify for...` shows API call being made
+   - `❌ [Pendo]` indicates errors that need investigation
+
+**Pendo Dashboard Verification**:
+- Go to Pendo → Visitors → Search for phone number
+- Check "Visitor Details" → "Properties" section
+- Confirm all SMS metadata fields are populated
+- Verify `smsMessagesLast30Days`, `engagementLevel`, `primaryPlatform` match expected values
+
+**Environment Variables Required**:
+- `PENDO_TRACK_SECRET_KEY`: Pendo integration key for server-side tracking (already configured)
+
+**Critical Files**:
+- `server/pendo-service.ts`: Pendo API integration, identifyVisitor method
+- `server/pendo-profile-service.ts`: Metadata calculation logic
+- `server/routes.ts`: SMS webhook integration, admin endpoints, cron job
