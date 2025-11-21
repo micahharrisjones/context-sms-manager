@@ -850,9 +850,19 @@ export function AdminPage() {
 
                   {submission.attachmentUrl && (
                     <div className="mb-3">
-                      <Badge variant="secondary" className="text-xs">
-                        Attachment: Image
-                      </Badge>
+                      <p className="text-xs text-muted-foreground mb-2">Attachment:</p>
+                      <a 
+                        href={submission.attachmentUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="block border border-[#e3cac0] rounded-lg overflow-hidden hover:border-[#b95827] transition-colors max-w-xs"
+                      >
+                        <img 
+                          src={submission.attachmentUrl} 
+                          alt="Feedback attachment" 
+                          className="w-full h-auto object-cover"
+                        />
+                      </a>
                     </div>
                   )}
 

@@ -5671,7 +5671,26 @@ You can now text anything with #${boardName} to share with everyone on the board
       const submissions = await storage.getAllFeedbackSubmissions();
       log(`Admin fetched ${submissions.length} feedback submissions`);
 
-      res.json(submissions);
+      // Generate signed URLs for attachments (convert S3 keys to viewable URLs)
+      const submissionsWithSignedUrls = await Promise.all(
+        submissions.map(async (submission) => {
+          if (submission.attachmentUrl) {
+            try {
+              const signedUrl = await s3Service.getSignedImageUrl(submission.attachmentUrl);
+              return {
+                ...submission,
+                attachmentUrl: signedUrl,
+              };
+            } catch (error) {
+              log(`Failed to generate signed URL for feedback ${submission.id}:`, error instanceof Error ? error.message : String(error));
+              return submission; // Return without signed URL if generation fails
+            }
+          }
+          return submission;
+        })
+      );
+
+      res.json(submissionsWithSignedUrls);
     } catch (error) {
       log("Error fetching feedback submissions:", error instanceof Error ? error.message : String(error));
       res.status(500).json({ error: "Failed to fetch feedback" });
