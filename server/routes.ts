@@ -1129,8 +1129,8 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
           // Track invite command sent
           await pendoServerService.trackInviteCommandSent(senderId);
 
-          // Standard invite message with signup link (included in same message to avoid URL being split)
-          const inviteMessage = `Try Aside! Save links and ideas by text - no app needed. Sign up here: https://textaside.app`;
+          // Standard invite message with join link (included in same message to avoid URL being split)
+          const inviteMessage = `Try Aside! Save links and ideas by text - no app needed. Sign up here: https://textaside.app/join`;
 
           // Send the first message
           await twilioService.sendSMS(
@@ -1145,7 +1145,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
               .then(() => {
                 log(`Sent invite message to ${senderId}`);
                 // Track invite link sent
-                pendoServerService.trackInviteLinkSent(senderId, 'standard_signup_link');
+                pendoServerService.trackInviteLinkSent(senderId, 'standard_join_link');
               })
               .catch((error) => {
                 log(
