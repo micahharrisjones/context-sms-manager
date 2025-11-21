@@ -424,6 +424,19 @@ Text anything here to save it! Add hashtags to organize (#recipes, #ideas, etc).
         };
       }
 
+      if (normalizedQuery.includes('delete') && (normalizedQuery.includes('text') || normalizedQuery.includes('message')) && normalizedQuery.includes('phone')) {
+        return {
+          response: `Good news! Deleting a text from your phone's messaging app won't delete it from Aside.
+
+Once you send a message to ${asidePhoneNumber}, it's saved in our system. Your phone's messages and Aside are completely separate.
+
+To delete from Aside, go to your dashboard and remove items there.
+
+🔗 Your dashboard: ${dashboardLink}`,
+          intent: 'help',
+        };
+      }
+
       if (normalizedQuery.includes('download') || (normalizedQuery.includes('app') && !normalizedQuery.includes('webapp'))) {
         return {
           response: `No app needed! Aside works entirely through text messages - just save this number: ${asidePhoneNumber}
