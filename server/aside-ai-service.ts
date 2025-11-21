@@ -655,7 +655,7 @@ Great for family boards, friend groups, team planning, etc.
 
       if (normalizedQuery.includes('change') && normalizedQuery.includes('phone')) {
         return {
-          response: `Email us at hello@textaside.app and we'll help you migrate your account to a new number.
+          response: `Email us at hi@textaside.com and we'll help you migrate your account to a new number.
 
 We're working on making this automatic!`,
           intent: 'help',
@@ -670,7 +670,7 @@ To delete your account, go to your dashboard settings and click "Delete Account"
 
 🔗 Your dashboard: ${dashboardLink}
 
-Questions? Email hello@textaside.app`,
+Questions? Email hi@textaside.com`,
           intent: 'help',
         };
       }
@@ -731,7 +731,7 @@ We'll let you know before we introduce any paid plans. Early users like you will
 - Check if you have service/wifi
 - Look in your "Untagged" board if you didn't use hashtags
 
-Still missing? Email hello@textaside.app with details and we'll investigate!
+Still missing? Email hi@textaside.com with details and we'll investigate!
 
 🔗 Your dashboard: ${dashboardLink}`,
           intent: 'help',
@@ -746,7 +746,7 @@ Still missing? Email hello@textaside.app with details and we'll investigate!
 2. Make sure you can receive texts from other numbers
 3. Check your spam/blocked messages
 
-Still not working? Text "test" and if you don't get a reply within a few minutes, email hello@textaside.app`,
+Still not working? Text "test" and if you don't get a reply within a few minutes, email hi@textaside.com`,
           intent: 'help',
         };
       }
