@@ -101,3 +101,77 @@ The system uses a TypeScript React frontend (Vite) and a Node.js Express backend
 - `server/pendo-service.ts`: Pendo API integration, identifyVisitor method
 - `server/pendo-profile-service.ts`: Metadata calculation logic
 - `server/routes.ts`: SMS webhook integration, admin endpoints, cron job
+
+### Automated Testing
+
+**Status**: Fully implemented (November 21, 2025)
+
+**Purpose**: Comprehensive automated testing for all backend API endpoints to ensure reliability, catch regressions early, and maintain code quality.
+
+**Testing Framework**: Vitest + Supertest for fast, modern API testing with TypeScript support
+
+**Test Coverage**:
+
+1. **Authentication Tests** (`server/tests/auth.test.ts`)
+   - User registration and verification flow
+   - Session management
+   - Login/logout functionality
+   - Phone number validation
+   - Error handling for invalid inputs
+
+2. **Messages Tests** (`server/tests/messages.test.ts`)
+   - Fetching user messages
+   - Filtering by tags and boards
+   - Message updates and deletion
+   - Tag retrieval
+   - Authentication requirements
+
+3. **Boards Tests** (`server/tests/boards.test.ts`)
+   - Board creation and management
+   - Joining and leaving shared boards
+   - Board ownership validation
+   - Input validation
+   - Authorization checks
+
+4. **Admin Tests** (`server/tests/admin.test.ts`)
+   - User statistics
+   - User management
+   - Pendo analytics backfill
+   - SMS activity updates
+   - Post enrichment
+   - Feedback and sweepstakes management
+
+**Running Tests**:
+```bash
+# Run all tests
+npx vitest run
+
+# Watch mode (auto-rerun on changes)
+npx vitest watch
+
+# Interactive UI dashboard
+npx vitest --ui
+
+# Coverage report
+npx vitest run --coverage
+
+# Run specific test file
+npx vitest run server/tests/auth.test.ts
+```
+
+**Test Utilities** (`server/tests/helpers.ts`):
+- `generateRandomPhone()`: Creates unique phone numbers for test users
+- `loginUser()`: Authenticates a test user and returns session cookie
+- `createAuthenticatedAgent()`: Creates authenticated request agent
+- Test user fixtures for common scenarios
+
+**Configuration**: 
+- `vitest.config.ts`: Main test configuration
+- `server/tests/setup.ts`: Global test setup and teardown
+- `server/tests/test-app.ts`: Test Express app factory
+
+**Critical Files**:
+- `vitest.config.ts`: Test framework configuration
+- `server/tests/test-app.ts`: Express app setup for testing
+- `server/tests/helpers.ts`: Shared test utilities
+- `server/tests/*.test.ts`: Test suites for each API domain

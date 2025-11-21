@@ -84,17 +84,21 @@ describe('Authentication API', () => {
     });
 
     it('should successfully verify and create session with valid code', async () => {
+      const { getLatestVerificationCode } = await import('./helpers');
       const phoneNumber = generateRandomPhone();
       
       await request(app)
         .post('/api/auth/login')
         .send({ phoneNumber });
 
+      const verificationCode = await getLatestVerificationCode(phoneNumber);
+      expect(verificationCode).toBeTruthy();
+
       const response = await request(app)
         .post('/api/auth/verify')
         .send({ 
           phoneNumber, 
-          code: '123456'
+          code: verificationCode
         });
 
       expect(response.status).toBe(200);
@@ -118,6 +122,7 @@ describe('Authentication API', () => {
     });
 
     it('should return authenticated with valid session', async () => {
+      const { getLatestVerificationCode } = await import('./helpers');
       const agent = request.agent(app);
       const phoneNumber = generateRandomPhone();
       
@@ -125,9 +130,11 @@ describe('Authentication API', () => {
         .post('/api/auth/login')
         .send({ phoneNumber });
 
+      const verificationCode = await getLatestVerificationCode(phoneNumber);
+
       await agent
         .post('/api/auth/verify')
-        .send({ phoneNumber, code: '123456' });
+        .send({ phoneNumber, code: verificationCode });
 
       const response = await agent
         .get('/api/auth/session');
@@ -140,6 +147,7 @@ describe('Authentication API', () => {
 
   describe('POST /api/auth/logout', () => {
     it('should successfully logout and destroy session', async () => {
+      const { getLatestVerificationCode } = await import('./helpers');
       const agent = request.agent(app);
       const phoneNumber = generateRandomPhone();
       
@@ -147,9 +155,11 @@ describe('Authentication API', () => {
         .post('/api/auth/login')
         .send({ phoneNumber });
 
+      const verificationCode = await getLatestVerificationCode(phoneNumber);
+
       await agent
         .post('/api/auth/verify')
-        .send({ phoneNumber, code: '123456' });
+        .send({ phoneNumber, code: verificationCode });
 
       const logoutResponse = await agent
         .post('/api/auth/logout');

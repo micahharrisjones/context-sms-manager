@@ -1,6 +1,8 @@
 import request from 'supertest';
 import type { Express } from 'express';
-import type { User } from '@shared/schema';
+import { db } from '../db';
+import { authSessions } from '@shared/schema';
+import { desc, eq } from 'drizzle-orm';
 
 export interface TestUser {
   phoneNumber: string;
@@ -23,26 +25,44 @@ export const testUsers = {
   },
 };
 
+export async function getLatestVerificationCode(phoneNumber: string): Promise<string | null> {
+  const cleanPhoneNumber = phoneNumber.replace(/\D/g, '');
+  
+  const [session] = await db
+    .select()
+    .from(authSessions)
+    .where(eq(authSessions.phoneNumber, cleanPhoneNumber))
+    .orderBy(desc(authSessions.createdAt))
+    .limit(1);
+  
+  return session?.verificationCode || null;
+}
+
 export async function loginUser(app: Express, phoneNumber: string): Promise<string> {
   const agent = request.agent(app);
   
-  const sendCodeResponse = await agent
-    .post('/api/auth/send-code')
-    .send({ phoneNumber });
-  
-  if (sendCodeResponse.status !== 200) {
-    throw new Error(`Failed to send code: ${sendCodeResponse.body.message}`);
-  }
-
   const loginResponse = await agent
     .post('/api/auth/login')
-    .send({ phoneNumber, code: '123456' });
-
+    .send({ phoneNumber });
+  
   if (loginResponse.status !== 200) {
-    throw new Error(`Failed to login: ${loginResponse.body.message}`);
+    throw new Error(`Failed to initiate login: ${loginResponse.body.message}`);
   }
 
-  const cookies = loginResponse.headers['set-cookie'];
+  const verificationCode = await getLatestVerificationCode(phoneNumber);
+  if (!verificationCode) {
+    throw new Error('No verification code found');
+  }
+
+  const verifyResponse = await agent
+    .post('/api/auth/verify')
+    .send({ phoneNumber, code: verificationCode });
+
+  if (verifyResponse.status !== 200) {
+    throw new Error(`Failed to verify: ${verifyResponse.body.message}`);
+  }
+
+  const cookies = verifyResponse.headers['set-cookie'];
   if (!cookies || cookies.length === 0) {
     throw new Error('No session cookie received');
   }

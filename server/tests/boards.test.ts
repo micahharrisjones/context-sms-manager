@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import type { Express } from 'express';
 import { createTestApp } from './test-app';
-import { generateRandomPhone } from './helpers';
+import { generateRandomPhone, loginUser } from './helpers';
 
 describe('Boards API', () => {
   let app: Express;
@@ -13,19 +13,11 @@ describe('Boards API', () => {
     app = await createTestApp();
     
     const phoneNumber = generateRandomPhone();
-    const agent = request.agent(app);
+    sessionCookie = await loginUser(app, phoneNumber);
     
-    await agent
-      .post('/api/auth/login')
-      .send({ phoneNumber });
-
-    const verifyResponse = await agent
-      .post('/api/auth/verify')
-      .send({ phoneNumber, code: '123456' });
-
-    userId = verifyResponse.body.user.id;
-    const cookies = verifyResponse.headers['set-cookie'];
-    sessionCookie = cookies.find((c: string) => c.startsWith('connect.sid=')).split(';')[0];
+    const agent = request.agent(app).set('Cookie', sessionCookie);
+    const sessionResponse = await agent.get('/api/auth/session');
+    userId = sessionResponse.body.userId;
   });
 
   describe('GET /api/boards', () => {

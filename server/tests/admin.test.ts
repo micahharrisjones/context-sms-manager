@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import type { Express } from 'express';
 import { createTestApp } from './test-app';
-import { generateRandomPhone } from './helpers';
+import { generateRandomPhone, loginUser } from './helpers';
 
 describe('Admin API', () => {
   let app: Express;
@@ -12,18 +12,7 @@ describe('Admin API', () => {
     app = await createTestApp();
     
     const phoneNumber = generateRandomPhone();
-    const agent = request.agent(app);
-    
-    await agent
-      .post('/api/auth/login')
-      .send({ phoneNumber });
-
-    const verifyResponse = await agent
-      .post('/api/auth/verify')
-      .send({ phoneNumber, code: '123456' });
-
-    const cookies = verifyResponse.headers['set-cookie'];
-    sessionCookie = cookies.find((c: string) => c.startsWith('connect.sid=')).split(';')[0];
+    sessionCookie = await loginUser(app, phoneNumber);
   });
 
   describe('GET /api/admin/stats', () => {
