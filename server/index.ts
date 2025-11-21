@@ -69,8 +69,8 @@ const signupRateLimit = rateLimit({
 
 app.use('/api/signup', signupRateLimit);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Changed to true for better form parsing
+app.use(express.json({ limit: '10mb' })); // Increased limit for image attachments
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // Increased limit for image attachments
 
 // Configure session middleware
 app.use(session({
