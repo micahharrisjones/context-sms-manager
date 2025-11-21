@@ -198,6 +198,52 @@ export function AdminPage() {
     }
   });
 
+  // Backfill Pendo metadata mutation
+  const backfillPendoMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('/api/admin/backfill-pendo-metadata', {
+        method: 'POST'
+      });
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Pendo backfill complete",
+        description: `Successfully updated Pendo profiles for ${data.updated} users (${data.failed} failed, ${data.skipped} skipped)`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Pendo backfill failed",
+        description: error.message || "Failed to backfill Pendo metadata",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Update SMS activity mutation (manual trigger of daily cron)
+  const updateSmsActivityMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('/api/admin/update-sms-activity', {
+        method: 'POST'
+      });
+      return response.json();
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "SMS activity updated",
+        description: `Successfully updated ${data.updated} user profiles with latest SMS activity data`
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "SMS activity update failed",
+        description: error.message || "Failed to update SMS activity",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Mark feedback as reviewed mutation
   const markFeedbackAsReviewedMutation = useMutation({
     mutationFn: async (feedbackId: number) => {
@@ -374,6 +420,85 @@ export function AdminPage() {
           {enrichOldPostsMutation.isPending && (
             <p className="text-sm text-[#263d57]/70 mt-2">
               This may take several minutes as each URL is fetched and processed...
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pendo Analytics Testing */}
+      <Card className="bg-[#fff2ea] border-[#e3cac0]">
+        <CardHeader>
+          <CardTitle>Pendo Analytics Testing</CardTitle>
+          <CardDescription>
+            Test and verify Pendo visitor profile updates with SMS metadata. Backfill all existing users with historical SMS activity data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  disabled={backfillPendoMutation.isPending}
+                  className="bg-[#b95827] hover:bg-[#a04d1f] text-white"
+                  data-testid="admin-button-backfill-pendo"
+                >
+                  <Database className="h-4 w-4 mr-2" />
+                  {backfillPendoMutation.isPending ? "Backfilling..." : "Backfill All Users to Pendo"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Backfill all users to Pendo?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will update Pendo visitor profiles for all users with SMS metadata including activity stats, engagement levels, and platform preferences. This operation may take several minutes depending on the number of users.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => backfillPendoMutation.mutate()}
+                    className="bg-[#b95827] hover:bg-[#a04d1f]"
+                  >
+                    Backfill All Users
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  disabled={updateSmsActivityMutation.isPending}
+                  variant="outline"
+                  className="border-[#b95827] text-[#b95827] hover:bg-[#b95827]/10"
+                  data-testid="admin-button-update-sms-activity"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  {updateSmsActivityMutation.isPending ? "Updating..." : "Update SMS Activity (Daily Cron)"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Update SMS activity for all users?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This manually triggers the daily cron job that updates "days since last SMS" metrics for all users in Pendo. Normally this runs automatically at midnight.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => updateSmsActivityMutation.mutate()}
+                    className="bg-[#b95827] hover:bg-[#a04d1f]"
+                  >
+                    Update All Users
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          {(backfillPendoMutation.isPending || updateSmsActivityMutation.isPending) && (
+            <p className="text-sm text-[#263d57]/70 mt-2">
+              Processing all user profiles and sending metadata to Pendo...
             </p>
           )}
         </CardContent>
