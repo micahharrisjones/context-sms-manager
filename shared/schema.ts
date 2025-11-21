@@ -195,7 +195,7 @@ export const sweepstakesEntries = pgTable("sweepstakes_entries", {
 // Feedback submissions table - for user feedback, bug reports, and suggestions
 export const feedbackSubmissions = pgTable("feedback_submissions", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id").references(() => users.id), // Optional - allows anonymous feedback
   feedbackType: varchar("feedback_type", { length: 50 }).notNull(), // "bug" | "suggestion" | "general"
   name: varchar("name", { length: 100 }), // Optional name for personalization
   email: varchar("email", { length: 255 }).notNull(), // Required for follow-up

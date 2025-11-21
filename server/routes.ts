@@ -5543,10 +5543,11 @@ You can now text anything with #${boardName} to share with everyone on the board
   // FEEDBACK ENDPOINTS
   // ======================
 
-  // POST /api/feedback - Submit feedback with optional image attachment
-  app.post("/api/feedback", requireAuth, async (req, res) => {
+  // POST /api/feedback - Submit feedback with optional image attachment (public endpoint)
+  app.post("/api/feedback", async (req, res) => {
     try {
-      const userId = req.userId!;
+      // Allow both authenticated and unauthenticated users to submit feedback
+      const userId = req.userId || null;
       const { feedbackType, name, email, subject, message, imageData } = req.body;
 
       // Validate required fields
@@ -5599,9 +5600,9 @@ You can now text anything with #${boardName} to share with everyone on the board
           const tempMessageId = Date.now();
           const uploadResult = await s3Service.uploadImage({
             buffer,
-            userId,
+            userId: userId || 0, // Use 0 for anonymous feedback
             messageId: tempMessageId,
-            originalFilename: `feedback-${userId}-${tempMessageId}.${imageType}`
+            originalFilename: `feedback-${userId || 'anonymous'}-${tempMessageId}.${imageType}`
           });
 
           attachmentUrl = uploadResult.key;
@@ -5623,24 +5624,26 @@ You can now text anything with #${boardName} to share with everyone on the board
         attachmentUrl
       });
 
-      log(`Feedback submission created: ${feedback.id} from user ${userId}`);
+      log(`Feedback submission created: ${feedback.id} from ${userId ? `user ${userId}` : 'anonymous user'}`);
 
-      // Track in Pendo
-      const user = await storage.getUserById(userId);
-      if (user?.phoneNumber) {
-        try {
-          await pendoServerService.trackEvent(
-            user.phoneNumber, 
-            'Feedback Submitted',
-            JSON.stringify({
-              feedbackId: feedback.id,
-              feedbackType,
-              hasAttachment: !!attachmentUrl,
-              subject
-            })
-          );
-        } catch (pendoError) {
-          log("Pendo tracking failed for feedback submission:", pendoError instanceof Error ? pendoError.message : String(pendoError));
+      // Track in Pendo (only if user is authenticated)
+      if (userId) {
+        const user = await storage.getUserById(userId);
+        if (user?.phoneNumber) {
+          try {
+            await pendoServerService.trackEvent(
+              user.phoneNumber, 
+              'Feedback Submitted',
+              JSON.stringify({
+                feedbackId: feedback.id,
+                feedbackType,
+                hasAttachment: !!attachmentUrl,
+                subject
+              })
+            );
+          } catch (pendoError) {
+            log("Pendo tracking failed for feedback submission:", pendoError instanceof Error ? pendoError.message : String(pendoError));
+          }
         }
       }
 
