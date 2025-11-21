@@ -76,10 +76,6 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
               disabled={inviteUserMutation.isPending}
               data-pendo="input-invite-phone-number"
             />
-            
-            <p className="text-sm text-muted-foreground">
-              The user must have an Aside account to receive the invitation.
-            </p>
           </div>
           
           <div className="flex justify-end gap-2">
