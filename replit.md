@@ -13,6 +13,41 @@ Aside is an SMS management platform for persistent message storage and seamless 
 ### System Architecture
 The system uses a TypeScript React frontend (Vite) and a Node.js Express backend. Data is stored in PostgreSQL with Drizzle ORM and pgvector for semantic search. Real-time features are powered by WebSockets. Twilio handles SMS processing (incoming via webhooks, outgoing notifications). Key architectural decisions include an "SMS-first" onboarding and a content-aware conversational AI that analyzes saved messages. The UI/UX is clean, mobile-optimized, with a warm color scheme. Features include multi-user authentication with phone verification and magic links, user-scoped message storage, smart hashtag inheritance, comprehensive social media and general URL link previews (Instagram, Pinterest, X/Twitter, Reddit, Facebook, YouTube, TikTok, IMDB via official widgets/embeds), shared board functionality with real-time notifications, and message editing/renaming. An admin dashboard provides management. Squarespace integration API supports professional website signups with instant SMS welcome messages. AI integration includes: "Hey Aside" conversational AI trigger for explicit SMS queries using OpenAI GPT-4o-mini for intent classification (search, summarize, recommend, analyze, login), OpenAI text-embedding-3-small for vector embeddings and keyword-first hybrid search (tries keyword matching first, falls back to 70% semantic + 30% keyword if <3 results for predictable, reliable results), and DeepSeek for hybrid categorization and daily affirmations. DIY URL shortener system (/s/:code pattern) with domain allowlisting (textaside.app only) for secure, compact "View all" links in SMS search results; search page supports ?q= URL parameter for pre-populated queries.
 
+### Progressive Web App (PWA)
+
+**Status**: Fully implemented (January 20, 2026)
+
+**Purpose**: Enable users to install Aside to their phone's home screen for an app-like experience without requiring App Store distribution.
+
+**Implementation Components**:
+
+1. **Web App Manifest** (`client/public/manifest.json`)
+   - App name, icons (192x192, 512x512), theme colors (#b95827)
+   - Standalone display mode for full-screen app experience
+   - App shortcuts for quick access to messages
+
+2. **Service Worker** (`client/public/sw.js`)
+   - Network-first caching strategy with offline fallback
+   - Caches static assets (icons, logos) for offline access
+   - Skips API routes to ensure fresh data
+
+3. **iOS/Android Meta Tags** (`client/index.html`)
+   - `apple-mobile-web-app-capable` for iOS home screen support
+   - `apple-mobile-web-app-status-bar-style` for status bar theming
+   - `theme-color` for browser UI theming
+
+4. **Install Prompt Component** (`client/src/components/InstallPrompt.tsx`)
+   - Shows install prompt for Android/Chrome users via `beforeinstallprompt` event
+   - Shows iOS-specific instructions (Share → Add to Home Screen)
+   - Dismissable with 7-day cooldown before showing again
+   - Hides automatically if already installed (standalone mode)
+
+**User Experience**:
+- Android/Chrome: "Install App" button appears after visiting the site
+- iOS/Safari: Instructions to tap Share → "Add to Home Screen"
+- Installed: App opens in standalone mode without browser UI
+- Offline: Cached assets available, graceful degradation for API calls
+
 ### External Dependencies
 - **Twilio**: For SMS integration, handling incoming webhooks and sending outgoing messages.
 - **PostgreSQL with pgvector**: Primary database for persistent storage and vector similarity search.
