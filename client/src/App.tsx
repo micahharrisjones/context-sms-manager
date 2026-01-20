@@ -18,6 +18,7 @@ import LaunchRulesPage from "@/pages/LaunchRulesPage";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { pendo } from "@/lib/pendo";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -112,6 +113,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router />
       <Toaster />
+      <InstallPrompt />
     </QueryClientProvider>
   );
 }
