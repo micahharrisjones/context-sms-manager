@@ -83,7 +83,7 @@ export function InstallPrompt() {
         </div>
         
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900">Install Aside</h3>
+          <h3 className="font-semibold text-gray-900">Install the new Aside app!</h3>
           {isIOS ? (
             <p className="text-sm text-gray-600 mt-1">
               Tap <span className="inline-flex items-center"><svg className="w-4 h-4 mx-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg></span> then "Add to Home Screen"
