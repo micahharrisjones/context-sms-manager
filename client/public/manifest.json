@@ -3,11 +3,13 @@
   "short_name": "Aside",
   "description": "A robust SMS management platform for organizing and sharing your messages with intelligent hashtag categorization and real-time collaboration.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "theme_color": "#b95827",
   "background_color": "#fff2ea",
   "orientation": "portrait-primary",
   "categories": ["productivity", "social", "utilities"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.png",
@@ -25,6 +27,16 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "My Messages",
+      "short_name": "Messages",
+      "description": "View your saved messages",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
