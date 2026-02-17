@@ -141,7 +141,7 @@ export default function AllTexts() {
       <div className="mb-6">
         <div className="h-[60px] flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/aside-logo-loader.png" alt="Aside" className="w-7 h-7 object-contain" />
+            <img src="/aside-logo-loader.png" alt="Aside" className="w-7 h-7 object-contain lg:hidden" />
             <h1 className="text-2xl font-semibold text-[#263d57]">
               {getTitle()}
             </h1>
