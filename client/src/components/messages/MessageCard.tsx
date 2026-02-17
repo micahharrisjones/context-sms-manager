@@ -946,42 +946,35 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         
-        {/* Show hashtags as chips */}
-        {formattedHashtags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mt-3">
+        {/* Footer: hashtags + timestamp on same row */}
+        <div className="flex items-end justify-between gap-2 mt-3">
+          <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
             {formattedHashtags}
-          </div>
-        )}
-        
-        {/* Footer: timestamp and sender info */}
-        <div className="flex items-center justify-between pt-3 mt-2">
-          {/* Show sender info for shared board messages only */}
-          {(message.senderFirstName || message.senderLastName || message.senderDisplayName) ? (
-            <div className="flex items-center gap-1.5">
-              <Avatar className="h-5 w-5">
-                <AvatarImage src={message.senderAvatarUrl || undefined} />
-                <AvatarFallback className="bg-[#ed2024] text-white text-[10px]">
+            {(message.senderFirstName || message.senderLastName || message.senderDisplayName) && (
+              <div className="flex items-center gap-1.5 ml-1">
+                <Avatar className="h-4 w-4">
+                  <AvatarImage src={message.senderAvatarUrl || undefined} />
+                  <AvatarFallback className="bg-[#ed2024] text-white text-[8px]">
+                    {message.senderFirstName && message.senderLastName
+                      ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
+                      : message.senderDisplayName?.[0]?.toUpperCase() || 
+                        getSenderInitials(message.senderId)
+                    }
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-[10px] text-[#263d57]/50">
                   {message.senderFirstName && message.senderLastName
-                    ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
-                    : message.senderDisplayName?.[0]?.toUpperCase() || 
-                      getSenderInitials(message.senderId)
+                    ? `${message.senderFirstName} ${message.senderLastName}`
+                    : message.senderDisplayName || 
+                      (message.senderId ? 
+                        formatSenderDisplay(message.senderId) : 
+                        'Unknown')
                   }
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-xs text-[#263d57]/50">
-                {message.senderFirstName && message.senderLastName
-                  ? `${message.senderFirstName} ${message.senderLastName}`
-                  : message.senderDisplayName || 
-                    (message.senderId ? 
-                      formatSenderDisplay(message.senderId) : 
-                      'Unknown')
-                }
-              </span>
-            </div>
-          ) : (
-            <div></div>
-          )}
-          <span className="text-xs text-[#263d57]/40">
+                </span>
+              </div>
+            )}
+          </div>
+          <span className="text-[10px] text-[#263d57]/40 whitespace-nowrap flex-shrink-0">
             {formatTimestamp(message.timestamp)}
           </span>
         </div>
