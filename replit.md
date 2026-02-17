@@ -5,7 +5,7 @@ Aside is an SMS management platform for persistent message storage and seamless 
 
 ### User Preferences
 - **Design**: #b95827 primary color (orange), #263d57 secondary (dark blue), #fff2ea background, Aside branding, mobile-responsive
-- **Layout**: Logo in sidebar (far left), search bar and logout button positioned directly under shared boards section within scrollable area
+- **Layout**: Mobile-first bottom tab navigation (Inbox, Boards, Search, Profile), slim desktop icon rail (72px). No sidebar/hamburger menu. Logo centered in mobile header, board name shown when viewing a specific board.
 - **Functionality**: No message input form - messages only via SMS webhooks
 - **Storage**: Persistent PostgreSQL database for message retention
 - **Integration**: Twilio for reliable SMS webhook handling
