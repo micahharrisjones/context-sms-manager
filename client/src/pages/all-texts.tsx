@@ -139,16 +139,16 @@ export default function AllTexts() {
     <div>
       {/* Header with title and controls */}
       <div className="mb-6">
-        <div className="h-[60px] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/aside-logo-loader.png" alt="Aside" className="w-7 h-7 object-contain lg:hidden" />
-            <h1 className="text-2xl font-semibold text-[#263d57]">
+        <div className="min-h-[60px] py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <img src="/aside-logo-loader.png" alt="Aside" className="w-7 h-7 object-contain lg:hidden flex-shrink-0" />
+            <h1 className="text-2xl font-semibold text-[#263d57] truncate">
               {getTitle()}
             </h1>
             {getBoardIcon()}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             {/* Sort Control */}
             {messages && messages.length > 0 && (
               <div className="flex items-center gap-2">
