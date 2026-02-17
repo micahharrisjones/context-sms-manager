@@ -1,6 +1,6 @@
 export default function LaunchRulesPage() {
   return (
-    <div className="min-h-screen bg-[#fff2ea]">
+    <div className="min-h-screen bg-[#faf6f3]">
       <div className="max-w-4xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-lg p-6 sm:p-10">
           <h1 className="text-3xl sm:text-4xl font-bold text-[#b95827] mb-4 text-center">
@@ -10,7 +10,7 @@ export default function LaunchRulesPage() {
             Official Rules
           </h2>
 
-          <div className="bg-[#fff2ea] border-l-4 border-[#b95827] p-4 mb-8">
+          <div className="bg-[#faf6f3] border-l-4 border-[#b95827] p-4 mb-8">
             <p className="text-sm font-semibold text-[#263d57] uppercase tracking-wide">
               NO PURCHASE OR ATTENDANCE NECESSARY TO ENTER OR WIN. A PURCHASE OR ATTENDANCE WILL NOT INCREASE YOUR CHANCES OF WINNING.
             </p>

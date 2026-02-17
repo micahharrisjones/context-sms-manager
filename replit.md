@@ -4,7 +4,7 @@
 Aside is an SMS management platform for persistent message storage and seamless multi-device communication. It intelligently organizes messages and offers advanced integrations like social media embeds, real-time shared boards, and an AI-powered hybrid categorization system. The vision is an SMS-first solution for saving and organizing information, accessible via a web dashboard, with future plans for AI-driven personalization and content understanding.
 
 ### User Preferences
-- **Design**: #b95827 primary color (orange), #263d57 secondary (dark blue), #fff2ea background, Aside branding, mobile-responsive
+- **Design**: #b95827 primary color (orange), #263d57 secondary (dark blue), #faf6f3 background, Aside branding, mobile-responsive
 - **Layout**: Mobile-first bottom tab navigation (Inbox, Boards, Search, Profile), slim desktop icon rail (72px). No sidebar/hamburger menu. Logo centered in mobile header, board name shown when viewing a specific board.
 - **Functionality**: No message input form - messages only via SMS webhooks
 - **Storage**: Persistent PostgreSQL database for message retention

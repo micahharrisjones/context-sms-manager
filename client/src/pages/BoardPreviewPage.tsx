@@ -186,7 +186,7 @@ export default function BoardPreviewPage() {
   // Show loading state
   if (boardLoading) {
     return (
-      <div className="min-h-screen bg-[#fff2ea] flex items-center justify-center">
+      <div className="min-h-screen bg-[#faf6f3] flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-[#b95827]" />
       </div>
     );
@@ -195,7 +195,7 @@ export default function BoardPreviewPage() {
   // Show error if board not found
   if (boardError || !boardPreview) {
     return (
-      <div className="min-h-screen bg-[#fff2ea] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#faf6f3] flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-[#263d57] mb-2">Board Not Found</h1>
           <p className="text-[#263d57]/70 mb-4">This board doesn't exist or has been deleted.</p>

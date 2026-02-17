@@ -120,7 +120,7 @@ export function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#fff2ea] px-4 py-8">
+      <div className="min-h-screen bg-[#faf6f3] px-4 py-8">
         <div className="max-w-lg mx-auto space-y-6">
           <div className="animate-pulse flex flex-col items-center gap-3">
             <div className="h-20 w-20 bg-[#263d57]/10 rounded-full" />
@@ -165,7 +165,7 @@ export function ProfilePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fff2ea] px-4 py-8 pb-28">
+    <div className="min-h-screen bg-[#faf6f3] px-4 py-8 pb-28">
       <div className="max-w-lg mx-auto space-y-6">
         {/* Profile Header */}
         <div className="flex flex-col items-center gap-2 py-4" data-pendo="profile-header">
@@ -193,7 +193,7 @@ export function ProfilePage() {
                     id="firstName"
                     {...form.register('firstName')}
                     placeholder="First name"
-                    className="border-[#e3cac0] focus:border-[#b95827] bg-[#fff2ea]/50"
+                    className="border-[#e3cac0] focus:border-[#b95827] bg-[#faf6f3]/50"
                     data-pendo="input-profile-first-name"
                   />
                   {form.formState.errors.firstName && (
@@ -206,7 +206,7 @@ export function ProfilePage() {
                     id="lastName"
                     {...form.register('lastName')}
                     placeholder="Last name"
-                    className="border-[#e3cac0] focus:border-[#b95827] bg-[#fff2ea]/50"
+                    className="border-[#e3cac0] focus:border-[#b95827] bg-[#faf6f3]/50"
                     data-pendo="input-profile-last-name"
                   />
                   {form.formState.errors.lastName && (
@@ -221,7 +221,7 @@ export function ProfilePage() {
                   id="avatarUrl"
                   {...form.register('avatarUrl')}
                   placeholder="https://example.com/photo.jpg"
-                  className="border-[#e3cac0] focus:border-[#b95827] bg-[#fff2ea]/50"
+                  className="border-[#e3cac0] focus:border-[#b95827] bg-[#faf6f3]/50"
                   data-pendo="input-profile-avatar-url"
                 />
                 {form.formState.errors.avatarUrl && (
@@ -249,7 +249,7 @@ export function ProfilePage() {
               <button
                 key={action.pendo}
                 onClick={action.onClick}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#fff2ea]/60 transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#faf6f3]/60 transition-colors ${
                   idx < quickActions.length - 1 ? 'border-b border-[#e3cac0]/40' : ''
                 }`}
                 data-pendo={action.pendo}
@@ -276,7 +276,7 @@ export function ProfilePage() {
             </button>
             <button
               onClick={logout}
-              className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#fff2ea]/60 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#faf6f3]/60 transition-colors"
               data-pendo="profile-logout"
             >
               <LogOut className="h-5 w-5 text-[#263d57]/50 flex-shrink-0" />

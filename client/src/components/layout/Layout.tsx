@@ -57,7 +57,7 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="flex h-screen relative bg-[#fff2ea]">
+    <div className="flex h-screen relative bg-[#faf6f3]">
       {/* Desktop icon rail */}
       <aside className="hidden lg:flex flex-col items-center w-[72px] bg-white shadow-[2px_0_10px_rgba(0,0,0,0.08)] flex-shrink-0 h-screen" data-pendo="desktop-icon-rail">
         <Link href="/" className="flex items-center justify-center py-5" data-pendo="rail-logo">
@@ -99,7 +99,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden lg:h-screen">
         {/* Mobile header */}
-        <div className="lg:hidden flex-shrink-0 bg-[#fff2ea] border-b border-[#e3cac0]">
+        <div className="lg:hidden flex-shrink-0 bg-[#faf6f3] border-b border-[#e3cac0]">
           <div className="p-4 flex items-center justify-center">
             {currentBoardName ? (
               <h1 className="text-lg font-semibold text-[#263d57] truncate text-center" data-testid="text-board-name" data-pendo="header-board-name">

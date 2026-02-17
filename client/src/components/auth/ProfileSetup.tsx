@@ -162,7 +162,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#fff2ea] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#faf6f3] flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-white border-[#e3cac0]">
         <CardHeader className="text-center space-y-2">
           <div className="mx-auto w-12 h-12 bg-[#b95827] rounded-full flex items-center justify-center">
@@ -230,7 +230,7 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 border-[#e3cac0] hover:bg-[#fff2ea]"
+                className="flex-1 border-[#e3cac0] hover:bg-[#faf6f3]"
                 onClick={handleSkip}
                 disabled={skipSetupMutation.isPending}
                 data-pendo="button-skip-profile-setup"

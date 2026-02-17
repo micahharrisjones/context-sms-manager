@@ -153,7 +153,7 @@ export default function FeedbackPage() {
 
   if (isSuccess) {
     return (
-      <div className="flex-1 overflow-y-auto bg-[#fff2ea] p-6">
+      <div className="flex-1 overflow-y-auto bg-[#faf6f3] p-6">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow-sm p-8 text-center">
             <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -180,7 +180,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto bg-[#fff2ea] p-6">
+    <div className="flex-1 overflow-y-auto bg-[#faf6f3] p-6">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-6 md:p-8">
           <div className="flex justify-center mb-6">

@@ -178,7 +178,7 @@ export function DashboardStats() {
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: '#fff2ea', 
+                    backgroundColor: '#faf6f3', 
                     border: '1px solid #e3cac0',
                     borderRadius: '8px'
                   }}
@@ -220,7 +220,7 @@ export function DashboardStats() {
                 />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: '#fff2ea', 
+                    backgroundColor: '#faf6f3', 
                     border: '1px solid #e3cac0',
                     borderRadius: '8px'
                   }}

@@ -183,7 +183,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-edit-message">
+      <DialogContent className="sm:max-w-[600px] bg-[#faf6f3] border-[#e3cac0]" data-pendo="modal-edit-message">
         <DialogHeader>
           <DialogTitle>Edit Message</DialogTitle>
         </DialogHeader>

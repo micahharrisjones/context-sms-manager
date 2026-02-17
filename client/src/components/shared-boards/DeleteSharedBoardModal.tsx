@@ -65,7 +65,7 @@ export function DeleteSharedBoardModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-delete-shared-board">
+      <DialogContent className="sm:max-w-[500px] bg-[#faf6f3] border-[#e3cac0]" data-pendo="modal-delete-shared-board">
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">

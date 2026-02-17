@@ -170,7 +170,7 @@ export function NotificationSettingsPage() {
       </Card>
 
       {/* Help Text */}
-      <Card className="border-[#e3cac0] bg-[#fff2ea]">
+      <Card className="border-[#e3cac0] bg-[#faf6f3]">
         <CardContent className="pt-6">
           <div className="text-sm text-[#263d57] space-y-2">
             <p><strong>How it works:</strong></p>

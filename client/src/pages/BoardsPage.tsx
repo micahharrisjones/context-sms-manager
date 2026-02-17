@@ -142,7 +142,7 @@ export default function BoardsPage() {
                 setShowCreateMenu(false);
                 setShowCreatePrivateModal(true);
               }}
-              className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-[#fff2ea] transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-[#faf6f3] transition-colors"
               data-pendo="boards-create-private-btn"
             >
               <Lock className="w-4 h-4 text-[#b95827]" />
@@ -154,7 +154,7 @@ export default function BoardsPage() {
                 setShowCreateMenu(false);
                 setShowCreateSharedModal(true);
               }}
-              className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-[#fff2ea] transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-[#faf6f3] transition-colors"
               data-pendo="boards-create-shared-btn"
             >
               <Globe className="w-4 h-4 text-[#263d57]" />

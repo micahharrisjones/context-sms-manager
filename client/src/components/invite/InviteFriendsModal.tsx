@@ -116,7 +116,7 @@ export function InviteFriendsModal({ isOpen, onClose, userDisplayName }: InviteF
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-invite-friends">
+      <DialogContent className="sm:max-w-md bg-[#faf6f3] border-[#e3cac0]" data-pendo="modal-invite-friends">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />

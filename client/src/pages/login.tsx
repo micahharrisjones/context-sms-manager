@@ -7,7 +7,7 @@ export default function LoginPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#fff2ea]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
+      <div className="min-h-screen min-h-[100dvh] flex items-center justify-center bg-[#faf6f3]" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
         <div className="text-center">
           <div className="w-24 h-24 mx-auto mb-4 animate-pulse">
             <img 

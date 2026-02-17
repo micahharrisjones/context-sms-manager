@@ -400,7 +400,7 @@ export function AdminPage() {
       </div>
 
       {/* Post Enrichment Card */}
-      <Card className="bg-[#fff2ea] border-[#e3cac0]">
+      <Card className="bg-[#faf6f3] border-[#e3cac0]">
         <CardHeader>
           <CardTitle>Enrich Old Posts</CardTitle>
           <CardDescription>
@@ -426,7 +426,7 @@ export function AdminPage() {
       </Card>
 
       {/* Pendo Analytics Testing */}
-      <Card className="bg-[#fff2ea] border-[#e3cac0]">
+      <Card className="bg-[#faf6f3] border-[#e3cac0]">
         <CardHeader>
           <CardTitle>Pendo Analytics Testing</CardTitle>
           <CardDescription>
@@ -547,7 +547,7 @@ export function AdminPage() {
                   SMS All Users
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-[525px] bg-[#fff2ea] border-[#e3cac0]">
+              <DialogContent className="sm:max-w-[525px] bg-[#faf6f3] border-[#e3cac0]">
                 <DialogHeader>
                   <DialogTitle>Send SMS Broadcast</DialogTitle>
                   <DialogDescription>
@@ -601,7 +601,7 @@ export function AdminPage() {
                   Delete Selected ({selectedUsers.length})
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent className="bg-[#fff2ea] border-[#e3cac0]">
+              <AlertDialogContent className="bg-[#faf6f3] border-[#e3cac0]">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete {selectedUsers.length} Users</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -684,7 +684,7 @@ export function AdminPage() {
                               <Trash2 className="h-3 w-3" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent className="bg-[#fff2ea] border-[#e3cac0]">
+                          <AlertDialogContent className="bg-[#faf6f3] border-[#e3cac0]">
                             <AlertDialogHeader>
                               <AlertDialogTitle>Delete User {user.displayName}</AlertDialogTitle>
                               <AlertDialogDescription>
@@ -802,7 +802,7 @@ export function AdminPage() {
                   className={`border rounded-lg p-4 ${
                     submission.isReviewed === "true" 
                       ? "bg-gray-50 border-gray-300" 
-                      : "bg-[#fff2ea] border-[#b95827]"
+                      : "bg-[#faf6f3] border-[#b95827]"
                   }`}
                 >
                   <div className="flex justify-between items-start mb-3">
@@ -915,7 +915,7 @@ export function AdminPage() {
           ) : feedbackMessages && feedbackMessages.length > 0 ? (
             <div className="space-y-4">
               {feedbackMessages.map((message) => (
-                <div key={message.id} className="border rounded-lg p-4 bg-[#fff2ea] border-[#e3cac0]">
+                <div key={message.id} className="border rounded-lg p-4 bg-[#faf6f3] border-[#e3cac0]">
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">

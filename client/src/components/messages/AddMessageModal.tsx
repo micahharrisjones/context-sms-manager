@@ -140,7 +140,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-add-message">
+      <DialogContent className="sm:max-w-md bg-[#faf6f3] border-[#e3cac0]" data-pendo="modal-add-message">
         <DialogHeader>
           <DialogTitle className="text-center">Add to Aside</DialogTitle>
         </DialogHeader>

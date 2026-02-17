@@ -73,7 +73,7 @@ export function InviteToPrivateBoardModal({ isOpen, onClose, boardName }: Invite
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-invite-to-private-board">
+      <DialogContent className="sm:max-w-md bg-[#faf6f3] border-[#e3cac0]" data-pendo="modal-invite-to-private-board">
         <DialogHeader>
           <DialogTitle>Convert #{boardName} to Shared Board</DialogTitle>
         </DialogHeader>

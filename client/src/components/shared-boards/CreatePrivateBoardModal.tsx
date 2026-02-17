@@ -75,7 +75,7 @@ export function CreatePrivateBoardModal({ isOpen, onClose }: CreatePrivateBoardM
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-[#fff2ea] border-[#e3cac0]" data-pendo="modal-create-private-board">
+      <DialogContent className="sm:max-w-md bg-[#faf6f3] border-[#e3cac0]" data-pendo="modal-create-private-board">
         <DialogHeader>
           <DialogTitle>Create Private Board</DialogTitle>
           <p className="text-sm text-muted-foreground mt-2">

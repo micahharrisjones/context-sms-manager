@@ -132,9 +132,9 @@ export default function JoinPage() {
   // If viewing a board preview, show blurred background with modal
   if (boardId) {
     return (
-      <div className="min-h-screen bg-[#fff2ea] relative">
+      <div className="min-h-screen bg-[#faf6f3] relative">
         {/* Blurred board preview in background */}
-        <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-[#fff2ea] to-[#e3cac0]">
+        <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-[#faf6f3] to-[#e3cac0]">
           <div className="filter blur-sm opacity-60 pointer-events-none p-4 pt-20">
             {boardLoading ? (
               <div className="flex justify-center items-center h-64">
@@ -297,7 +297,7 @@ export default function JoinPage() {
   // Regular join page (no board preview)
   if (submitted) {
     return (
-      <div className="min-h-screen min-h-[100dvh] bg-[#fff2ea] flex items-center justify-center px-4" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
+      <div className="min-h-screen min-h-[100dvh] bg-[#faf6f3] flex items-center justify-center px-4" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
         <div className="max-w-md w-full space-y-6 text-center">
           <div className="flex justify-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
@@ -325,7 +325,7 @@ export default function JoinPage() {
   }
 
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-[#fff2ea] flex items-center justify-center px-4" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
+    <div className="min-h-screen min-h-[100dvh] bg-[#faf6f3] flex items-center justify-center px-4" style={{ minHeight: 'calc(var(--vh, 1vh) * 100)' }}>
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <img 
