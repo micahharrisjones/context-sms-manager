@@ -13,10 +13,10 @@ export function BottomTabs() {
 
   const isActive = (route: string) => {
     if (route === "/") {
-      return location === "/" || location === "/all-texts" || (location.startsWith("/tag/") && !location.startsWith("/tag/shared/"));
+      return location === "/" || location === "/all-texts" || (location.startsWith("/tag/") && !location.startsWith("/tag/shared/") && !location.startsWith("/tag/private/"));
     }
     if (route === "/boards") {
-      return location === "/boards" || location.startsWith("/tag/shared/");
+      return location === "/boards" || location.startsWith("/tag/shared/") || location.startsWith("/tag/private/");
     }
     return location.startsWith(route);
   };
