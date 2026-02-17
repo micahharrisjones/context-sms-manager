@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,10 +9,24 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { apiRequest } from '@/lib/queryClient';
-import { User, Save } from 'lucide-react';
+import { InviteFriendsModal } from '@/components/invite/InviteFriendsModal';
+import { DeleteAccountModal } from '@/components/layout/DeleteAccountModal';
+import {
+  Save,
+  UserPlus,
+  MessageSquare,
+  Bell,
+  Settings,
+  Trash2,
+  LogOut,
+  ChevronRight,
+} from 'lucide-react';
 import { useLocation } from 'wouter';
 import { pendo } from '@/lib/pendo';
+import { useEffect } from 'react';
 
 const profileUpdateSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
@@ -22,22 +36,20 @@ const profileUpdateSchema = z.object({
 
 type ProfileUpdateData = z.infer<typeof profileUpdateSchema>;
 
-interface UserProfile {
-  id: number;
-  phoneNumber: string;
-  firstName?: string;
-  lastName?: string;
-  avatarUrl?: string;
-  displayName?: string;
-}
-
 export function ProfilePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
+  const { logout } = useAuth();
+  const { profile, isLoading, getDisplayName, getInitials } = useProfile();
 
-  const { data: profile, isLoading } = useQuery<UserProfile>({
-    queryKey: ['/api/profile'],
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
+  const { data: adminStats } = useQuery({
+    queryKey: ['/api/admin/stats'],
+    retry: false,
+    enabled: !!profile,
   });
 
   const form = useForm<ProfileUpdateData>({
@@ -46,11 +58,10 @@ export function ProfilePage() {
       firstName: profile?.firstName || '',
       lastName: profile?.lastName || '',
       avatarUrl: profile?.avatarUrl || '',
-    }
+    },
   });
 
-  // Update form when profile data loads
-  React.useEffect(() => {
+  useEffect(() => {
     if (profile) {
       form.reset({
         firstName: profile.firstName || '',
@@ -67,7 +78,7 @@ export function ProfilePage() {
         lastName: data.lastName,
         ...(data.avatarUrl && { avatarUrl: data.avatarUrl }),
       };
-      
+
       return apiRequest('/api/profile', {
         method: 'PUT',
         body: JSON.stringify(profileData),
@@ -79,8 +90,7 @@ export function ProfilePage() {
         description: "Your profile has been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
-      
-      // Update Pendo immediately with new profile data (fire-and-forget)
+
       if (profile) {
         const updatedProfile = {
           ...profile,
@@ -89,15 +99,11 @@ export function ProfilePage() {
           displayName: `${variables.firstName} ${variables.lastName}`,
           ...(variables.avatarUrl && { avatarUrl: variables.avatarUrl }),
         };
-        
-        // Fire-and-forget Pendo update - don't block redirect
+
         pendo.identifyUser(updatedProfile)
           .then(() => console.log('Pendo profile updated in real-time'))
           .catch((error) => console.warn('Failed to update Pendo profile:', error));
       }
-      
-      // Redirect to main board after successful save
-      setLocation('/');
     },
     onError: (error: any) => {
       toast({
@@ -114,103 +120,113 @@ export function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-[#263d57]/10 rounded mb-4"></div>
-            <div className="h-64 bg-[#263d57]/10 rounded"></div>
+      <div className="min-h-screen bg-[#fff2ea] px-4 py-8">
+        <div className="max-w-lg mx-auto space-y-6">
+          <div className="animate-pulse flex flex-col items-center gap-3">
+            <div className="h-20 w-20 bg-[#263d57]/10 rounded-full" />
+            <div className="h-6 w-40 bg-[#263d57]/10 rounded" />
+            <div className="h-4 w-32 bg-[#263d57]/10 rounded" />
           </div>
+          <div className="h-64 bg-[#263d57]/10 rounded-xl" />
         </div>
       </div>
     );
   }
 
-  const getInitials = () => {
-    if (profile?.firstName && profile?.lastName) {
-      return `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
-    }
-    return profile?.displayName?.[0]?.toUpperCase() || 'U';
-  };
-
-  const getDisplayName = () => {
-    if (profile?.firstName && profile?.lastName) {
-      return `${profile.firstName} ${profile.lastName}`;
-    }
-    return profile?.displayName || 'User';
-  };
+  const quickActions = [
+    {
+      icon: UserPlus,
+      label: 'Invite Friends',
+      pendo: 'profile-invite-friends',
+      onClick: () => setInviteModalOpen(true),
+    },
+    {
+      icon: MessageSquare,
+      label: 'Feedback',
+      pendo: 'profile-feedback',
+      onClick: () => setLocation('/feedback'),
+    },
+    {
+      icon: Bell,
+      label: 'Notification Settings',
+      pendo: 'profile-notification-settings',
+      onClick: () => setLocation('/notifications'),
+    },
+    ...(adminStats
+      ? [
+          {
+            icon: Settings,
+            label: 'Admin Panel',
+            pendo: 'profile-admin-panel',
+            onClick: () => setLocation('/admin'),
+          },
+        ]
+      : []),
+  ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-2xl mx-auto">
-        <Card className="bg-white border-[#e3cac0]">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={profile?.avatarUrl} alt={getDisplayName()} />
-                <AvatarFallback className="bg-[#b95827] text-white text-lg">
-                  {getInitials()}
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            <CardTitle className="text-2xl">Edit Profile</CardTitle>
-            <p className="text-[#263d57]/70">
-              Phone: {profile?.phoneNumber}
-            </p>
+    <div className="min-h-screen bg-[#fff2ea] px-4 py-8 pb-28">
+      <div className="max-w-lg mx-auto space-y-6">
+        {/* Profile Header */}
+        <div className="flex flex-col items-center gap-2 py-4" data-pendo="profile-header">
+          <Avatar className="h-24 w-24 shadow-md">
+            <AvatarImage src={profile?.avatarUrl} alt={getDisplayName()} />
+            <AvatarFallback className="bg-[#b95827] text-white text-2xl font-semibold">
+              {getInitials()}
+            </AvatarFallback>
+          </Avatar>
+          <h1 className="text-2xl font-bold text-[#263d57] mt-2">{getDisplayName()}</h1>
+          <p className="text-sm text-[#263d57]/60">{profile?.phoneNumber}</p>
+        </div>
+
+        {/* Edit Profile Section */}
+        <Card className="bg-white border-0 shadow-sm rounded-xl" data-pendo="profile-edit-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg text-[#263d57]">Edit Profile</CardTitle>
           </CardHeader>
-          
           <CardContent>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">First Name</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="firstName" className="text-[#263d57]/80 text-sm">First Name</Label>
                   <Input
                     id="firstName"
                     {...form.register('firstName')}
-                    placeholder="Enter your first name"
-                    className="border-[#e3cac0] focus:border-[#b95827]"
+                    placeholder="First name"
+                    className="border-[#e3cac0] focus:border-[#b95827] bg-[#fff2ea]/50"
                     data-pendo="input-profile-first-name"
                   />
                   {form.formState.errors.firstName && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.firstName.message}
-                    </p>
+                    <p className="text-xs text-red-600">{form.formState.errors.firstName.message}</p>
                   )}
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Last Name</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="lastName" className="text-[#263d57]/80 text-sm">Last Name</Label>
                   <Input
                     id="lastName"
                     {...form.register('lastName')}
-                    placeholder="Enter your last name"
-                    className="border-[#e3cac0] focus:border-[#b95827]"
+                    placeholder="Last name"
+                    className="border-[#e3cac0] focus:border-[#b95827] bg-[#fff2ea]/50"
                     data-pendo="input-profile-last-name"
                   />
                   {form.formState.errors.lastName && (
-                    <p className="text-sm text-red-600">
-                      {form.formState.errors.lastName.message}
-                    </p>
+                    <p className="text-xs text-red-600">{form.formState.errors.lastName.message}</p>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="avatarUrl">Profile Picture URL</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="avatarUrl" className="text-[#263d57]/80 text-sm">Profile Picture URL</Label>
                 <Input
                   id="avatarUrl"
                   {...form.register('avatarUrl')}
-                  placeholder="https://example.com/your-photo.jpg"
-                  className="border-[#e3cac0] focus:border-[#ed2024]"
+                  placeholder="https://example.com/photo.jpg"
+                  className="border-[#e3cac0] focus:border-[#b95827] bg-[#fff2ea]/50"
                   data-pendo="input-profile-avatar-url"
                 />
                 {form.formState.errors.avatarUrl && (
-                  <p className="text-sm text-red-600">
-                    {form.formState.errors.avatarUrl.message}
-                  </p>
+                  <p className="text-xs text-red-600">{form.formState.errors.avatarUrl.message}</p>
                 )}
-                <p className="text-xs text-[#263d57]/70">
-                  You can use a photo from social media or any image hosting service
-                </p>
               </div>
 
               <Button
@@ -220,12 +236,67 @@ export function ProfilePage() {
                 data-pendo="button-save-profile"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                {updateProfileMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </form>
           </CardContent>
         </Card>
+
+        {/* Quick Actions Section */}
+        <Card className="bg-white border-0 shadow-sm rounded-xl overflow-hidden" data-pendo="profile-quick-actions">
+          <CardContent className="p-0">
+            {quickActions.map((action, idx) => (
+              <button
+                key={action.pendo}
+                onClick={action.onClick}
+                className={`w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#fff2ea]/60 transition-colors ${
+                  idx < quickActions.length - 1 ? 'border-b border-[#e3cac0]/40' : ''
+                }`}
+                data-pendo={action.pendo}
+              >
+                <action.icon className="h-5 w-5 text-[#b95827] flex-shrink-0" />
+                <span className="flex-1 text-[#263d57] text-sm font-medium">{action.label}</span>
+                <ChevronRight className="h-4 w-4 text-[#263d57]/30 flex-shrink-0" />
+              </button>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* Account Section */}
+        <Card className="bg-white border-0 shadow-sm rounded-xl overflow-hidden" data-pendo="profile-account-section">
+          <CardContent className="p-0">
+            <button
+              onClick={() => setDeleteModalOpen(true)}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-red-50 transition-colors border-b border-[#e3cac0]/40"
+              data-pendo="profile-delete-account"
+            >
+              <Trash2 className="h-5 w-5 text-red-500 flex-shrink-0" />
+              <span className="flex-1 text-red-600 text-sm font-medium">Delete Account</span>
+              <ChevronRight className="h-4 w-4 text-red-300 flex-shrink-0" />
+            </button>
+            <button
+              onClick={logout}
+              className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-[#fff2ea]/60 transition-colors"
+              data-pendo="profile-logout"
+            >
+              <LogOut className="h-5 w-5 text-[#263d57]/50 flex-shrink-0" />
+              <span className="flex-1 text-[#263d57]/70 text-sm font-medium">Log Out</span>
+              <ChevronRight className="h-4 w-4 text-[#263d57]/30 flex-shrink-0" />
+            </button>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Modals */}
+      <InviteFriendsModal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        userDisplayName={getDisplayName()}
+      />
+      <DeleteAccountModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { Message } from "@shared/schema";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { format, isToday, isYesterday } from "date-fns";
 import { Link } from "wouter";
 import { X, Edit, ExternalLink, User, MessageSquare, Maximize2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -426,7 +426,7 @@ export function MessageCard({ message }: MessageCardProps) {
       <Link
         key={i}
         href={`/tag/private/${tagName}`}
-        className="text-primary hover:underline"
+        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#b95827]/10 text-[#b95827] hover:bg-[#b95827]/20 transition-colors"
         data-pendo="content-board-tag-link"
         data-board-name={tagName}
         data-board-type="private"
@@ -435,6 +435,18 @@ export function MessageCard({ message }: MessageCardProps) {
       </Link>
     );
   });
+  
+  // Format timestamp - show relative time if recent
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    if (isToday(date)) {
+      return `Today at ${format(date, "h:mm a")}`;
+    }
+    if (isYesterday(date)) {
+      return `Yesterday at ${format(date, "h:mm a")}`;
+    }
+    return format(date, "MMM d, yyyy");
+  };
   
   // Fetch movie data from TMDB when IMDB link is detected
   useEffect(() => {
@@ -513,21 +525,34 @@ export function MessageCard({ message }: MessageCardProps) {
 
   return (
     <>
-      <Card className="w-full h-fit relative group">
-        {/* Delete button - top right corner */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowDeleteModal(true)}
-          className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-red-50 hover:text-red-600 z-10"
-          aria-label="Delete message"
-          data-pendo="content-delete-btn"
-          data-message-id={message.id}
-        >
-          <X className="h-3 w-3" />
-        </Button>
+      <Card className="w-full h-fit relative group border-0 shadow-sm hover:shadow-md transition-shadow rounded-xl">
+        {/* Delete and Edit buttons - top right corner, visible on hover */}
+        <div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity max-sm:opacity-100">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowEditModal(true)}
+            className="h-7 w-7 p-0 rounded-full hover:bg-blue-50 hover:text-blue-600 bg-white/80 shadow-sm"
+            aria-label="Edit message"
+            data-pendo="content-edit-btn"
+            data-message-id={message.id}
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowDeleteModal(true)}
+            className="h-7 w-7 p-0 rounded-full hover:bg-red-50 hover:text-red-600 bg-white/80 shadow-sm"
+            aria-label="Delete message"
+            data-pendo="content-delete-btn"
+            data-message-id={message.id}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
         
-      <CardContent className="space-y-4 pt-6">
+      <CardContent className="space-y-4 p-5">
         {/* Open Graph Preview - Show first */}
         {ogData && ogData.title && (
           <div className="w-full">
@@ -921,62 +946,45 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         
-        {/* Show hashtags at bottom */}
-        <div className="flex items-center justify-between pt-3 border-t border-[#e3cac0] mt-3">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowEditModal(true)}
-              className="h-6 w-6 p-0 hover:bg-blue-50 hover:text-blue-600"
-              aria-label="Edit message"
-              data-pendo="content-edit-btn"
-              data-message-id={message.id}
-            >
-              <Edit className="h-3 w-3" />
-            </Button>
-            {formattedHashtags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {formattedHashtags.map((hashtag, i) => (
-                  <span key={i} className="inline-flex">
-                    {hashtag}
-                    {i < formattedHashtags.length - 1 && <span className="ml-1">&nbsp;</span>}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <div></div>
-            )}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {format(new Date(message.timestamp), "MM/dd/yy")}
-          </div>
-        </div>
-        
-        {/* Show sender info for shared board messages only */}
-        {(message.senderFirstName || message.senderLastName || message.senderDisplayName) && (
-          <div className="flex items-center gap-2 pt-2 border-t border-[#e3cac0]">
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={message.senderAvatarUrl || undefined} />
-              <AvatarFallback className="bg-[#ed2024] text-white text-xs">
-                {message.senderFirstName && message.senderLastName
-                  ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
-                  : message.senderDisplayName?.[0]?.toUpperCase() || 
-                    getSenderInitials(message.senderId)
-                }
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-xs text-muted-foreground">
-              {message.senderFirstName && message.senderLastName
-                ? `${message.senderFirstName} ${message.senderLastName}`
-                : message.senderDisplayName || 
-                  (message.senderId ? 
-                    formatSenderDisplay(message.senderId) : 
-                    'Unknown')
-              }
-            </span>
+        {/* Show hashtags as chips */}
+        {formattedHashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {formattedHashtags}
           </div>
         )}
+        
+        {/* Footer: timestamp and sender info */}
+        <div className="flex items-center justify-between pt-3 mt-2">
+          {/* Show sender info for shared board messages only */}
+          {(message.senderFirstName || message.senderLastName || message.senderDisplayName) ? (
+            <div className="flex items-center gap-1.5">
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={message.senderAvatarUrl || undefined} />
+                <AvatarFallback className="bg-[#ed2024] text-white text-[10px]">
+                  {message.senderFirstName && message.senderLastName
+                    ? `${message.senderFirstName[0]}${message.senderLastName[0]}`.toUpperCase()
+                    : message.senderDisplayName?.[0]?.toUpperCase() || 
+                      getSenderInitials(message.senderId)
+                  }
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-xs text-[#263d57]/50">
+                {message.senderFirstName && message.senderLastName
+                  ? `${message.senderFirstName} ${message.senderLastName}`
+                  : message.senderDisplayName || 
+                    (message.senderId ? 
+                      formatSenderDisplay(message.senderId) : 
+                      'Unknown')
+                }
+              </span>
+            </div>
+          ) : (
+            <div></div>
+          )}
+          <span className="text-xs text-[#263d57]/40">
+            {formatTimestamp(message.timestamp)}
+          </span>
+        </div>
       </CardContent>
     </Card>
 

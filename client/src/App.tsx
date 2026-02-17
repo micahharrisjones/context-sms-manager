@@ -19,6 +19,7 @@ import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { pendo } from "@/lib/pendo";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import BoardsPage from "@/pages/BoardsPage";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -81,6 +82,9 @@ function Router() {
           </Route>
           <Route path="/tag/shared/:boardName">
             {() => <ProtectedRoute component={AllTexts} />}
+          </Route>
+          <Route path="/boards">
+            {() => <ProtectedRoute component={BoardsPage} />}
           </Route>
           <Route path="/search">
             {() => <ProtectedRoute component={SearchPage} />}
