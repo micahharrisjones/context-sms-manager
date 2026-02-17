@@ -15,8 +15,7 @@ class AIService {
 
   constructor() {
     this.client = new OpenAI({
-      apiKey: process.env.DEEPSEEK_API_KEY,
-      baseURL: "https://api.deepseek.com"
+      apiKey: process.env.OPENAI_API_KEY,
     });
     
     this.log = (message: string, ...args: any[]) => {
@@ -40,7 +39,7 @@ class AIService {
       this.log(`Generating new affirmation for user ${userId}`);
 
       const response = await this.client.chat.completions.create({
-        model: "deepseek-chat",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -128,7 +127,7 @@ Examples that are NOT board list requests:
 `;
 
       const detectionResponse = await this.client.chat.completions.create({
-        model: "deepseek-chat",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -169,7 +168,7 @@ Guidelines:
 `;
 
       const responseGeneration = await this.client.chat.completions.create({
-        model: "deepseek-chat", 
+        model: "gpt-4o-mini", 
         messages: [
           {
             role: "system",
@@ -219,7 +218,7 @@ Guidelines:
       const prompt = this.buildCategorizationPrompt(messageContent, availableCategories);
       
       const response = await this.client.chat.completions.create({
-        model: "deepseek-chat",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -294,7 +293,7 @@ Respond with JSON in this exact format:
       this.log(`Suggesting new category for: "${messageContent.substring(0, 100)}..."`);
 
       const response = await this.client.chat.completions.create({
-        model: "deepseek-chat",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -360,7 +359,7 @@ Examples that are NOT help requests:
 `;
 
       const detectionResponse = await this.client.chat.completions.create({
-        model: "deepseek-chat",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system", 
@@ -544,7 +543,7 @@ Examples that are NOT conversational:
 `;
 
       const detectionResponse = await this.client.chat.completions.create({
-        model: "deepseek-chat",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
@@ -614,7 +613,7 @@ Examples:
 `;
 
       const responseGeneration = await this.client.chat.completions.create({
-        model: "deepseek-chat",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
