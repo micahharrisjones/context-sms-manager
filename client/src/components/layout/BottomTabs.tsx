@@ -13,7 +13,10 @@ export function BottomTabs() {
 
   const isActive = (route: string) => {
     if (route === "/") {
-      return location === "/" || location === "/all-texts" || location.startsWith("/tag/");
+      return location === "/" || location === "/all-texts" || (location.startsWith("/tag/") && !location.startsWith("/tag/shared/"));
+    }
+    if (route === "/boards") {
+      return location === "/boards" || location.startsWith("/tag/shared/");
     }
     return location.startsWith(route);
   };
