@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import { MessageSquare, LayoutGrid, Search, User } from "lucide-react";
-import { Logo } from "./Logo";
-import { Link, useParams, useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { BottomTabs } from "./BottomTabs";
 
 interface LayoutProps {
@@ -16,7 +15,6 @@ const navItems = [
 ];
 
 export function Layout({ children }: LayoutProps) {
-  const params = useParams();
   const [location] = useLocation();
 
   useEffect(() => {
@@ -38,16 +36,6 @@ export function Layout({ children }: LayoutProps) {
       window.removeEventListener('orientationchange', resetViewport);
     };
   }, []);
-
-  const getBoardName = () => {
-    const tag = params.tag;
-    const boardName = params.boardName;
-    if (boardName) return boardName;
-    if (tag) return tag;
-    return null;
-  };
-
-  const currentBoardName = getBoardName();
 
   const isActive = (route: string) => {
     if (route === "/") {
@@ -98,21 +86,6 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-hidden lg:h-screen">
-        {/* Mobile header */}
-        <div className="lg:hidden flex-shrink-0 bg-[#faf6f3] border-b border-[#e3cac0]">
-          <div className="p-4 flex items-center justify-center">
-            {currentBoardName ? (
-              <h1 className="text-lg font-semibold text-[#263d57] truncate text-center" data-testid="text-board-name" data-pendo="header-board-name">
-                #{currentBoardName}
-              </h1>
-            ) : (
-              <Link href="/" data-pendo="header-logo">
-                <Logo className="w-auto h-8" />
-              </Link>
-            )}
-          </div>
-        </div>
-
         {/* Scrollable content area */}
         <div className="flex-1 overflow-y-auto pb-20 lg:pb-0">
           <div className="p-6">
