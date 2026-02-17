@@ -23,9 +23,15 @@ export default function BoardsPage() {
 
   return (
     <div className="px-4 py-6 pb-32">
-      <h1 className="text-2xl font-bold text-[#263d57] mb-6" data-pendo="boards-page-title">
-        Your Boards
-      </h1>
+      <div className="h-[100px] flex flex-col justify-center mb-6">
+        <div className="flex items-center gap-2">
+          <img src="/aside-logo-loader.png" alt="Aside" className="w-7 h-7 object-contain" />
+          <h1 className="text-2xl font-semibold text-[#263d57]" data-pendo="boards-page-title">
+            Your Boards
+          </h1>
+        </div>
+        <div className="w-full h-px bg-[#e3cac0] mt-4"></div>
+      </div>
 
       <section className="mb-8">
         <div className="flex items-center gap-2 mb-4">
