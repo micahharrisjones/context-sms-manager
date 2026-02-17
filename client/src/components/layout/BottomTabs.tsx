@@ -2,7 +2,7 @@ import { Link, useLocation } from "wouter";
 import { MessageSquare, LayoutGrid, Search, User } from "lucide-react";
 
 const tabs = [
-  { label: "Inbox", icon: MessageSquare, route: "/", pendo: "bottom-tab-inbox" },
+  { label: "Feed", icon: MessageSquare, route: "/", pendo: "bottom-tab-feed" },
   { label: "Boards", icon: LayoutGrid, route: "/boards", pendo: "bottom-tab-boards" },
   { label: "Search", icon: Search, route: "/search", pendo: "bottom-tab-search" },
   { label: "Profile", icon: User, route: "/profile", pendo: "bottom-tab-profile" },
@@ -20,7 +20,7 @@ export function BottomTabs() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-[#e3cac0] lg:hidden"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.08)] lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       data-pendo="bottom-tabs"
     >

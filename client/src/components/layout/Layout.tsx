@@ -9,7 +9,7 @@ interface LayoutProps {
 }
 
 const navItems = [
-  { label: "Inbox", icon: MessageSquare, route: "/", pendo: "rail-tab-inbox" },
+  { label: "Feed", icon: MessageSquare, route: "/", pendo: "rail-tab-feed" },
   { label: "Boards", icon: LayoutGrid, route: "/boards", pendo: "rail-tab-boards" },
   { label: "Search", icon: Search, route: "/search", pendo: "rail-tab-search" },
   { label: "Profile", icon: User, route: "/profile", pendo: "rail-tab-profile" },
@@ -59,7 +59,7 @@ export function Layout({ children }: LayoutProps) {
   return (
     <div className="flex h-screen relative bg-[#fff2ea]">
       {/* Desktop icon rail */}
-      <aside className="hidden lg:flex flex-col items-center w-[72px] bg-white border-r border-[#e3cac0] flex-shrink-0 h-screen" data-pendo="desktop-icon-rail">
+      <aside className="hidden lg:flex flex-col items-center w-[72px] bg-white shadow-[2px_0_10px_rgba(0,0,0,0.08)] flex-shrink-0 h-screen" data-pendo="desktop-icon-rail">
         <Link href="/" className="flex items-center justify-center py-5" data-pendo="rail-logo">
           <img src="/aside-logo-loader.png" alt="Aside" className="w-8 h-8 object-contain" />
         </Link>
