@@ -38,7 +38,7 @@ export default function BoardsPage() {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-24 rounded-xl bg-white/60 animate-pulse border-l-4 border-[#b95827]/20"
+                className="h-24 rounded-xl bg-white/60 animate-pulse"
               />
             ))}
           </div>
@@ -50,7 +50,7 @@ export default function BoardsPage() {
                 href={`/tag/private/${tag}`}
                 data-pendo="board-card-private"
               >
-                <div className="bg-white rounded-xl shadow-sm border border-[#e3cac0]/40 border-l-4 border-l-[#b95827] p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer h-full flex flex-col justify-between">
+                <div className="bg-white rounded-xl shadow-sm border border-[#e3cac0]/40 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer h-full flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
                       <Hash className="w-4 h-4 text-[#b95827]" />
@@ -88,7 +88,7 @@ export default function BoardsPage() {
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-24 rounded-xl bg-white/60 animate-pulse border-l-4 border-[#263d57]/20"
+                className="h-24 rounded-xl bg-white/60 animate-pulse"
               />
             ))}
           </div>
@@ -100,7 +100,7 @@ export default function BoardsPage() {
                 href={`/tag/shared/${board.name}`}
                 data-pendo="board-card-shared"
               >
-                <div className="bg-white rounded-xl shadow-sm border border-[#e3cac0]/40 border-l-4 border-l-[#263d57] p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer h-full flex flex-col justify-between">
+                <div className="bg-white rounded-xl shadow-sm border border-[#e3cac0]/40 p-4 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer h-full flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-1.5 mb-1">
                       <Hash className="w-4 h-4 text-[#263d57]" />
