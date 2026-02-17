@@ -1616,13 +1616,6 @@ export async function registerRoutes(app: Express) {
         // Set session
         req.session.userId = result.user.id;
 
-        // Preload affirmation for the user (fire and forget - don't wait)
-        aiService.generateAffirmation(result.user.id).catch((error) => {
-          log(
-            `Background affirmation generation failed for user ${result.user.id}: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        });
-
         res.json({
           success: true,
           user: result.user,
@@ -2469,20 +2462,6 @@ Reply STOP to opt out`;
         `Error checking admin status: ${error instanceof Error ? error.message : String(error)}`,
       );
       res.status(500).json({ error: "Failed to check admin status" });
-    }
-  });
-
-  // Generate daily affirmation
-  app.get("/api/affirmation", requireAuth, async (req, res) => {
-    try {
-      const userId = req.userId!;
-      const affirmation = await aiService.generateAffirmation(userId);
-      res.json({ text: affirmation });
-    } catch (error) {
-      log(
-        `Error generating affirmation: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      res.status(500).json({ error: "Failed to generate affirmation" });
     }
   });
 

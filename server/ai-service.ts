@@ -9,10 +9,6 @@ interface CategorySuggestion {
 class AIService {
   private client: OpenAI;
   private log: (message: string, ...args: any[]) => void;
-  private static readonly CACHE_KEY = 'daily_affirmation';
-  private static readonly CACHE_DURATION_HOURS = 3;
-  private affirmationCache: { text: string; timestamp: number; userId: number } | null = null;
-
   constructor() {
     this.client = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -21,71 +17,6 @@ class AIService {
     this.log = (message: string, ...args: any[]) => {
       console.log(new Date().toLocaleTimeString(), `[ai-service]`, message, ...args);
     };
-  }
-
-  /**
-   * Generate or retrieve cached affirmation for a user
-   */
-  async generateAffirmation(userId: number): Promise<string> {
-    try {
-      // Check if we have a valid cached affirmation for this user
-      if (this.affirmationCache && 
-          this.affirmationCache.userId === userId &&
-          this.isCacheValid(this.affirmationCache.timestamp)) {
-        this.log(`Using cached affirmation for user ${userId}`);
-        return this.affirmationCache.text;
-      }
-
-      this.log(`Generating new affirmation for user ${userId}`);
-
-      const response = await this.client.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: "You are a supportive friend who creates personal, encouraging affirmations. Generate a brief, intimate positive message that feels like it's coming from someone who really cares about them. Use 'you' language and make it personal and uplifting. Examples: 'You look amazing today!' 'I love how you inspire others.' 'This is your day to kick ass!' 'You have such a beautiful energy.' Keep it under 10 words and make it feel genuinely personal and motivating."
-          },
-          {
-            role: "user",
-            content: "Generate a personal, encouraging affirmation that feels like it's from a caring friend."
-          }
-        ],
-        temperature: 0.8,
-        max_tokens: 50
-      });
-
-      const affirmation = response.choices[0]?.message?.content?.trim() || "you're doing great today!";
-      this.log(`Generated affirmation: "${affirmation}"`);
-      
-      // Cache the new affirmation
-      this.affirmationCache = {
-        text: affirmation,
-        timestamp: Date.now(),
-        userId: userId
-      };
-      
-      return affirmation;
-    } catch (error) {
-      this.log(`Error generating affirmation: ${error instanceof Error ? error.message : String(error)}`);
-      return "you're doing great today!";
-    }
-  }
-
-  /**
-   * Check if the cached affirmation is still valid
-   */
-  private isCacheValid(timestamp: number): boolean {
-    const now = Date.now();
-    const cacheAgeHours = (now - timestamp) / (1000 * 60 * 60);
-    return cacheAgeHours < AIService.CACHE_DURATION_HOURS;
-  }
-
-  /**
-   * Force refresh the affirmation cache for a user
-   */
-  async refreshAffirmation(userId: number): Promise<string> {
-    this.affirmationCache = null; // Clear cache
-    return this.generateAffirmation(userId);
   }
 
   /**
