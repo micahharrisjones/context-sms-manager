@@ -23,16 +23,14 @@ export default function BoardsPage() {
 
   return (
     <div>
-      <div className="h-[100px] flex flex-col justify-center mb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <img src="/aside-logo-loader.png" alt="Aside" className="w-7 h-7 object-contain" />
-            <h1 className="text-2xl font-semibold text-[#263d57]" data-pendo="boards-page-title">
-              Your Boards
-            </h1>
-          </div>
+      <div className="mb-6">
+        <div className="h-[60px] flex items-center gap-2">
+          <img src="/aside-logo-loader.png" alt="Aside" className="w-7 h-7 object-contain" />
+          <h1 className="text-2xl font-semibold text-[#263d57]" data-pendo="boards-page-title">
+            Your Boards
+          </h1>
         </div>
-        <div className="w-full h-px bg-[#e3cac0] mt-4"></div>
+        <div className="w-full h-px bg-[#e3cac0]"></div>
       </div>
 
       <section className="mb-8">
