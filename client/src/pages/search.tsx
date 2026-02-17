@@ -99,9 +99,6 @@ export default function SearchPage() {
               <h2 className="text-2xl md:text-3xl font-light text-[#263d57] mb-2">
                 Search everything you've saved
               </h2>
-              <p className="text-[#263d57]/60 text-sm md:text-base">
-                Powered by meaning — not just exact keywords
-              </p>
             </div>
           )}
 
