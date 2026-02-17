@@ -139,15 +139,16 @@ export default function AllTexts() {
     <div>
       {/* Header with title and controls */}
       <div className="mb-6">
-        <div className="h-[60px] flex items-center gap-2">
-          <img src="/aside-logo-loader.png" alt="Aside" className="w-7 h-7 object-contain" />
-          <h1 className="text-2xl font-semibold text-[#263d57]">
-            {getTitle()}
-          </h1>
-          {getBoardIcon()}
-        </div>
+        <div className="h-[60px] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <img src="/aside-logo-loader.png" alt="Aside" className="w-7 h-7 object-contain" />
+            <h1 className="text-2xl font-semibold text-[#263d57]">
+              {getTitle()}
+            </h1>
+            {getBoardIcon()}
+          </div>
 
-        <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3">
             {/* Sort Control */}
             {messages && messages.length > 0 && (
               <div className="flex items-center gap-2">
@@ -340,6 +341,7 @@ export default function AllTexts() {
               </div>
             )}
           </div>
+        </div>
         
         {/* Divider */}
         <div className="w-full h-px bg-[#e3cac0]"></div>
