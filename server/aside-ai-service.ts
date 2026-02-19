@@ -33,9 +33,26 @@ class AsideAIService {
       const intentAnalysis = await this.analyzeIntent(query);
       log(`📊 Intent detected: ${intentAnalysis.intent}`);
 
-      // Step 2: Based on intent, perform appropriate action
+      // Step 2: Deterministic guardrail - override intent for data queries misclassified as help
+      let correctedIntent = intentAnalysis.intent;
+      const lowerQuery = query.toLowerCase();
+      if (correctedIntent === 'help') {
+        const isDataQuery = (
+          (lowerQuery.includes('how many') && (lowerQuery.includes('board') || lowerQuery.includes('item') || lowerQuery.includes('message') || lowerQuery.includes('saved'))) ||
+          (lowerQuery.includes('list') && (lowerQuery.includes('board') || lowerQuery.includes('item'))) ||
+          (lowerQuery.includes('what') && lowerQuery.includes('board') && (lowerQuery.includes('have') || lowerQuery.includes('my'))) ||
+          (lowerQuery.includes('show') && lowerQuery.includes('my') && lowerQuery.includes('board')) ||
+          (lowerQuery.includes('count') && (lowerQuery.includes('board') || lowerQuery.includes('item') || lowerQuery.includes('message')))
+        );
+        if (isDataQuery) {
+          log(`🔄 Overriding intent from 'help' to 'analyze' - detected data query: "${query}"`);
+          correctedIntent = 'analyze';
+        }
+      }
+
+      // Step 3: Based on intent, perform appropriate action
       let aiResponse: AsideAIResponse;
-      switch (intentAnalysis.intent) {
+      switch (correctedIntent) {
         case 'search':
           // Use AI-extracted query for more accurate search
           aiResponse = await this.handleSearchQuery(intentAnalysis.extractedQuery || query, userId, storage);
@@ -104,10 +121,13 @@ Users can ask you to:
 - LOGIN: Request a login link for the web dashboard ("what's my login?", "send me a login link", "what's my dashboard link?", "how do I access the website?")
 - HELP: Ask how-to questions about using Aside features ("how does Aside work?", "how do I create a board?", "how do I add to a board?", "how do I invite someone?", "how do I delete a board?", "how do I move an item?")
 
+IMPORTANT: When a user asks about THEIR personal data (how many boards they have, list their items, count their messages, what they've saved), that is ANALYZE, not HELP. HELP is only for "how to use the app" questions.
+
 Respond with ONLY a JSON object: {"intent": "search|summarize|recommend|analyze|login|help|unknown", "query": "cleaned up keywords", "topic": "specific help topic if help intent"}
 
 For SEARCH intent, extract just the core search keywords without action verbs.
 For HELP intent, include a "topic" field with the specific question category.
+For ANALYZE intent, use it for questions about the user's own data, stats, counts, or listing their content.
 
 Examples:
 "cookie" → {"intent": "search", "query": "cookie"}
@@ -117,13 +137,16 @@ Examples:
 "what have I saved about cooking?" → {"intent": "summarize", "query": "cooking"}
 "recommend a good restaurant" → {"intent": "recommend", "query": "restaurants"}
 "what do I save most?" → {"intent": "analyze", "query": "saved topics"}
+"how many boards do I have?" → {"intent": "analyze", "query": "list boards"}
+"what boards do I have?" → {"intent": "analyze", "query": "list boards"}
+"list all my boards" → {"intent": "analyze", "query": "list boards"}
+"how many items have I saved?" → {"intent": "analyze", "query": "count items"}
 "what's my login?" → {"intent": "login", "query": "login"}
 "send me a login link" → {"intent": "login", "query": "login link"}
 "how does Aside work?" → {"intent": "help", "query": "how aside works", "topic": "how_it_works"}
 "how do I create a board?" → {"intent": "help", "query": "create board", "topic": "create_board"}
 "how do I add to a board?" → {"intent": "help", "query": "add to board", "topic": "add_to_board"}
 "what's my dashboard link?" → {"intent": "login", "query": "dashboard link"}
-"what boards do I have?" → {"intent": "help", "query": "list boards", "topic": "list_boards"}
 "how do I invite a friend?" → {"intent": "help", "query": "invite", "topic": "invite"}
 "how do I delete a board?" → {"intent": "help", "query": "delete board", "topic": "delete_board"}`,
           },
@@ -452,6 +475,7 @@ Examples:
     try {
       const allMessages = await storage.getMessages(userId);
       const tags = await storage.getTags(userId);
+      const sharedBoards = await storage.getSharedBoards(userId);
 
       if (allMessages.length === 0) {
         return {
@@ -474,23 +498,43 @@ Examples:
         .map(([tag, count]) => `#${tag} (${count})`)
         .join(', ');
 
+      const privateBoards = tags.filter(tag => tag !== 'untagged');
+      const sharedBoardNames = sharedBoards.map(b => b.name);
+
+      const boardListData = {
+        privateBoards: privateBoards.map(b => ({ name: b, count: tagCounts[b] || 0 })),
+        sharedBoards: sharedBoardNames,
+        totalPrivate: privateBoards.length,
+        totalShared: sharedBoardNames.length,
+        totalAll: privateBoards.length + sharedBoardNames.length,
+      };
+
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: `You are Aside's AI assistant. Give the user a brief, interesting analysis of their saved content. Mention total items, top topics, and any patterns. Keep it conversational and under 280 characters (SMS-friendly). Don't use emojis.`
+            content: `You are Aside's AI assistant responding via SMS. Answer the user's question about their saved content using the data provided. Be direct and specific - give them the actual data they asked for. Keep response SMS-friendly (under 600 characters). Don't use emojis.
+
+If they ask to list boards, list them. If they ask for counts, give counts. If they ask for analysis, give insights.`
           },
           {
             role: "user",
-            content: `Analyze my saved content.\n\nTotal items: ${allMessages.length}\nTotal boards: ${tags.length}\nTop boards by count: ${topTags || 'none'}\nQuery context: "${query}"`
+            content: `User's question: "${query}"
+
+Their data:
+- Total saved items: ${allMessages.length}
+- Private boards (${boardListData.totalPrivate}): ${boardListData.privateBoards.map(b => `#${b.name} (${b.count} items)`).join(', ') || 'none'}
+- Shared boards (${boardListData.totalShared}): ${sharedBoardNames.map(b => `#${b}`).join(', ') || 'none'}
+- Total boards: ${boardListData.totalAll}
+- Top boards by count: ${topTags || 'none'}`
           }
         ],
         temperature: 0.7,
-        max_tokens: 150,
+        max_tokens: 300,
       });
 
-      const analysis = completion.choices[0].message.content || `You have ${allMessages.length} saved items across ${tags.length} boards. Your most active boards are ${topTags}.`;
+      const analysis = completion.choices[0].message.content || `You have ${allMessages.length} saved items across ${boardListData.totalAll} boards. Your most active boards are ${topTags}.`;
 
       return {
         response: analysis,
@@ -1026,7 +1070,7 @@ Easy as that!
         };
       }
 
-      if (normalizedQuery.includes('what') && normalizedQuery.includes('board')) {
+      if ((normalizedQuery.includes('what') || normalizedQuery.includes('how many') || normalizedQuery.includes('list') || normalizedQuery.includes('show')) && normalizedQuery.includes('board')) {
         // Get user's boards
         const [privateTags, sharedBoards] = await Promise.all([
           storage.getTags(userId),
@@ -1095,19 +1139,36 @@ Easy as that!
         };
       }
 
-      // Default help response if no specific topic matches
-      return {
-        response: `I can help you with:
+      // Default: Use AI to generate a contextual help response instead of static menu
+      try {
+        const helpCompletion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `You are Aside's helpful AI assistant responding via SMS. Aside is a personal information management app where users save content by texting it with hashtags. Users can search with "Hey Aside, [query]", create boards with hashtags, share boards with friends, and view everything on their web dashboard.
 
-- How Aside works
-- Creating and managing boards
-- Inviting friends to shared boards
-- Finding your dashboard link
-- Moving or deleting items
-
-Just ask me a specific question, like "Hey Aside, how do I create a board?"`,
-        intent: 'help',
-      };
+Answer the user's question helpfully and concisely. Keep response under 400 characters (SMS-friendly). Don't use emojis. If you truly can't help, suggest they ask a more specific question.`
+            },
+            {
+              role: "user",
+              content: query,
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 200,
+        });
+        
+        return {
+          response: helpCompletion.choices[0].message.content || "I'm not sure about that. Try asking me something like 'Hey Aside, how do I create a board?' or 'Hey Aside, find my recipes'",
+          intent: 'help',
+        };
+      } catch {
+        return {
+          response: `I can help you with:\n\n- How Aside works\n- Creating and managing boards\n- Inviting friends to shared boards\n- Finding your dashboard link\n- Moving or deleting items\n\nJust ask me a specific question, like "Hey Aside, how do I create a board?"`,
+          intent: 'help',
+        };
+      }
     } catch (error) {
       log(`Error in help query: ${error instanceof Error ? error.message : String(error)}`);
       return {
