@@ -2220,6 +2220,103 @@ Reply STOP to opt out`;
     }
   });
 
+  // AI-powered conversational search endpoint
+  // Uses OpenAI for intent detection and generates a conversational summary alongside results
+  app.get("/api/ai-search", requireAuth, async (req, res) => {
+    try {
+      const userId = req.userId!;
+      const query = req.query.q as string;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      if (!query || query.trim().length === 0) {
+        return res.status(400).json({ error: "Search query is required" });
+      }
+
+      const trimmedQuery = query.trim();
+      log(`🤖 AI Search: "${trimmedQuery}" for user ${userId}`);
+
+      // Step 1: Perform hybrid search (same as existing endpoint)
+      let messages: any[] = [];
+      let searchMethod = 'semantic';
+
+      const queryEmbedding = await embeddingService.generateEmbedding(trimmedQuery);
+
+      if (queryEmbedding) {
+        messages = await storage.semanticSearch(userId, queryEmbedding, Math.min(limit, 20));
+        searchMethod = 'semantic';
+
+        if (messages.length > 0) {
+          const hybridResults = await storage.hybridSearch(userId, trimmedQuery, queryEmbedding, 0.7, Math.min(limit, 20));
+          if (hybridResults.length > 0) {
+            messages = hybridResults;
+            searchMethod = 'semantic-boosted';
+          }
+        }
+      }
+
+      if (messages.length === 0) {
+        messages = await storage.keywordSearch(userId, trimmedQuery, limit);
+        searchMethod = 'keyword-fallback';
+      }
+
+      log(`AI Search: ${searchMethod} returned ${messages.length} results`);
+
+      // Step 2: Generate signed URLs for images
+      const messagesWithSignedUrls = await s3Service.generateSignedUrlsForMessages(messages);
+
+      // Step 3: Generate AI conversational summary using OpenAI
+      let aiSummary = "";
+      try {
+        const OpenAI = (await import("openai")).default;
+        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+        const resultSnippets = messagesWithSignedUrls.slice(0, 8).map((m: any, i: number) => {
+          const content = m.content || '';
+          const tags = m.tags ? (Array.isArray(m.tags) ? m.tags : [m.tags]) : [];
+          const snippet = content.length > 150 ? content.substring(0, 150) + '...' : content;
+          return `${i + 1}. ${snippet}${tags.length > 0 ? ` [tags: ${tags.join(', ')}]` : ''}`;
+        }).join('\n');
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content: `You are Aside's search assistant. The user searched their saved content. Generate a brief, friendly 1-2 sentence summary of what was found. Be conversational and helpful. Don't list individual results — just give an overview of what types of content matched. If no results were found, be encouraging and suggest trying different terms. Keep it under 40 words. Don't use emojis.`
+            },
+            {
+              role: "user",
+              content: messagesWithSignedUrls.length > 0
+                ? `Search query: "${trimmedQuery}"\n\nFound ${messagesWithSignedUrls.length} results:\n${resultSnippets}`
+                : `Search query: "${trimmedQuery}"\n\nNo results found.`
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 100,
+        });
+
+        aiSummary = completion.choices[0].message.content || "";
+      } catch (aiError) {
+        log(`AI summary generation failed (non-critical): ${aiError instanceof Error ? aiError.message : String(aiError)}`);
+        if (messagesWithSignedUrls.length > 0) {
+          aiSummary = `Found ${messagesWithSignedUrls.length} result${messagesWithSignedUrls.length !== 1 ? 's' : ''} for "${trimmedQuery}".`;
+        } else {
+          aiSummary = `No results found for "${trimmedQuery}". Try different keywords or a broader search.`;
+        }
+      }
+
+      res.json({
+        messages: messagesWithSignedUrls,
+        aiSummary,
+        searchMethod,
+        query: trimmedQuery,
+      });
+    } catch (error) {
+      log(`Error in AI search: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(500).json({ error: "Failed to perform AI search" });
+    }
+  });
+
   // Legacy keyword-only search endpoint (kept for backward compatibility)
   app.get("/api/messages/search", requireAuth, async (req, res) => {
     try {

@@ -296,6 +296,48 @@ Examples:
   }
 
   /**
+   * Shared helper: search user's content and return results with snippets
+   */
+  private async searchUserContent(
+    query: string,
+    userId: number,
+    storage: IStorage,
+    limit: number = 20
+  ): Promise<any[]> {
+    let results: any[] = [];
+
+    const queryEmbedding = await embeddingService.generateEmbedding(query);
+
+    if (queryEmbedding) {
+      results = await storage.semanticSearch(userId, queryEmbedding, limit);
+      if (results.length > 0) {
+        const hybridResults = await storage.hybridSearch(userId, query, queryEmbedding, 0.7, limit);
+        if (hybridResults.length > 0) {
+          results = hybridResults;
+        }
+      }
+    }
+
+    if (results.length === 0) {
+      results = await storage.keywordSearch(userId, query, limit);
+    }
+
+    return results;
+  }
+
+  /**
+   * Format search results into snippets for the AI to work with
+   */
+  private formatResultSnippets(results: any[], max: number = 10): string {
+    return results.slice(0, max).map((m: any, i: number) => {
+      const content = m.content || '';
+      const tags = m.tags ? (Array.isArray(m.tags) ? m.tags : [m.tags]) : [];
+      const snippet = content.length > 200 ? content.substring(0, 200) + '...' : content;
+      return `${i + 1}. ${snippet}${tags.length > 0 ? ` [tags: ${tags.join(', ')}]` : ''}`;
+    }).join('\n');
+  }
+
+  /**
    * Handle summarize queries - overview of content
    */
   private async handleSummarizeQuery(
@@ -303,12 +345,48 @@ Examples:
     userId: number,
     storage: IStorage
   ): Promise<AsideAIResponse> {
-    // For now, redirect to search with a note
-    // TODO: Implement actual summarization in future
-    return {
-      response: "Summarization coming soon! For now, try 'Hey Aside, find [topic]' to search your saved content.",
-      intent: 'summarize',
-    };
+    try {
+      const results = await this.searchUserContent(query, userId, storage);
+
+      if (results.length === 0) {
+        return {
+          response: `I couldn't find anything matching "${query}" to summarize. Try saving some content with related hashtags first!`,
+          intent: 'summarize',
+        };
+      }
+
+      const snippets = this.formatResultSnippets(results);
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are Aside's AI assistant. The user wants a summary of their saved content on a topic. Give a concise, helpful summary of what they've saved. Mention key themes, notable items, and how many items relate to the topic. Keep it conversational and under 280 characters (SMS-friendly). Don't use emojis.`
+          },
+          {
+            role: "user",
+            content: `Summarize my saved content about "${query}".\n\nFound ${results.length} items:\n${snippets}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      });
+
+      const summary = completion.choices[0].message.content || `You have ${results.length} items saved about "${query}".`;
+
+      return {
+        response: summary,
+        intent: 'summarize',
+        searchPerformed: true,
+      };
+    } catch (error) {
+      log(`Error in summarize query: ${error instanceof Error ? error.message : String(error)}`);
+      return {
+        response: `I found content about "${query}" but had trouble summarizing it. Try "Hey Aside, find ${query}" to see the results.`,
+        intent: 'summarize',
+      };
+    }
   }
 
   /**
@@ -319,12 +397,48 @@ Examples:
     userId: number,
     storage: IStorage
   ): Promise<AsideAIResponse> {
-    // For now, redirect to search
-    // TODO: Implement AI-powered recommendations in future
-    return {
-      response: "Recommendations coming soon! For now, try 'Hey Aside, find [topic]' to search your saved content.",
-      intent: 'recommend',
-    };
+    try {
+      const results = await this.searchUserContent(query, userId, storage);
+
+      if (results.length === 0) {
+        return {
+          response: `I don't have enough saved content about "${query}" to make recommendations. Save more items and I'll help you pick the best ones!`,
+          intent: 'recommend',
+        };
+      }
+
+      const snippets = this.formatResultSnippets(results);
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are Aside's AI assistant. The user wants recommendations from their saved content. Pick the top 2-3 most relevant items and briefly explain why they stand out. Keep it conversational and under 280 characters (SMS-friendly). Don't use emojis.`
+          },
+          {
+            role: "user",
+            content: `Recommend the best items from my saved content about "${query}".\n\nFound ${results.length} items:\n${snippets}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      });
+
+      const recommendation = completion.choices[0].message.content || `Check out your saved items about "${query}" — you have ${results.length} to choose from!`;
+
+      return {
+        response: recommendation,
+        intent: 'recommend',
+        searchPerformed: true,
+      };
+    } catch (error) {
+      log(`Error in recommend query: ${error instanceof Error ? error.message : String(error)}`);
+      return {
+        response: `I had trouble making recommendations. Try "Hey Aside, find ${query}" to browse your saved items.`,
+        intent: 'recommend',
+      };
+    }
   }
 
   /**
@@ -335,12 +449,61 @@ Examples:
     userId: number,
     storage: IStorage
   ): Promise<AsideAIResponse> {
-    // For now, redirect to web dashboard
-    // TODO: Implement content analysis in future
-    return {
-      response: "Content analysis coming soon! For now, check out your boards at textaside.app to see what you've saved.",
-      intent: 'analyze',
-    };
+    try {
+      const allMessages = await storage.getMessages(userId);
+      const tags = await storage.getTags(userId);
+
+      if (allMessages.length === 0) {
+        return {
+          response: "You haven't saved any content yet! Start by texting anything with a #hashtag to organize it.",
+          intent: 'analyze',
+        };
+      }
+
+      const tagCounts: Record<string, number> = {};
+      allMessages.forEach((m: any) => {
+        const msgTags = m.tags ? (Array.isArray(m.tags) ? m.tags : [m.tags]) : [];
+        msgTags.forEach((t: string) => {
+          tagCounts[t] = (tagCounts[t] || 0) + 1;
+        });
+      });
+
+      const topTags = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([tag, count]) => `#${tag} (${count})`)
+        .join(', ');
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `You are Aside's AI assistant. Give the user a brief, interesting analysis of their saved content. Mention total items, top topics, and any patterns. Keep it conversational and under 280 characters (SMS-friendly). Don't use emojis.`
+          },
+          {
+            role: "user",
+            content: `Analyze my saved content.\n\nTotal items: ${allMessages.length}\nTotal boards: ${tags.length}\nTop boards by count: ${topTags || 'none'}\nQuery context: "${query}"`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      });
+
+      const analysis = completion.choices[0].message.content || `You have ${allMessages.length} saved items across ${tags.length} boards. Your most active boards are ${topTags}.`;
+
+      return {
+        response: analysis,
+        intent: 'analyze',
+        searchPerformed: true,
+      };
+    } catch (error) {
+      log(`Error in analyze query: ${error instanceof Error ? error.message : String(error)}`);
+      return {
+        response: `I had trouble analyzing your content. Check out your boards at textaside.app for a visual overview.`,
+        intent: 'analyze',
+      };
+    }
   }
 
   /**
