@@ -98,7 +98,7 @@ function AISummaryBubble({ summary }: { summary: string }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-start gap-3 p-4 rounded-xl bg-white border border-[#e3cac0]/60">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
+        <div className="flex-shrink-0 w-8 h-8">
           <img src="/aside-logo-loader.png" alt="Aside" className="w-full h-full object-contain" />
         </div>
         <div className="flex-1 pt-1">
@@ -298,7 +298,7 @@ export default function SearchPage() {
             <>
               <div className="max-w-2xl mx-auto">
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-white border border-[#e3cac0]/60">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
+                  <div className="flex-shrink-0 w-8 h-8">
                     <img src="/aside-logo-loader.png" alt="Aside" className="w-full h-full object-contain" />
                   </div>
                   <div className="flex-1 pt-1">
