@@ -11,7 +11,7 @@ class AIService {
   private log: (message: string, ...args: any[]) => void;
   constructor() {
     this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: process.env.NEW_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
     });
     
     this.log = (message: string, ...args: any[]) => {

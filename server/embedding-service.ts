@@ -8,7 +8,7 @@ export class EmbeddingService {
 
   constructor() {
     this.client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+      apiKey: process.env.NEW_OPENAI_API_KEY || process.env.OPENAI_API_KEY
     });
   }
 

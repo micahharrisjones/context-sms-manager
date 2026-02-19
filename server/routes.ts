@@ -2272,7 +2272,7 @@ Reply STOP to opt out`;
       let aiSummary = "";
       try {
         const OpenAI = (await import("openai")).default;
-        const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+        const openai = new OpenAI({ apiKey: process.env.NEW_OPENAI_API_KEY || process.env.OPENAI_API_KEY });
 
         const resultSnippets = messagesWithSignedUrls.slice(0, 8).map((m: any, i: number) => {
           const content = m.content || '';

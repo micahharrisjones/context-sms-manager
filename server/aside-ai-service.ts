@@ -6,7 +6,7 @@ import { shortLinkService } from "./short-link-service";
 import { MagicLinkService } from "./magic-link-service";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.NEW_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
 });
 
 export interface AsideAIResponse {
