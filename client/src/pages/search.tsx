@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
-import { Search, X, Sparkles, SearchX, Bot, AlertCircle } from "lucide-react";
+import { Search, X, Sparkles, SearchX, AlertCircle } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Message } from "@shared/schema";
 import { MessageCard } from "@/components/messages/MessageCard";
@@ -98,8 +98,8 @@ function AISummaryBubble({ summary }: { summary: string }) {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="flex items-start gap-3 p-4 rounded-xl bg-white border border-[#e3cac0]/60">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#b95827]/10 flex items-center justify-center">
-          <Bot className="w-4 h-4 text-[#b95827]" />
+        <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
+          <img src="/aside-logo-loader.png" alt="Aside" className="w-full h-full object-contain" />
         </div>
         <div className="flex-1 pt-1">
           <p className="text-sm text-[#263d57] leading-relaxed">
@@ -298,8 +298,8 @@ export default function SearchPage() {
             <>
               <div className="max-w-2xl mx-auto">
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-white border border-[#e3cac0]/60">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-[#b95827]/10 flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-[#b95827]" />
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden">
+                    <img src="/aside-logo-loader.png" alt="Aside" className="w-full h-full object-contain" />
                   </div>
                   <div className="flex-1 pt-1">
                     <div className="flex items-center gap-2 text-sm text-[#263d57]/60">
