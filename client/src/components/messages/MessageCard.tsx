@@ -375,6 +375,13 @@ export function MessageCard({ message }: MessageCardProps) {
     return false;
   };
 
+  // Check if the message has any non-URL, non-whitespace text content
+  const hasNonUrlText = contentWithoutHashtags.split(/(\s+)/).some(part => {
+    const trimmed = part.trim();
+    if (!trimmed) return false;
+    try { new URL(trimmed); return false; } catch { return true; }
+  });
+
   // Format the content: make URLs clickable and hide URLs with rich previews
   const formattedContent = contentWithoutHashtags.split(/(\s+)/).map((part, i) => {
     const trimmed = part.trim();
@@ -384,8 +391,9 @@ export function MessageCard({ message }: MessageCardProps) {
       try {
         new URL(trimmed);
         
-        // Hide URLs that have rich previews
-        if (hasRichPreview(trimmed)) {
+        // Only hide URLs with rich previews if there's other text to show
+        // If the message is URL-only, keep the URL visible so we don't show "Saved item"
+        if (hasNonUrlText && hasRichPreview(trimmed)) {
           return null;
         }
         
@@ -395,7 +403,7 @@ export function MessageCard({ message }: MessageCardProps) {
             href={trimmed}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary hover:underline"
+            className="text-primary hover:underline break-all"
           >
             {trimmed}
           </a>
