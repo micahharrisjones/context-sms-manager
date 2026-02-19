@@ -2235,11 +2235,15 @@ Reply STOP to opt out`;
       const trimmedQuery = query.trim();
       log(`🤖 AI Search: "${trimmedQuery}" for user ${userId}`);
 
-      // Step 1: Perform hybrid search (same as existing endpoint)
       let messages: any[] = [];
-      let searchMethod = 'semantic';
+      let searchMethod = 'keyword';
 
-      const queryEmbedding = await embeddingService.generateEmbedding(trimmedQuery);
+      let queryEmbedding: number[] | null = null;
+      try {
+        queryEmbedding = await embeddingService.generateEmbedding(trimmedQuery);
+      } catch (embeddingError) {
+        log(`Embedding generation failed, falling back to keyword search: ${embeddingError instanceof Error ? embeddingError.message : String(embeddingError)}`);
+      }
 
       if (queryEmbedding) {
         messages = await storage.semanticSearch(userId, queryEmbedding, Math.min(limit, 20));
