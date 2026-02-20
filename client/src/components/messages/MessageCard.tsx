@@ -116,18 +116,7 @@ function RedditEmbed({ subreddit, postId, url }: { subreddit: string; postId: st
   );
 }
 
-function getInstagramPostId(url: string): string | null {
-  // Handle posts, reels, and other Instagram content
-  const postMatch = url.match(/instagram\.com\/p\/([^/?]+)/);
-  if (postMatch) return postMatch[1];
-  
-  const reelMatch = url.match(/instagram\.com\/reel\/([^/?]+)/);
-  if (reelMatch) return reelMatch[1];
-  
-  return null;
-}
-
-// Pinterest removed - using Open Graph preview instead
+// Instagram and Pinterest use Open Graph preview cards instead of iframe embeds
 
 function getTwitterPostId(url: string): string | null {
   // Match both x.com and twitter.com
@@ -209,7 +198,7 @@ function shouldFetchOpenGraph(url: string, hasSpecificEmbed: boolean = false): b
   try {
     const urlObj = new URL(url);
     
-    // If we already have a specific embed (Instagram, TikTok, etc.), don't fetch Open Graph
+    // If we already have a specific embed (TikTok, etc.), don't fetch Open Graph
     if (hasSpecificEmbed) {
       return false;
     }
@@ -321,7 +310,6 @@ export function MessageCard({ message }: MessageCardProps) {
     })
     .join(''); // Join back together preserving all whitespace
   
-  const instagramPostId = message.content ? getInstagramPostId(message.content) : null;
   const facebookPostId = message.content ? getFacebookPostId(message.content) : null;
   const twitterPostId = message.content ? getTwitterPostId(message.content) : null;
   const redditPostInfo = message.content ? getRedditPostInfo(message.content) : null;
@@ -335,7 +323,6 @@ export function MessageCard({ message }: MessageCardProps) {
   // Check each URL individually for specific embeds instead of message-wide check
   const previewUrl = urls.find(url => {
     const hasUrlSpecificEmbed = !!(
-      getInstagramPostId(url) ||
       getFacebookPostId(url) ||
       getTwitterPostId(url) ||
       getRedditPostInfo(url) ||
@@ -349,8 +336,8 @@ export function MessageCard({ message }: MessageCardProps) {
   // Check if a URL has a rich preview (social media embed, IMDB, Open Graph)
   // IMPORTANT: Only hide URL if preview has actually loaded successfully
   const hasRichPreview = (url: string): boolean => {
-    // Always hide social media embeds (Instagram, Facebook, Twitter, YouTube, TikTok)
-    if (getInstagramPostId(url) || getFacebookPostId(url) || getTwitterPostId(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
+    // Always hide social media embeds (Facebook, Twitter, YouTube, TikTok)
+    if (getFacebookPostId(url) || getTwitterPostId(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
       return true;
     }
     
@@ -678,12 +665,12 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
-        {/* Show error message if image failed to load */}
+        {/* Show subtle notice if image failed to load */}
         {message.mediaUrl && message.mediaType === 'image' && imageError && (
           <div className="w-full">
-            <div className="p-4 shadow-md rounded-lg bg-red-50 border border-red-200">
-              <p className="text-sm text-red-600">
-                Failed to load image attachment. The image may have expired or been deleted.
+            <div className="p-3 rounded-lg bg-[#263d57]/5 border border-[#e3cac0]">
+              <p className="text-xs text-[#263d57]/60">
+                Image unavailable
               </p>
             </div>
           </div>
@@ -707,35 +694,12 @@ export function MessageCard({ message }: MessageCardProps) {
           </div>
         )}
         
-        {instagramPostId && (
-          <div className="w-full relative" data-pendo="content-instagram-embed" data-post-id={instagramPostId}>
-            <a
-              href={urls.find(url => getInstagramPostId(url)) || `https://www.instagram.com/p/${instagramPostId}/`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="EmbeddedMedia absolute top-2 right-2 z-10 bg-white/90 hover:bg-white px-3 py-1.5 rounded-full text-xs font-medium text-[#263d57] shadow-md hover:shadow-lg transition-all flex items-center gap-1"
-              data-pendo="content-external-link-btn"
-              data-embed-type="instagram"
-            >
-              <ExternalLink className="w-3 h-3" />
-              View on Instagram
-            </a>
-            <iframe
-              src={`https://www.instagram.com/p/${instagramPostId}/embed/captioned/`}
-              className="w-full h-[600px] rounded-md border-0"
-              loading="lazy"
-              allowFullScreen
-              scrolling="no"
-              frameBorder="0"
-            />
-          </div>
-        )}
         
         {/* Message text - Show after embeds, with hashtags and URLs removed */}
         {hasDisplayableContent && (
           <>
             {/* Check if this is a plain text message (no rich embeds) */}
-            {!instagramPostId && !facebookPostId && !twitterPostId && !redditPostInfo && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
+            {!facebookPostId && !twitterPostId && !redditPostInfo && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl ? (
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 bg-[#e3cac0] rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                   <MessageSquare className="w-4 h-4 text-white" />
@@ -770,7 +734,7 @@ export function MessageCard({ message }: MessageCardProps) {
         )}
         
         {/* Fallback message when no content is displayable but card still needs to render */}
-        {!hasDisplayableContent && !instagramPostId && !facebookPostId && !twitterPostId && !redditPostInfo && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl && !isLoadingOg && (
+        {!hasDisplayableContent && !facebookPostId && !twitterPostId && !redditPostInfo && !youtubeVideoId && !tiktokVideoId && !imdbInfo && !ogData && !message.mediaUrl && !isLoadingOg && (
           <div className="flex items-start gap-3 opacity-60">
             <div className="w-8 h-8 bg-[#e3cac0]/50 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
               <MessageSquare className="w-4 h-4 text-white" />
