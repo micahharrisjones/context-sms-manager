@@ -293,6 +293,7 @@ export function MessageCard({ message }: MessageCardProps) {
   const [ogData, setOgData] = useState<OpenGraphData | null>(null);
   const [isLoadingOg, setIsLoadingOg] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [ogImageError, setOgImageError] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
 
   // Use hashtags from database instead of re-extracting from content
@@ -363,12 +364,6 @@ export function MessageCard({ message }: MessageCardProps) {
   };
 
   // Check if the message has any non-URL, non-whitespace text content
-  const hasNonUrlText = contentWithoutHashtags.split(/(\s+)/).some(part => {
-    const trimmed = part.trim();
-    if (!trimmed) return false;
-    try { new URL(trimmed); return false; } catch { return true; }
-  });
-
   // Format the content: make URLs clickable and hide URLs with rich previews
   const formattedContent = contentWithoutHashtags.split(/(\s+)/).map((part, i) => {
     const trimmed = part.trim();
@@ -378,9 +373,8 @@ export function MessageCard({ message }: MessageCardProps) {
       try {
         new URL(trimmed);
         
-        // Only hide URLs with rich previews if there's other text to show
-        // If the message is URL-only, keep the URL visible so we don't show "Saved item"
-        if (hasNonUrlText && hasRichPreview(trimmed)) {
+        // Hide URLs that have rich previews loaded (OG card is clickable, so URL is redundant)
+        if (hasRichPreview(trimmed)) {
           return null;
         }
         
@@ -473,8 +467,10 @@ export function MessageCard({ message }: MessageCardProps) {
     async function fetchOpenGraphData() {
       if (!previewUrl) {
         setOgData(null);
+        setOgImageError(false);
         return;
       }
+      setOgImageError(false);
       
       // First, check if we already have enriched OG data from the database
       if (message.ogTitle || message.ogDescription || message.ogImage) {
@@ -559,27 +555,40 @@ export function MessageCard({ message }: MessageCardProps) {
                 className="block"
                 data-pendo="content-external-link-btn"
               >
-                {ogData.image && !ogData.isBlocked && (
+                {ogData.image && !ogData.isBlocked && !ogImageError && (
                   <div className="aspect-video w-full bg-[#263d57]/10 overflow-hidden">
                     <img
                       src={ogData.image}
                       alt={ogData.title}
                       className="w-full h-full object-cover"
                       loading="lazy"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
+                      onError={() => setOgImageError(true)}
                     />
                   </div>
                 )}
+                {ogData.image && !ogData.isBlocked && ogImageError && ogData.site_name?.toLowerCase() === 'instagram' && (
+                  <div className="w-full bg-gradient-to-br from-[#833AB4] via-[#C13584] to-[#F77737] p-6 flex items-center justify-center" style={{ minHeight: '80px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                      <circle cx="12" cy="12" r="5"></circle>
+                      <circle cx="17.5" cy="6.5" r="1.5" fill="white" stroke="none"></circle>
+                    </svg>
+                  </div>
+                )}
+                {ogData.image && !ogData.isBlocked && ogImageError && ogData.site_name?.toLowerCase() !== 'instagram' && (
+                  <div className="w-full bg-[#263d57]/10 p-4 flex items-center justify-center" style={{ minHeight: '60px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#263d57]/30">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
+                  </div>
+                )}
                 {!ogData.image && ogData.isFallback && (
-                  <div className="aspect-video w-full bg-[#263d57]/10 flex items-center justify-center">
-                    <div className="text-[#263d57]/30">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                      </svg>
-                    </div>
+                  <div className="w-full bg-[#263d57]/10 p-4 flex items-center justify-center" style={{ minHeight: '60px' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#263d57]/30">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                    </svg>
                   </div>
                 )}
                 <div className="p-4">
