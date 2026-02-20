@@ -3454,8 +3454,15 @@ You can now text anything with #${boardName} to share with everyone on the board
         }
       }
 
-      log(`Found ${allBoards.length} shared boards for user ${userId}`);
-      res.json(allBoards);
+      const boardMessageCounts = await storage.getSharedBoardMessageCounts(userId);
+      const countMap = new Map(boardMessageCounts.map(c => [c.boardName, c.totalCount]));
+      const boardsWithCounts = allBoards.map(board => ({
+        ...board,
+        messageCount: countMap.get(board.name) || 0,
+      }));
+
+      log(`Found ${boardsWithCounts.length} shared boards for user ${userId}`);
+      res.json(boardsWithCounts);
     } catch (error) {
       log(
         `Error fetching shared boards: ${error instanceof Error ? error.message : String(error)}`,

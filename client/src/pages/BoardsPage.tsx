@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Users, Lock, Globe, Hash } from "lucide-react";
+import { Plus, Users, Lock, Globe, Hash, MessageSquare } from "lucide-react";
 import { SharedBoard } from "@shared/schema";
 import { CreateSharedBoardModal } from "@/components/shared-boards/CreateSharedBoardModal";
 import { CreatePrivateBoardModal } from "@/components/shared-boards/CreatePrivateBoardModal";
@@ -11,12 +11,12 @@ export default function BoardsPage() {
   const [showCreateSharedModal, setShowCreateSharedModal] = useState(false);
   const [showCreatePrivateModal, setShowCreatePrivateModal] = useState(false);
 
-  const { data: privateTags, isLoading: tagsLoading } = useQuery<string[]>({
-    queryKey: ["/api/tags"],
+  const { data: privateTags, isLoading: tagsLoading } = useQuery<{ tag: string; count: number }[]>({
+    queryKey: ["/api/tags-with-counts"],
   });
 
   const { data: sharedBoards, isLoading: sharedLoading } = useQuery<
-    (SharedBoard & { role: string })[]
+    (SharedBoard & { role: string; messageCount: number })[]
   >({
     queryKey: ["/api/shared-boards"],
   });
@@ -50,7 +50,7 @@ export default function BoardsPage() {
           </div>
         ) : privateTags && privateTags.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {privateTags.map((tag) => (
+            {privateTags.map(({ tag, count }) => (
               <Link
                 key={tag}
                 href={`/tag/private/${tag}`}
@@ -63,6 +63,10 @@ export default function BoardsPage() {
                       <span className="font-semibold text-[#263d57] text-sm truncate">
                         {tag}
                       </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <MessageSquare className="w-3 h-3 text-[#263d57]/40" />
+                      <span className="text-xs text-[#263d57]/50">{count} {count === 1 ? 'text' : 'texts'}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 mt-2">
@@ -113,6 +117,10 @@ export default function BoardsPage() {
                       <span className="font-semibold text-[#263d57] text-sm truncate">
                         {board.name}
                       </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1">
+                      <MessageSquare className="w-3 h-3 text-[#263d57]/40" />
+                      <span className="text-xs text-[#263d57]/50">{board.messageCount} {board.messageCount === 1 ? 'text' : 'texts'}</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-2">
