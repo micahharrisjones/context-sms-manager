@@ -196,7 +196,7 @@ export function MessageList({ tag, sharedBoard, messages: propMessages, isLoadin
     >
       {messages?.map((message) => (
         <div key={message.id} className="mb-4">
-          <MessageCard message={message} />
+          <MessageCard message={message} sharedBoard={sharedBoard} />
         </div>
       ))}
     </Masonry>

@@ -149,6 +149,22 @@ export const notificationPreferencesRelations = relations(notificationPreference
   }),
 }));
 
+// Board comments - comments on posts within shared boards
+export const boardComments = pgTable("board_comments", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").references(() => messages.id, { onDelete: "cascade" }).notNull(),
+  boardId: integer("board_id").references(() => sharedBoards.id, { onDelete: "cascade" }).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const boardCommentsRelations = relations(boardComments, ({ one }) => ({
+  message: one(messages, { fields: [boardComments.messageId], references: [messages.id] }),
+  board: one(sharedBoards, { fields: [boardComments.boardId], references: [sharedBoards.id] }),
+  author: one(users, { fields: [boardComments.userId], references: [users.id] }),
+}));
+
 // Onboarding messages table - configurable SMS messages for onboarding flow
 export const onboardingMessages = pgTable("onboarding_messages", {
   id: serial("id").primaryKey(),
@@ -296,6 +312,11 @@ export const insertFeedbackSubmissionSchema = createInsertSchema(feedbackSubmiss
   isReviewed: true,
 });
 
+export const insertBoardCommentSchema = createInsertSchema(boardComments).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Type exports
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -330,3 +351,10 @@ export type SweepstakesEntry = typeof sweepstakesEntries.$inferSelect;
 export type InsertSweepstakesEntry = z.infer<typeof insertSweepstakesEntrySchema>;
 export type FeedbackSubmission = typeof feedbackSubmissions.$inferSelect;
 export type InsertFeedbackSubmission = z.infer<typeof insertFeedbackSubmissionSchema>;
+export type BoardComment = typeof boardComments.$inferSelect & {
+  authorFirstName?: string | null;
+  authorLastName?: string | null;
+  authorAvatarUrl?: string | null;
+  authorDisplayName?: string | null;
+};
+export type InsertBoardComment = z.infer<typeof insertBoardCommentSchema>;

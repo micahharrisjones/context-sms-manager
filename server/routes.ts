@@ -3759,6 +3759,99 @@ You can now text anything with #${boardName} to share with everyone on the board
     },
   );
 
+  // ── Board Comments ─────────────────────────────────────────────────────────
+
+  // GET comments for a message in a shared board
+  app.get(
+    "/api/shared-boards/:boardName/messages/:messageId/comments",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const userId = req.userId!;
+        const boardName = decodeURIComponent(req.params.boardName);
+        const messageId = parseInt(req.params.messageId);
+        if (isNaN(messageId)) return res.status(400).json({ error: "Invalid message ID" });
+
+        const board = await storage.getSharedBoardByName(boardName);
+        if (!board) return res.status(404).json({ error: "Board not found" });
+
+        const member = await storage.isBoardMember(userId, board.id);
+        if (!member) return res.status(403).json({ error: "Not a board member" });
+
+        const comments = await storage.getCommentsByMessage(messageId, board.id);
+        res.json(comments);
+      } catch (error) {
+        log(`Error fetching comments: ${error instanceof Error ? error.message : String(error)}`);
+        res.status(500).json({ error: "Failed to fetch comments" });
+      }
+    }
+  );
+
+  // POST a new comment on a message in a shared board
+  app.post(
+    "/api/shared-boards/:boardName/messages/:messageId/comments",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const userId = req.userId!;
+        const boardName = decodeURIComponent(req.params.boardName);
+        const messageId = parseInt(req.params.messageId);
+        if (isNaN(messageId)) return res.status(400).json({ error: "Invalid message ID" });
+
+        const { content } = req.body;
+        if (!content || typeof content !== "string" || content.trim().length === 0) {
+          return res.status(400).json({ error: "Comment content is required" });
+        }
+        if (content.trim().length > 1000) {
+          return res.status(400).json({ error: "Comment must be 1000 characters or fewer" });
+        }
+
+        const board = await storage.getSharedBoardByName(boardName);
+        if (!board) return res.status(404).json({ error: "Board not found" });
+
+        const member = await storage.isBoardMember(userId, board.id);
+        if (!member) return res.status(403).json({ error: "Not a board member" });
+
+        const comment = await storage.addComment({
+          messageId,
+          boardId: board.id,
+          userId,
+          content: content.trim(),
+        });
+        res.status(201).json(comment);
+      } catch (error) {
+        log(`Error adding comment: ${error instanceof Error ? error.message : String(error)}`);
+        res.status(500).json({ error: "Failed to add comment" });
+      }
+    }
+  );
+
+  // DELETE a comment (own comments only)
+  app.delete(
+    "/api/shared-boards/:boardName/messages/:messageId/comments/:commentId",
+    requireAuth,
+    async (req, res) => {
+      try {
+        const userId = req.userId!;
+        const boardName = decodeURIComponent(req.params.boardName);
+        const commentId = parseInt(req.params.commentId);
+        if (isNaN(commentId)) return res.status(400).json({ error: "Invalid comment ID" });
+
+        const board = await storage.getSharedBoardByName(boardName);
+        if (!board) return res.status(404).json({ error: "Board not found" });
+
+        const member = await storage.isBoardMember(userId, board.id);
+        if (!member) return res.status(403).json({ error: "Not a board member" });
+
+        await storage.deleteComment(commentId, userId);
+        res.json({ success: true });
+      } catch (error) {
+        log(`Error deleting comment: ${error instanceof Error ? error.message : String(error)}`);
+        res.status(500).json({ error: "Failed to delete comment" });
+      }
+    }
+  );
+
   // Create a new shared board
   app.post("/api/shared-boards", requireAuth, async (req, res) => {
     try {

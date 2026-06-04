@@ -3,15 +3,19 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, isToday, isYesterday } from "date-fns";
 import { Link } from "wouter";
-import { X, Edit, ExternalLink, User, MessageSquare, Maximize2 } from "lucide-react";
+import { X, Edit, ExternalLink, User, MessageSquare, Maximize2, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect, useRef } from "react";
 import { DeleteMessageModal } from "./DeleteMessageModal";
 import { EditMessageModal } from "./EditMessageModal";
 import { ImageModal } from "./ImageModal";
+import { CommentsSection } from "./CommentsSection";
+import { useQuery } from "@tanstack/react-query";
+import { BoardComment } from "@shared/schema";
 
 interface MessageCardProps {
   message: Message;
+  sharedBoard?: string;
 }
 
 // Twitter Embed Component
@@ -293,7 +297,7 @@ interface OpenGraphData {
   isFallback?: boolean; // Indicates we used domain-based fallback data
 }
 
-export function MessageCard({ message }: MessageCardProps) {
+export function MessageCard({ message, sharedBoard }: MessageCardProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [movieData, setMovieData] = useState<MovieData | null>(null);
@@ -303,6 +307,12 @@ export function MessageCard({ message }: MessageCardProps) {
   const [imageError, setImageError] = useState(false);
   const [ogImageError, setOgImageError] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+
+  const { data: comments } = useQuery<BoardComment[]>({
+    queryKey: [`/api/shared-boards/${sharedBoard}/messages/${message.id}/comments`],
+    enabled: !!sharedBoard,
+  });
 
   // Use hashtags from database instead of re-extracting from content
   // Format database tags back to hashtag display format (add # prefix)
@@ -988,10 +998,38 @@ export function MessageCard({ message }: MessageCardProps) {
               </div>
             )}
           </div>
-          <span className="text-[10px] text-[#263d57]/40 whitespace-nowrap flex-shrink-0">
-            {formatTimestamp(message.timestamp)}
-          </span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {sharedBoard && (
+              <button
+                onClick={() => setCommentsOpen(o => !o)}
+                className={`flex items-center gap-1 text-[10px] transition-colors ${
+                  commentsOpen
+                    ? "text-[#b95827]"
+                    : "text-[#263d57]/40 hover:text-[#b95827]"
+                }`}
+                data-pendo="message-comments-toggle"
+                aria-label="Toggle comments"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                {comments && comments.length > 0 && (
+                  <span>{comments.length}</span>
+                )}
+              </button>
+            )}
+            <span className="text-[10px] text-[#263d57]/40 whitespace-nowrap">
+              {formatTimestamp(message.timestamp)}
+            </span>
+          </div>
         </div>
+
+        {/* Inline comments section — only in shared board context */}
+        {sharedBoard && (
+          <CommentsSection
+            messageId={message.id}
+            boardName={sharedBoard}
+            isOpen={commentsOpen}
+          />
+        )}
       </CardContent>
     </Card>
 

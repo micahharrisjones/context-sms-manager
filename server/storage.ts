@@ -23,6 +23,8 @@ import {
   type InsertSweepstakesEntry,
   type FeedbackSubmission,
   type InsertFeedbackSubmission,
+  type BoardComment,
+  type InsertBoardComment,
   messages, 
   users, 
   authSessions,
@@ -33,7 +35,8 @@ import {
   onboardingMessages,
   messageEmbeddings,
   sweepstakesEntries,
-  feedbackSubmissions
+  feedbackSubmissions,
+  boardComments,
 } from "@shared/schema";
 import { db } from "./db";
 import { desc, eq, sql, gte, lt, and, inArray, or, like, count, asc } from "drizzle-orm";
@@ -101,6 +104,12 @@ export interface IStorage {
   getSharedBoardsByNameForUser(boardName: string, userId: number): Promise<SharedBoard[]>;
   getSharedBoardMessageCounts(userId: number): Promise<{ boardName: string; totalCount: number; thisWeekCount: number }[]>;
   
+  // Board comments
+  getCommentsByMessage(messageId: number, boardId: number): Promise<BoardComment[]>;
+  addComment(comment: InsertBoardComment): Promise<BoardComment>;
+  deleteComment(commentId: number, userId: number): Promise<void>;
+  isBoardMember(userId: number, boardId: number): Promise<boolean>;
+
   // Notification preferences management
   getUserNotificationPreferences(userId: number): Promise<NotificationPreference[]>;
   getBoardNotificationPreference(userId: number, boardId: number): Promise<NotificationPreference | undefined>;
@@ -2331,6 +2340,68 @@ export class DatabaseStorage implements IStorage {
       log(`Marked feedback ${feedbackId} as reviewed`);
     } catch (error) {
       log("Error marking feedback as reviewed:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async getCommentsByMessage(messageId: number, boardId: number): Promise<BoardComment[]> {
+    try {
+      const rows = await db
+        .select({
+          id: boardComments.id,
+          messageId: boardComments.messageId,
+          boardId: boardComments.boardId,
+          userId: boardComments.userId,
+          content: boardComments.content,
+          createdAt: boardComments.createdAt,
+          authorFirstName: users.firstName,
+          authorLastName: users.lastName,
+          authorAvatarUrl: users.avatarUrl,
+          authorDisplayName: users.displayName,
+        })
+        .from(boardComments)
+        .innerJoin(users, eq(boardComments.userId, users.id))
+        .where(and(eq(boardComments.messageId, messageId), eq(boardComments.boardId, boardId)))
+        .orderBy(asc(boardComments.createdAt));
+      return rows;
+    } catch (error) {
+      log("Error fetching board comments:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async addComment(comment: InsertBoardComment): Promise<BoardComment> {
+    try {
+      const [row] = await db.insert(boardComments).values(comment).returning();
+      const withAuthor = await this.getCommentsByMessage(row.messageId, row.boardId);
+      return withAuthor.find(c => c.id === row.id) ?? row;
+    } catch (error) {
+      log("Error adding board comment:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async deleteComment(commentId: number, userId: number): Promise<void> {
+    try {
+      await db
+        .delete(boardComments)
+        .where(and(eq(boardComments.id, commentId), eq(boardComments.userId, userId)));
+    } catch (error) {
+      log("Error deleting board comment:", error instanceof Error ? error.message : String(error));
+      throw error;
+    }
+  }
+
+  async isBoardMember(userId: number, boardId: number): Promise<boolean> {
+    try {
+      const [row] = await db
+        .select({ id: boardMemberships.id })
+        .from(boardMemberships)
+        .where(and(eq(boardMemberships.userId, userId), eq(boardMemberships.boardId, boardId)))
+        .limit(1);
+      return !!row;
+    } catch (error) {
+      log("Error checking board membership:", error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
