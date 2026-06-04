@@ -1,0 +1,473 @@
+## Table of Contents
+
+- [Guides](#guides)
+- [Before you start](#before-you-start)
+- [What is Microlink?](#what-is-microlink)
+- [Which guide do I need?](#which-guide-do-i-need)
+- [Screenshot](#screenshot)
+- [Data extraction](#data-extraction)
+- [Markdown](#markdown)
+- [Function](#function)
+- [PDF](#pdf)
+- [Metadata](#metadata)
+- [Embed](#embed)
+- [Insights](#insights)
+- [Search](#search)
+- [Common patterns](#common-patterns)
+
+---
+
+[API](https://microlink.io/docs/api/getting-started/overview)
+
+[GUIDES](https://microlink.io/docs/guides) [MQL](https://microlink.io/docs/mql/getting-started/overview) [SDK](https://microlink.io/docs/sdk/getting-started/overview) [CARDS](https://microlink.io/docs/cards/getting-started/overview)
+
+API GUIDES MQL SDK CARDS
+
+Getting Started
+
+[Overview](https://microlink.io/docs/guides)
+
+[What is Microlink](https://microlink.io/docs/guides/what-is-microlink)
+
+[Screenshot](https://microlink.io/docs/guides/screenshot)
+
+[Customizing output](https://microlink.io/docs/guides/screenshot/customizing-output)
+
+[Browser settings](https://microlink.io/docs/guides/screenshot/browser-settings)
+
+[Page interaction](https://microlink.io/docs/guides/screenshot/page-interaction)
+
+[Delivery and embedding](https://microlink.io/docs/guides/screenshot/embedding)
+
+[Caching and performance](https://microlink.io/docs/guides/screenshot/caching-and-performance)
+
+[Private pages](https://microlink.io/docs/guides/screenshot/private-pages)
+
+[Troubleshooting](https://microlink.io/docs/guides/screenshot/troubleshooting)
+
+[Data extraction](https://microlink.io/docs/guides/data-extraction)
+
+[Defining rules](https://microlink.io/docs/guides/data-extraction/defining-rules)
+
+[Page preparation](https://microlink.io/docs/guides/data-extraction/page-preparation)
+
+[Delivery and response shaping](https://microlink.io/docs/guides/data-extraction/delivery-and-response)
+
+[Caching and performance](https://microlink.io/docs/guides/data-extraction/caching-and-performance)
+
+[Private pages](https://microlink.io/docs/guides/data-extraction/private-pages)
+
+[Troubleshooting](https://microlink.io/docs/guides/data-extraction/troubleshooting)
+
+[Embed](https://microlink.io/docs/guides/embed)
+
+[SDK](https://microlink.io/docs/guides/embed/sdk)
+
+[Iframe parameter](https://microlink.io/docs/guides/embed/iframe)
+
+[Custom HTML/CSS](https://microlink.io/docs/guides/embed/metadata-api)
+
+[Custom previews with AI](https://microlink.io/docs/guides/embed/custom-previews-with-ai)
+
+[Caching and performance](https://microlink.io/docs/guides/embed/caching-and-performance)
+
+[Private pages and proxy](https://microlink.io/docs/guides/embed/private-pages-and-proxy)
+
+[Troubleshooting](https://microlink.io/docs/guides/embed/troubleshooting)
+
+[Markdown](https://microlink.io/docs/guides/markdown)
+
+[Choosing scope](https://microlink.io/docs/guides/markdown/choosing-scope)
+
+[Delivery and response shaping](https://microlink.io/docs/guides/markdown/delivery-and-response)
+
+[Function](https://microlink.io/docs/guides/function)
+
+[Writing functions](https://microlink.io/docs/guides/function/writing-functions)
+
+[Browser interaction](https://microlink.io/docs/guides/function/browser-interaction)
+
+[Profiling and performance](https://microlink.io/docs/guides/function/profiling-and-performance)
+
+[Troubleshooting](https://microlink.io/docs/guides/function/troubleshooting)
+
+[PDF](https://microlink.io/docs/guides/pdf)
+
+[Page size and layout](https://microlink.io/docs/guides/pdf/page-size-and-layout)
+
+[Page preparation](https://microlink.io/docs/guides/pdf/page-preparation)
+
+[Delivery and embedding](https://microlink.io/docs/guides/pdf/embedding)
+
+[Caching and performance](https://microlink.io/docs/guides/pdf/caching-and-performance)
+
+[Private pages](https://microlink.io/docs/guides/pdf/private-pages)
+
+[Troubleshooting](https://microlink.io/docs/guides/pdf/troubleshooting)
+
+[Metadata](https://microlink.io/docs/guides/metadata)
+
+[Choosing fields](https://microlink.io/docs/guides/metadata/choosing-fields)
+
+[Extending results](https://microlink.io/docs/guides/metadata/extending-results)
+
+[Delivery and response shaping](https://microlink.io/docs/guides/metadata/delivery-and-response)
+
+[Page preparation](https://microlink.io/docs/guides/metadata/page-preparation)
+
+[Caching and performance](https://microlink.io/docs/guides/metadata/caching-and-performance)
+
+[Private pages](https://microlink.io/docs/guides/metadata/private-pages)
+
+[Troubleshooting](https://microlink.io/docs/guides/metadata/troubleshooting)
+
+[Insights](https://microlink.io/docs/guides/insights)
+
+[Technology detection](https://microlink.io/docs/guides/insights/technology-detection)
+
+[Lighthouse reports](https://microlink.io/docs/guides/insights/lighthouse-reports)
+
+[Caching and performance](https://microlink.io/docs/guides/insights/caching-and-performance)
+
+[Troubleshooting](https://microlink.io/docs/guides/insights/troubleshooting)
+
+[Search](https://microlink.io/docs/guides/search)
+
+[Web Search](https://microlink.io/docs/guides/search/search)
+
+[News](https://microlink.io/docs/guides/search/news)
+
+[Images](https://microlink.io/docs/guides/search/images)
+
+[Videos](https://microlink.io/docs/guides/search/videos)
+
+[Places](https://microlink.io/docs/guides/search/places)
+
+[Maps](https://microlink.io/docs/guides/search/maps)
+
+[Shopping](https://microlink.io/docs/guides/search/shopping)
+
+[Scholar](https://microlink.io/docs/guides/search/scholar)
+
+[Patents](https://microlink.io/docs/guides/search/patents)
+
+[Autocomplete](https://microlink.io/docs/guides/search/autocomplete)
+
+[Content expansion](https://microlink.io/docs/guides/search/content-expansion)
+
+[Integration patterns](https://microlink.io/docs/guides/search/patterns)
+
+[Common patterns](https://microlink.io/docs/guides/common/caching)
+
+[Caching patterns](https://microlink.io/docs/guides/common/caching)
+
+[Private pages](https://microlink.io/docs/guides/common/private-pages)
+
+[Proxy](https://microlink.io/docs/guides/common/proxy)
+
+[Troubleshooting](https://microlink.io/docs/guides/common/troubleshooting)
+
+[Production patterns](https://microlink.io/docs/guides/common/production-patterns)
+
+API GUIDES MQL SDK CARDS
+
+Getting Started
+
+[Overview](https://microlink.io/docs/guides)
+
+[What is Microlink](https://microlink.io/docs/guides/what-is-microlink)
+
+[Screenshot](https://microlink.io/docs/guides/screenshot)
+
+[Customizing output](https://microlink.io/docs/guides/screenshot/customizing-output)
+
+[Browser settings](https://microlink.io/docs/guides/screenshot/browser-settings)
+
+[Page interaction](https://microlink.io/docs/guides/screenshot/page-interaction)
+
+[Delivery and embedding](https://microlink.io/docs/guides/screenshot/embedding)
+
+[Caching and performance](https://microlink.io/docs/guides/screenshot/caching-and-performance)
+
+[Private pages](https://microlink.io/docs/guides/screenshot/private-pages)
+
+[Troubleshooting](https://microlink.io/docs/guides/screenshot/troubleshooting)
+
+[Data extraction](https://microlink.io/docs/guides/data-extraction)
+
+[Defining rules](https://microlink.io/docs/guides/data-extraction/defining-rules)
+
+[Page preparation](https://microlink.io/docs/guides/data-extraction/page-preparation)
+
+[Delivery and response shaping](https://microlink.io/docs/guides/data-extraction/delivery-and-response)
+
+[Caching and performance](https://microlink.io/docs/guides/data-extraction/caching-and-performance)
+
+[Private pages](https://microlink.io/docs/guides/data-extraction/private-pages)
+
+[Troubleshooting](https://microlink.io/docs/guides/data-extraction/troubleshooting)
+
+[Embed](https://microlink.io/docs/guides/embed)
+
+[SDK](https://microlink.io/docs/guides/embed/sdk)
+
+[Iframe parameter](https://microlink.io/docs/guides/embed/iframe)
+
+[Custom HTML/CSS](https://microlink.io/docs/guides/embed/metadata-api)
+
+[Custom previews with AI](https://microlink.io/docs/guides/embed/custom-previews-with-ai)
+
+[Caching and performance](https://microlink.io/docs/guides/embed/caching-and-performance)
+
+[Private pages and proxy](https://microlink.io/docs/guides/embed/private-pages-and-proxy)
+
+[Troubleshooting](https://microlink.io/docs/guides/embed/troubleshooting)
+
+[Markdown](https://microlink.io/docs/guides/markdown)
+
+[Choosing scope](https://microlink.io/docs/guides/markdown/choosing-scope)
+
+[Delivery and response shaping](https://microlink.io/docs/guides/markdown/delivery-and-response)
+
+[Function](https://microlink.io/docs/guides/function)
+
+[Writing functions](https://microlink.io/docs/guides/function/writing-functions)
+
+[Browser interaction](https://microlink.io/docs/guides/function/browser-interaction)
+
+[Profiling and performance](https://microlink.io/docs/guides/function/profiling-and-performance)
+
+[Troubleshooting](https://microlink.io/docs/guides/function/troubleshooting)
+
+[PDF](https://microlink.io/docs/guides/pdf)
+
+[Page size and layout](https://microlink.io/docs/guides/pdf/page-size-and-layout)
+
+[Page preparation](https://microlink.io/docs/guides/pdf/page-preparation)
+
+[Delivery and embedding](https://microlink.io/docs/guides/pdf/embedding)
+
+[Caching and performance](https://microlink.io/docs/guides/pdf/caching-and-performance)
+
+[Private pages](https://microlink.io/docs/guides/pdf/private-pages)
+
+[Troubleshooting](https://microlink.io/docs/guides/pdf/troubleshooting)
+
+[Metadata](https://microlink.io/docs/guides/metadata)
+
+[Choosing fields](https://microlink.io/docs/guides/metadata/choosing-fields)
+
+[Extending results](https://microlink.io/docs/guides/metadata/extending-results)
+
+[Delivery and response shaping](https://microlink.io/docs/guides/metadata/delivery-and-response)
+
+[Page preparation](https://microlink.io/docs/guides/metadata/page-preparation)
+
+[Caching and performance](https://microlink.io/docs/guides/metadata/caching-and-performance)
+
+[Private pages](https://microlink.io/docs/guides/metadata/private-pages)
+
+[Troubleshooting](https://microlink.io/docs/guides/metadata/troubleshooting)
+
+[Insights](https://microlink.io/docs/guides/insights)
+
+[Technology detection](https://microlink.io/docs/guides/insights/technology-detection)
+
+[Lighthouse reports](https://microlink.io/docs/guides/insights/lighthouse-reports)
+
+[Caching and performance](https://microlink.io/docs/guides/insights/caching-and-performance)
+
+[Troubleshooting](https://microlink.io/docs/guides/insights/troubleshooting)
+
+[Search](https://microlink.io/docs/guides/search)
+
+[Web Search](https://microlink.io/docs/guides/search/search)
+
+[News](https://microlink.io/docs/guides/search/news)
+
+[Images](https://microlink.io/docs/guides/search/images)
+
+[Videos](https://microlink.io/docs/guides/search/videos)
+
+[Places](https://microlink.io/docs/guides/search/places)
+
+[Maps](https://microlink.io/docs/guides/search/maps)
+
+[Shopping](https://microlink.io/docs/guides/search/shopping)
+
+[Scholar](https://microlink.io/docs/guides/search/scholar)
+
+[Patents](https://microlink.io/docs/guides/search/patents)
+
+[Autocomplete](https://microlink.io/docs/guides/search/autocomplete)
+
+[Content expansion](https://microlink.io/docs/guides/search/content-expansion)
+
+[Integration patterns](https://microlink.io/docs/guides/search/patterns)
+
+[Common patterns](https://microlink.io/docs/guides/common/caching)
+
+[Caching patterns](https://microlink.io/docs/guides/common/caching)
+
+[Private pages](https://microlink.io/docs/guides/common/private-pages)
+
+[Proxy](https://microlink.io/docs/guides/common/proxy)
+
+[Troubleshooting](https://microlink.io/docs/guides/common/troubleshooting)
+
+[Production patterns](https://microlink.io/docs/guides/common/production-patterns)
+
+## Guides
+
+[Copy for LLM](https://microlink.io/docs/guides.md "Copy content for LLM")
+
+\|
+
+[View as Markdown](https://microlink.io/docs/guides.md "View content as Markdown")
+
+Microlink Guides are practical, step-by-step walkthroughs that show you how to accomplish real tasks using the Microlink API. While the [API reference](https://microlink.io/docs/api/getting-started/overview) documents every parameter individually, these guides focus on **workflows** — combining parameters to solve specific problems from start to finish.
+
+Every guide includes practical examples you can adapt quickly. Most API guides also include live, runnable examples you can modify and test directly.
+
+## Before you start
+
+The Microlink API works **without an API key** — you get **50 free requests per day**, no signup required. No API key is required to implement your code or to run the examples directly in your browser.
+
+Some features are marked with
+
+PRO
+
+and require a paid plan. Everything else works on the free tier. See [rate limit](https://microlink.io/docs/api/basics/rate-limit) and [authentication](https://microlink.io/docs/api/basics/authentication) for details.
+
+Microlink Search is the main exception: it is a paid workflow from the first request because public-result collection depends on managed proxy capacity.
+
+## What is Microlink?
+
+New to the API? Start with [What is Microlink](https://microlink.io/docs/guides/what-is-microlink) — it explains the core idea, walks through every workflow with live examples, and helps you decide which guide to read next.
+
+## Which guide do I need?
+
+| I want to…                                              | Start here                                                          |
+| ------------------------------------------------------- | ------------------------------------------------------------------- |
+| Get an image of a website                               | [Screenshot](https://microlink.io/docs/guides/screenshot)           |
+| Scrape structured data from a page                      | [Data extraction](https://microlink.io/docs/guides/data-extraction) |
+| Embed any URL as a card, iframe, or custom HTML preview | [Embed](https://microlink.io/docs/guides/embed)                     |
+| Convert a page to Markdown                              | [Markdown](https://microlink.io/docs/guides/markdown)               |
+| Run custom JavaScript in a headless browser             | [Function](https://microlink.io/docs/guides/function)               |
+| Turn a page into a PDF                                  | [PDF](https://microlink.io/docs/guides/pdf)                         |
+| Get link preview data (title, image, description)       | [Metadata](https://microlink.io/docs/guides/metadata)               |
+| Detect what tech a site uses or run a Lighthouse audit  | [Insights](https://microlink.io/docs/guides/insights)               |
+| Query public search surfaces as structured data         | [Search](https://microlink.io/docs/guides/search)                   |
+| Bypass IP blocking, CAPTCHAs, or regional restrictions  | [Proxy](https://microlink.io/docs/guides/common/proxy)              |
+
+Caching, private-page access, and general troubleshooting are shared across all workflows. See [common patterns](https://microlink.io/docs/guides/common/caching).
+
+## Screenshot
+
+Capture high-quality screenshots of any website with a single API call. This guide now covers the full workflow, from your first screenshot to advanced output control, embedding, private-page capture, and troubleshooting.
+
+- [Quickstart](https://microlink.io/docs/guides/screenshot) — your first screenshot in under a minute.
+- [Customizing output](https://microlink.io/docs/guides/screenshot/customizing-output) — full-page, element targeting, format, overlays, and code themes.
+- [Browser settings](https://microlink.io/docs/guides/screenshot/browser-settings) — viewport, device emulation, dark mode, and animations.
+- [Page interaction](https://microlink.io/docs/guides/screenshot/page-interaction) — click, scroll, wait, inject CSS/JS, block ads and cookie banners.
+- [Delivery and embedding](https://microlink.io/docs/guides/screenshot/embedding) — choose between JSON + CDN URLs and direct image responses.
+- [Caching and performance](https://microlink.io/docs/guides/screenshot/caching-and-performance) — cache control, stale-while-revalidate, and optimization tips.
+- [Private pages](https://microlink.io/docs/guides/screenshot/private-pages) — handle login, sessions, and header-based personalization safely.
+- [Troubleshooting](https://microlink.io/docs/guides/screenshot/troubleshooting) — debug timing issues, blocked sites, wrong captures, and plan errors.
+
+## Data extraction
+
+Extract exactly the fields you need from any page with Microlink API, shape the response for your application, and handle dynamic or private targets reliably.
+
+- [Quickstart](https://microlink.io/docs/guides/data-extraction) — your first custom data extractor in under a minute.
+- [Defining rules](https://microlink.io/docs/guides/data-extraction/defining-rules) — model single fields, collections, nested objects, fallbacks, and computed values.
+- [Page preparation](https://microlink.io/docs/guides/data-extraction/page-preparation) — choose fetch mode, wait for dynamic content, and mutate the DOM before extraction.
+- [Delivery and response shaping](https://microlink.io/docs/guides/data-extraction/delivery-and-response) — choose between full JSON, filtered payloads, and direct field responses.
+- [Caching and performance](https://microlink.io/docs/guides/data-extraction/caching-and-performance) — cache control, stale-while-revalidate, and extraction speed tips.
+- [Private pages](https://microlink.io/docs/guides/data-extraction/private-pages) — extract data from authenticated or session-based pages safely.
+- [Troubleshooting](https://microlink.io/docs/guides/data-extraction/troubleshooting) — fix empty fields, wrong selectors, timeouts, and blocked sites.
+
+## Markdown
+
+Convert full pages or scoped sections to Markdown. This guide is intentionally smaller than Data extraction: it covers the `attr: 'markdown'` workflow, then sends you to the deeper Data extraction pages whenever the topic becomes shared.
+
+- [Quickstart](https://microlink.io/docs/guides/markdown) — your first Markdown extraction, plus the mental model that connects it to Data extraction.
+- [Choosing scope](https://microlink.io/docs/guides/markdown/choosing-scope) — choose the right wrapper, prepare the page state, and fix noisy or incomplete Markdown.
+- [Delivery and response shaping](https://microlink.io/docs/guides/markdown/delivery-and-response) — choose between JSON and direct Markdown responses, then apply the right performance and auth patterns.
+
+## Function
+
+Run arbitrary JavaScript inside a headless browser with full Puppeteer access. Use it when none of the built-in parameters cover your workflow.
+
+- [Quickstart](https://microlink.io/docs/guides/function) — your first custom function in under a minute.
+
+## PDF
+
+Generate production-ready PDFs of any website with full control over paper size, layout, delivery, caching, and private-page access.
+
+- [Quickstart](https://microlink.io/docs/guides/pdf) — your first PDF in under a minute.
+- [Page size and layout](https://microlink.io/docs/guides/pdf/page-size-and-layout) — paper format, custom dimensions, margins, orientation, scale, and page ranges.
+- [Page preparation](https://microlink.io/docs/guides/pdf/page-preparation) — print vs screen CSS, waits, clicks, and CSS cleanup before printing.
+- [Delivery and embedding](https://microlink.io/docs/guides/pdf/embedding) — choose between JSON + CDN URLs and direct PDF responses.
+- [Caching and performance](https://microlink.io/docs/guides/pdf/caching-and-performance) — cache control, stale-while-revalidate, and optimization tips.
+- [Private pages](https://microlink.io/docs/guides/pdf/private-pages) — generate PDFs from authenticated or session-based pages safely.
+- [Troubleshooting](https://microlink.io/docs/guides/pdf/troubleshooting) — debug missing content, wrong layout, blocked sites, and plan errors.
+
+## Metadata
+
+Extract normalized metadata from any URL, narrow the field set to what you actually need, enrich the result when necessary, and handle dynamic or private targets reliably.
+
+- [Quickstart](https://microlink.io/docs/guides/metadata) — your first metadata extraction in under a minute.
+- [Choosing fields](https://microlink.io/docs/guides/metadata/choosing-fields) — request only the normalized metadata fields you actually need.
+- [Extending results](https://microlink.io/docs/guides/metadata/extending-results) — add custom fields, oEmbed HTML, color palettes, or site analysis.
+- [Delivery and response shaping](https://microlink.io/docs/guides/metadata/delivery-and-response) — choose between full JSON, filtered payloads, and direct field responses.
+- [Page preparation](https://microlink.io/docs/guides/metadata/page-preparation) — handle SPAs, waits, and browser-rendered metadata.
+- [Caching and performance](https://microlink.io/docs/guides/metadata/caching-and-performance) — cache control, stale-while-revalidate, and metadata performance tips.
+- [Private pages](https://microlink.io/docs/guides/metadata/private-pages) — extract metadata from authenticated or session-based pages safely.
+- [Troubleshooting](https://microlink.io/docs/guides/metadata/troubleshooting) — fix missing fields, wrong variants, timeouts, and blocked sites.
+
+## Embed
+
+Turn any URL into a rich preview, an interactive iframe, or a custom-styled card. Pick the SDK for a drop-in component, the iframe parameter for the provider's native player, or the metadata API for full HTML/CSS control — and learn how to instruct an LLM agent to use Microlink for previews.
+
+- [Quickstart](https://microlink.io/docs/guides/embed) — pick the right embed approach for your stack in under a minute.
+- [SDK](https://microlink.io/docs/guides/embed/sdk) — drop in a React, Vue, or Vanilla component that handles fetching, lazy-loading, and rendering.
+- [iframe parameter](https://microlink.io/docs/guides/embed/iframe) — return ready-to-inject oEmbed HTML and scripts for 280+ providers.
+- [Metadata API with custom HTML/CSS](https://microlink.io/docs/guides/embed/metadata-api) — render previews entirely in your own markup.
+- [Generate custom previews with AI](https://microlink.io/docs/guides/embed/custom-previews-with-ai) — paste prompts into Cursor, Claude Code, or your IDE assistant to build previews styled to your project — no SDK required.
+- [Caching and performance](https://microlink.io/docs/guides/embed/caching-and-performance) — keep embeds fast at scale with TTL, stale-while-revalidate, and direct embed URLs.
+- [Private pages and proxy](https://microlink.io/docs/guides/embed/private-pages-and-proxy) — embed authenticated dashboards, geofenced content, and antibot-protected sites.
+- [Troubleshooting](https://microlink.io/docs/guides/embed/troubleshooting) — debug missing iframes, broken images, hot-linking, and provider-specific quirks.
+
+## Insights
+
+Analyze any site with Microlink Insights, choose between technology detection and Lighthouse audits, and troubleshoot slow or blocked runs.
+
+- [Quickstart](https://microlink.io/docs/guides/insights) — your first Insights analysis in under a minute.
+- [Technology detection](https://microlink.io/docs/guides/insights/technology-detection) — identify frameworks, CDNs, analytics tools, and other technologies behind a site.
+- [Lighthouse reports](https://microlink.io/docs/guides/insights/lighthouse-reports) — generate JSON, HTML, or CSV audit reports and tune report settings.
+- [Caching and performance](https://microlink.io/docs/guides/insights/caching-and-performance) — cache expensive runs, skip unnecessary work, and verify response behavior.
+- [Troubleshooting](https://microlink.io/docs/guides/insights/troubleshooting) — fix missing results, timeouts, wrong variants, and blocked sites.
+
+## Search
+
+Query public search surfaces as structured data with Microlink Search and the `@microlink/google` package. Ten surfaces, lazy content helpers, and a single interface for SEO, monitoring, research, and agent workflows.
+
+- [Quickstart](https://microlink.io/docs/guides/search) — install `@microlink/google`, make your first query, choose a surface, paginate, and expand results.
+- [Web Search](https://microlink.io/docs/guides/search/search), [News](https://microlink.io/docs/guides/search/news), [Images](https://microlink.io/docs/guides/search/images), [Videos](https://microlink.io/docs/guides/search/videos), [Places](https://microlink.io/docs/guides/search/places), [Maps](https://microlink.io/docs/guides/search/maps), [Shopping](https://microlink.io/docs/guides/search/shopping), [Scholar](https://microlink.io/docs/guides/search/scholar), [Patents](https://microlink.io/docs/guides/search/patents), [Autocomplete](https://microlink.io/docs/guides/search/autocomplete) — result fields, examples, and guidance for each surface.
+- [Content expansion](https://microlink.io/docs/guides/search/content-expansion) — fetch HTML or Markdown for individual results or the SERP page, and learn the two-step retrieval model.
+- [Integration patterns](https://microlink.io/docs/guides/search/patterns) — agent tool calling, RAG pipelines, news monitoring, entity lookup, academic research, and product intelligence workflows.
+
+## Common patterns
+
+Caching, private-page access, and troubleshooting patterns that apply to every workflow above.
+
+- [Caching patterns](https://microlink.io/docs/guides/common/caching) — control TTL, stale-while-revalidate, cache bypass, and verify behavior.
+- [Private pages](https://microlink.io/docs/guides/common/private-pages) — headers, secrets, endpoint selection, proxy, and credential safety.
+- [Proxy](https://microlink.io/docs/guides/common/proxy) — bypass IP blocking, CAPTCHAs, antibot protection, and regional restrictions with automatic or custom proxy rotation.
+- [Troubleshooting](https://microlink.io/docs/guides/common/troubleshooting) — timeouts, blocked sites, auth/plan errors, and debug headers.
+- [Production patterns](https://microlink.io/docs/guides/common/production-patterns) — rate limits, endpoint selection, credential safety, retries, and monitoring.
+
+Last updated on May 28, 2026
+
+[Edit on GitHub](https://github.com/microlinkhq/www/blob/master/src/content/docs/guides/index.md)
