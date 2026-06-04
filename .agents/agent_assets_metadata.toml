@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "_nLMfHuop3siAVPK0etG5"
+uri = "file://aside-product-summary.pdf"
+type = "pdf"
+title = "Aside Product Summary"
