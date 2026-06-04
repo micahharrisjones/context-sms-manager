@@ -189,7 +189,7 @@ class OpenGraphService {
           'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0)',
           'Accept': 'application/json',
         },
-        signal: AbortSignal.timeout(10000), // 10 second timeout
+        signal: AbortSignal.timeout(20000), // 20 second timeout
       });
 
       if (!response.ok) {
@@ -369,7 +369,7 @@ class OpenGraphService {
       log(`Fetching from ${microlinkEndpoint} for: ${url}`);
       const response = await fetch(microlinkUrl.toString(), {
         headers,
-        signal: AbortSignal.timeout(10000), // 10 second timeout
+        signal: AbortSignal.timeout(20000), // 20 second timeout
       });
 
       if (!response.ok) {
@@ -400,6 +400,46 @@ class OpenGraphService {
       log('Microlink fetch error:', error instanceof Error ? error.message : String(error));
       return null;
     }
+  }
+
+  // Check if URL is from Instagram
+  private isInstagramUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname.includes('instagram.com');
+    } catch {
+      return false;
+    }
+  }
+
+  // Create Instagram-specific fallback preview (Instagram blocks all scrapers)
+  private createInstagramFallback(url: string): OpenGraphData {
+    // Determine post type from URL
+    const isReel = url.includes('/reel/');
+    const isStory = url.includes('/stories/');
+    const type = isReel ? 'Reel' : isStory ? 'Story' : 'Post';
+
+    // Try to extract username from URL: instagram.com/username/p/... or instagram.com/reel/...
+    let username: string | null = null;
+    try {
+      const urlObj = new URL(url);
+      const parts = urlObj.pathname.split('/').filter(Boolean);
+      // /p/postId or /reel/reelId → no username at front
+      // /username/p/postId → username at front
+      if (parts.length >= 2 && parts[0] !== 'p' && parts[0] !== 'reel' && parts[0] !== 'stories') {
+        username = '@' + parts[0];
+      }
+    } catch {
+      // ignore
+    }
+
+    return {
+      title: username ? `Instagram ${type} by ${username}` : `Instagram ${type}`,
+      description: 'View on Instagram',
+      image: undefined, // Instagram blocks image scraping
+      site_name: 'Instagram',
+      url,
+    };
   }
 
   // Check if URL is from Amazon
@@ -527,6 +567,15 @@ class OpenGraphService {
 
   // Main function to fetch Open Graph data
   async fetchOpenGraph(url: string): Promise<OpenGraphData | null> {
+    // Special handling for Instagram URLs - use fallback immediately (before cache check)
+    // Instagram blocks all scrapers (Microlink, direct fetch, etc.) and requires login for embeds
+    if (this.isInstagramUrl(url)) {
+      log(`Instagram URL detected, using branded fallback (scraping blocked): ${url}`);
+      const instagramFallback = this.createInstagramFallback(url);
+      this.cacheSuccess(url, instagramFallback);
+      return instagramFallback;
+    }
+
     // Special handling for Amazon URLs - use fallback immediately (before cache check)
     // Amazon blocks all scrapers (Microlink, direct fetch, etc.)
     if (this.isAmazonUrl(url)) {
