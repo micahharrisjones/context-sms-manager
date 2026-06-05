@@ -126,7 +126,7 @@ export function CommentsSection({ messageId, boardName, isOpen }: CommentsSectio
                       {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                     </span>
                   </div>
-                  <p className="text-xs text-[#263d57]/80 leading-relaxed break-words mt-0.5">
+                  <p className="text-sm text-[#263d57]/80 leading-relaxed break-words mt-0.5">
                     {comment.content}
                   </p>
                 </div>
@@ -154,7 +154,7 @@ export function CommentsSection({ messageId, boardName, isOpen }: CommentsSectio
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Add a comment… (Enter to send)"
+          placeholder="Add a comment…"
           rows={1}
           className="min-h-0 h-10 py-2 px-3 text-sm resize-none border-[#e3cac0] focus:border-[#b95827] focus-visible:ring-[#b95827]/20 rounded-lg flex-1"
           maxLength={1000}
