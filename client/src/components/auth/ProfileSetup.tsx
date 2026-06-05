@@ -14,8 +14,7 @@ import { User } from 'lucide-react';
 
 const profileSetupSchema = z.object({
   firstName: z.string().min(1, 'First name is required').max(50),
-  lastName: z.string().min(1, 'Last name is required').max(50),
-  avatarUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  lastName: z.string().max(50).optional().or(z.literal('')),
 });
 
 type ProfileSetupData = z.infer<typeof profileSetupSchema>;
@@ -34,21 +33,17 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     defaultValues: {
       firstName: '',
       lastName: '',
-      avatarUrl: '',
     }
   });
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileSetupData) => {
-      const profileData = {
-        firstName: data.firstName,
-        lastName: data.lastName,
-        ...(data.avatarUrl && { avatarUrl: data.avatarUrl }),
-      };
-      
       return apiRequest('/api/profile', {
         method: 'PUT',
-        body: JSON.stringify(profileData),
+        body: JSON.stringify({
+          firstName: data.firstName,
+          lastName: data.lastName || '',
+        }),
       });
     },
     onSuccess: async () => {
@@ -99,66 +94,8 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
     },
   });
 
-  const skipSetupMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('/api/profile', {
-        method: 'PUT',
-        body: JSON.stringify({
-          firstName: 'User',
-          lastName: 'User',
-        }),
-      });
-    },
-    onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/profile'] });
-      
-      // Check if there's a pending board to redirect to
-      const pendingBoardId = localStorage.getItem('pendingBoardId');
-      const pendingBoardName = localStorage.getItem('pendingBoardName');
-      
-      if (pendingBoardId && pendingBoardName) {
-        // Clear the pending board data
-        localStorage.removeItem('pendingBoardId');
-        localStorage.removeItem('pendingBoardName');
-        
-        try {
-          // Verify board still exists before redirecting
-          const res = await fetch(`/api/shared-boards/${pendingBoardId}/preview`);
-          if (res.ok) {
-            // Use router navigation instead of window.location
-            setLocation(`/tag/shared/${pendingBoardName}`);
-          } else {
-            // Board doesn't exist anymore, go to dashboard
-            toast({
-              title: "Board Not Found",
-              description: "The board you were invited to no longer exists.",
-              variant: "destructive",
-            });
-            onComplete();
-          }
-        } catch (error) {
-          // If verification fails, just go to dashboard
-          onComplete();
-        }
-      } else {
-        onComplete();
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to skip setup",
-        variant: "destructive",
-      });
-    },
-  });
-
   const onSubmit = (data: ProfileSetupData) => {
     updateProfileMutation.mutate(data);
-  };
-
-  const handleSkip = () => {
-    skipSetupMutation.mutate();
   };
 
   return (
@@ -168,9 +105,9 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
           <div className="mx-auto w-12 h-12 bg-[#b95827] rounded-full flex items-center justify-center">
             <User className="h-6 w-6 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold">Set Up Your Profile</CardTitle>
+          <CardTitle className="text-2xl font-bold">What's your name?</CardTitle>
           <CardDescription>
-            Add your name to make it easier for others to find you in shared boards
+            Your name will appear on comments in shared boards. A nickname is totally fine.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -180,9 +117,10 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
               <Input
                 id="firstName"
                 {...form.register('firstName')}
-                placeholder="Enter your first name"
+                placeholder="First name or nickname"
                 className="border-[#e3cac0] focus:border-[#b95827]"
                 data-pendo="input-setup-first-name"
+                autoFocus
               />
               {form.formState.errors.firstName && (
                 <p className="text-sm text-red-600">
@@ -192,60 +130,24 @@ export function ProfileSetup({ onComplete }: ProfileSetupProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
+              <Label htmlFor="lastName">Last Name <span className="text-[#263d57]/40 text-xs font-normal">(optional)</span></Label>
               <Input
                 id="lastName"
                 {...form.register('lastName')}
-                placeholder="Enter your last name"
+                placeholder="Last name"
                 className="border-[#e3cac0] focus:border-[#b95827]"
                 data-pendo="input-setup-last-name"
               />
-              {form.formState.errors.lastName && (
-                <p className="text-sm text-red-600">
-                  {form.formState.errors.lastName.message}
-                </p>
-              )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="avatarUrl">Profile Picture URL (Optional)</Label>
-              <Input
-                id="avatarUrl"
-                {...form.register('avatarUrl')}
-                placeholder="https://example.com/your-photo.jpg"
-                className="border-[#e3cac0] focus:border-[#b95827]"
-                data-pendo="input-setup-avatar-url"
-              />
-              {form.formState.errors.avatarUrl && (
-                <p className="text-sm text-red-600">
-                  {form.formState.errors.avatarUrl.message}
-                </p>
-              )}
-              <p className="text-xs text-[#263d57]/70">
-                You can use a photo from social media or any image hosting service
-              </p>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1 border-[#e3cac0] hover:bg-[#faf6f3]"
-                onClick={handleSkip}
-                disabled={skipSetupMutation.isPending}
-                data-pendo="button-skip-profile-setup"
-              >
-                {skipSetupMutation.isPending ? "Skipping..." : "Skip for Now"}
-              </Button>
-              <Button
-                type="submit"
-                className="flex-1 bg-[#b95827] hover:bg-[#a04d1f] text-white"
-                disabled={updateProfileMutation.isPending}
-                data-pendo="button-complete-profile-setup"
-              >
-                {updateProfileMutation.isPending ? "Setting up..." : "Complete Setup"}
-              </Button>
-            </div>
+            <Button
+              type="submit"
+              className="w-full bg-[#b95827] hover:bg-[#a04d1f] text-white mt-2"
+              disabled={updateProfileMutation.isPending}
+              data-pendo="button-complete-profile-setup"
+            >
+              {updateProfileMutation.isPending ? "Saving..." : "Continue"}
+            </Button>
           </form>
         </CardContent>
       </Card>

@@ -3819,6 +3819,27 @@ You can now text anything with #${boardName} to share with everyone on the board
           content: content.trim(),
         });
         res.status(201).json(comment);
+
+        // Send SMS notification to other board members (async, non-blocking)
+        (async () => {
+          try {
+            const commenter = await storage.getUserById(userId);
+            const commenterName = commenter?.firstName
+              ? `${commenter.firstName}${commenter.lastName ? ' ' + commenter.lastName : ''}`
+              : 'A member';
+            const phoneNumbers = await storage.getBoardMembersPhoneNumbers(boardName, userId);
+            if (phoneNumbers.length > 0) {
+              const preview = content.trim().slice(0, 100);
+              const ellipsis = content.trim().length > 100 ? '...' : '';
+              const boardUrl = `https://textaside.app/tag/shared/${encodeURIComponent(boardName)}`;
+              const smsBody = `💬 ${commenterName} commented on #${boardName}\n\n"${preview}${ellipsis}"\n\nView: ${boardUrl}\n\nReply STOP to unsubscribe`;
+              await Promise.allSettled(phoneNumbers.map(phone => twilioService.sendSMS(phone, smsBody)));
+              log(`📱 Sent comment notification to ${phoneNumbers.length} member(s) of #${boardName}`);
+            }
+          } catch (err) {
+            log(`❌ Comment notification error: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        })();
       } catch (error) {
         log(`Error adding comment: ${error instanceof Error ? error.message : String(error)}`);
         res.status(500).json({ error: "Failed to add comment" });
@@ -5019,8 +5040,8 @@ You can now text anything with #${boardName} to share with everyone on the board
           wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
         }
 
-        // SMS notifications for shared boards are currently DISABLED
-        /* DISABLED - Send SMS notifications to shared board members (excluding the sender)
+        // Send SMS notifications to shared board members (excluding the sender)
+        {
         // ENHANCED DEDUPLICATION: Track both boards and individual phone numbers to prevent ALL duplicates
         const nonUntaggedTags = created.tags.filter(tag => tag !== "untagged");
         const notifiedBoards = new Set<string>(); // Track which boards we've already notified
@@ -5123,7 +5144,7 @@ You can now text anything with #${boardName} to share with everyone on the board
         }
         
         log(`📱 Completed shared board notifications for message ID ${created.id}`);
-        */ // END DISABLED SMS notifications
+        }
       }
 
       log("After broadcastNewMessage");

@@ -15,7 +15,7 @@ export function useProfile() {
     retry: false,
   });
 
-  const needsProfileSetup = profile && (!profile.firstName || !profile.lastName);
+  const needsProfileSetup = profile && !profile.firstName;
   
   const getDisplayName = () => {
     if (profile?.firstName && profile?.lastName) {
