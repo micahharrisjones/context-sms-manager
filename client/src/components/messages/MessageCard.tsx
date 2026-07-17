@@ -79,8 +79,55 @@ function TwitterEmbed({ tweetId, url }: { tweetId: string; url: string }) {
 }
 
 // Reddit Embed Component
-function RedditEmbed({ subreddit, postId, url }: { subreddit: string; postId: string; url: string }) {
+function RedditEmbed({ 
+  subreddit, postId, url, ogTitle, ogImage, ogDescription 
+}: { 
+  subreddit: string; postId: string; url: string;
+  ogTitle?: string; ogImage?: string; ogDescription?: string;
+}) {
   const [isLoading, setIsLoading] = useState(true);
+  const [embedFailed, setEmbedFailed] = useState(false);
+
+  // Reddit embeds frequently load blank pages on third-party sites.
+  // onLoad fires even for blank/error pages (cross-origin), so we can't
+  // detect success via onLoad. Instead, use a timeout: if after 8 seconds
+  // we still think it's loading OR it "loaded" but the iframe is likely blank,
+  // fall back to a static card.
+  useEffect(() => {
+    const timer = setTimeout(() => setEmbedFailed(true), 8000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (embedFailed) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block rounded-xl overflow-hidden border border-[#e3cac0] hover:shadow-md transition-shadow"
+        data-pendo="content-external-link-btn"
+        data-embed-type="reddit-fallback"
+      >
+        {ogImage && (
+          <div className="aspect-video w-full bg-[#263d57]/10 overflow-hidden">
+            <img src={ogImage} alt={ogTitle || ''} className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          </div>
+        )}
+        <div className="p-3 bg-white">
+          <div className="flex items-center gap-1.5 mb-1">
+            <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 20 20" fill="#FF4500"><circle cx="10" cy="10" r="10"/><path d="M16.67 10a1.46 1.46 0 0 0-2.47-1 7.12 7.12 0 0 0-3.85-1.23l.65-3.08 2.13.45a1 1 0 1 0 .24-.66l-2.38-.5a.25.25 0 0 0-.3.19l-.73 3.44a7.14 7.14 0 0 0-3.89 1.23 1.46 1.46 0 1 0-1.61 2.39 2.87 2.87 0 0 0 0 .44c0 2.24 2.61 4.06 5.83 4.06s5.83-1.82 5.83-4.06a2.87 2.87 0 0 0 0-.44 1.46 1.46 0 0 0 .46-1.23zM7.27 11a1 1 0 1 1 1 1 1 1 0 0 1-1-1zm5.58 2.65a3.56 3.56 0 0 1-2.85.87 3.56 3.56 0 0 1-2.85-.87.19.19 0 0 1 .27-.27 3.2 3.2 0 0 0 2.58.73 3.2 3.2 0 0 0 2.58-.73.19.19 0 0 1 .27.27zm-.14-1.65a1 1 0 1 1 1-1 1 1 0 0 1-1 1z" fill="white"/></svg>
+            <span className="text-xs font-medium text-[#FF4500]">r/{subreddit}</span>
+          </div>
+          <p className="text-sm font-semibold text-[#263d57] line-clamp-2">{ogTitle || 'View on Reddit'}</p>
+          {ogDescription && <p className="text-xs text-[#263d57]/60 mt-0.5 line-clamp-2">{ogDescription}</p>}
+          <div className="flex items-center gap-1 mt-2 text-xs text-[#263d57]/40">
+            <ExternalLink className="w-3 h-3" />
+            reddit.com
+          </div>
+        </div>
+      </a>
+    );
+  }
 
   return (
     <div className="w-full relative" data-pendo="content-reddit-embed" data-subreddit={subreddit} data-post-id={postId}>
@@ -103,6 +150,7 @@ function RedditEmbed({ subreddit, postId, url }: { subreddit: string; postId: st
         scrolling="no"
         allowFullScreen
         onLoad={() => setIsLoading(false)}
+        onError={() => setEmbedFailed(true)}
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
       />
       {isLoading && (
@@ -298,6 +346,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
   const [ogImageError, setOgImageError] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [tiktokEmbedFailed, setTiktokEmbedFailed] = useState(false);
 
   const { data: comments } = useQuery<BoardComment[]>({
     queryKey: [`/api/shared-boards/${sharedBoard}/messages/${message.id}/comments`],
@@ -524,6 +573,15 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
 
     fetchOpenGraphData();
   }, [previewUrl, message.ogTitle, message.ogDescription, message.ogImage, message.ogSiteName]);
+
+  // TikTok numeric embeds frequently load blank pages — use a timeout fallback
+  const tiktokIsNumericEmbed = tiktokVideoId ? /^\d+$/.test(tiktokVideoId) : false;
+  useEffect(() => {
+    if (!tiktokIsNumericEmbed) return;
+    setTiktokEmbedFailed(false);
+    const timer = setTimeout(() => setTiktokEmbedFailed(true), 8000);
+    return () => clearTimeout(timer);
+  }, [tiktokVideoId, tiktokIsNumericEmbed]);
 
   return (
     <>
@@ -796,7 +854,10 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
           <RedditEmbed 
             subreddit={redditPostInfo.subreddit} 
             postId={redditPostInfo.postId} 
-            url={urls.find(url => getRedditPostInfo(url)) || ''} 
+            url={urls.find(url => getRedditPostInfo(url)) || ''}
+            ogTitle={message.ogTitle || undefined}
+            ogImage={message.ogImage || undefined}
+            ogDescription={message.ogDescription || undefined}
           />
         )}
         {youtubeVideoId && (
@@ -824,8 +885,8 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
         )}
         {tiktokVideoId && (
           <div className="w-full relative" data-pendo="content-tiktok-embed" data-video-id={tiktokVideoId}>
-            {/* For numeric video IDs, use iframe embed */}
-            {/^\d+$/.test(tiktokVideoId) ? (
+            {/* For numeric video IDs, use iframe embed with fallback after timeout */}
+            {/^\d+$/.test(tiktokVideoId) && !tiktokEmbedFailed ? (
               <>
                 <a
                   href={urls.find(url => getTikTokVideoId(url)) || `https://www.tiktok.com/video/${tiktokVideoId}`}
@@ -845,31 +906,39 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
                   frameBorder="0"
                   allow="encrypted-media"
                   allowFullScreen
+                  onError={() => setTiktokEmbedFailed(true)}
                 />
               </>
             ) : (
-              /* For short URLs (vm.tiktok.com, tiktok.com/t/), show a styled link */
-              <div className="w-full rounded-md border bg-gradient-to-br from-[#263d57] to-[#263d57] p-6">
-                <div className="flex items-center justify-center">
-                  <a 
-                    href={urls.find(url => url.includes('tiktok.com')) || '#'}
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="EmbeddedMedia text-white hover:text-[#263d57]/70 transition-colors flex items-center gap-3 text-lg font-medium hover:underline"
-                    data-pendo="content-external-link-btn"
-                    data-link-type="tiktok-short"
-                    data-embed-type="tiktok"
-                  >
-                    <svg className="w-8 h-8 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+              /* Fallback for short URLs, failed iframes, or timed-out embeds */
+              <a
+                href={urls.find(url => url.includes('tiktok.com')) || '#'}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl overflow-hidden border border-[#e3cac0] hover:shadow-md transition-shadow"
+                data-pendo="content-external-link-btn"
+                data-embed-type="tiktok-fallback"
+              >
+                {message.ogImage && (
+                  <div className="aspect-video w-full bg-[#263d57]/10 overflow-hidden">
+                    <img src={message.ogImage} alt={message.ogTitle || ''} className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                )}
+                <div className="p-3 bg-white">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
                     </svg>
-                    <div className="text-left">
-                      <div className="font-semibold">View on TikTok</div>
-                      <div className="text-sm font-normal text-[#263d57]/60 mt-1">Click to open in new tab</div>
-                    </div>
-                  </a>
+                    <span className="text-xs font-medium" style={{ color: '#010101' }}>TikTok</span>
+                  </div>
+                  <p className="text-sm font-semibold text-[#263d57] line-clamp-2">{message.ogTitle || 'View on TikTok'}</p>
+                  {message.ogDescription && <p className="text-xs text-[#263d57]/60 mt-0.5 line-clamp-2">{message.ogDescription}</p>}
+                  <div className="flex items-center gap-1 mt-2 text-xs text-[#263d57]/40">
+                    <ExternalLink className="w-3 h-3" />
+                    tiktok.com
+                  </div>
                 </div>
-              </div>
+              </a>
             )}
           </div>
         )}

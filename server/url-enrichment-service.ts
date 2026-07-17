@@ -95,9 +95,14 @@ export class UrlEnrichmentService {
         }
       }
 
-      // STEP 4: If we still have no useful data or only blocked data, use domain fallback
+      // STEP 4: If we still have no useful data or only blocked data, use platform-aware fallback
       if (!result.title && !result.description && !result.image) {
-        log(`[Enrichment] → No metadata found - using domain fallback`);
+        log(`[Enrichment] → No metadata found - trying platform URL fallback`);
+        const platformFallback = this.extractPlatformUrlFallback(url);
+        if (platformFallback) {
+          log(`[Enrichment] ✓ Platform URL fallback: ${platformFallback.title}`);
+          return { ...platformFallback, isFallback: true };
+        }
         const fallbackData = this.extractDomainFallback(url);
         if (fallbackData) {
           return { ...fallbackData, isFallback: true };
@@ -471,6 +476,106 @@ export class UrlEnrichmentService {
     }
     
     return false;
+  }
+
+  private extractPlatformUrlFallback(url: string): EnrichmentData | null {
+    try {
+      const urlObj = new URL(url);
+      const hostname = urlObj.hostname.toLowerCase();
+      const pathname = urlObj.pathname;
+
+      // Reddit: extract subreddit + post title from URL slug
+      if (hostname.includes('reddit.com')) {
+        const commentsMatch = pathname.match(/\/r\/([^/]+)\/comments\/[^/]+\/([^/]+)/);
+        if (commentsMatch) {
+          const subreddit = commentsMatch[1];
+          const slug = commentsMatch[2];
+          const title = slug
+            .replace(/[-_]+/g, ' ')
+            .replace(/\b\w/g, c => c.toUpperCase())
+            .trim();
+          return {
+            title: title || `r/${subreddit} post`,
+            description: `r/${subreddit} · Reddit`,
+            siteName: 'Reddit',
+          };
+        }
+        const subredditMatch = pathname.match(/\/r\/([^/]+)/);
+        if (subredditMatch) {
+          return {
+            title: `r/${subredditMatch[1]}`,
+            description: 'Reddit community',
+            siteName: 'Reddit',
+          };
+        }
+      }
+
+      // TikTok: extract username and context from URL
+      if (hostname.includes('tiktok.com')) {
+        const userVideoMatch = pathname.match(/@([^/]+)\/video\/(\d+)/);
+        if (userVideoMatch) {
+          return {
+            title: `TikTok by @${userVideoMatch[1]}`,
+            description: 'TikTok video',
+            siteName: 'TikTok',
+          };
+        }
+        const userMatch = pathname.match(/@([^/]+)/);
+        if (userMatch) {
+          return {
+            title: `@${userMatch[1]} on TikTok`,
+            description: 'TikTok video',
+            siteName: 'TikTok',
+          };
+        }
+        return {
+          title: 'TikTok video',
+          description: 'View on TikTok',
+          siteName: 'TikTok',
+        };
+      }
+
+      // Instagram: branded fallback
+      if (hostname.includes('instagram.com')) {
+        const reelMatch = pathname.match(/\/reel\/([^/]+)/);
+        const postMatch = pathname.match(/\/p\/([^/]+)/);
+        const userMatch = pathname.match(/\/([^/]+)\/?$/);
+        if (reelMatch) {
+          return {
+            title: 'Instagram Reel',
+            description: 'View this reel on Instagram',
+            siteName: 'Instagram',
+            isBlocked: true,
+          };
+        }
+        if (postMatch) {
+          return {
+            title: 'Instagram Post',
+            description: 'View this post on Instagram',
+            siteName: 'Instagram',
+            isBlocked: true,
+          };
+        }
+        if (userMatch && userMatch[1] && userMatch[1] !== 'www') {
+          return {
+            title: `@${userMatch[1]} on Instagram`,
+            description: 'Instagram profile',
+            siteName: 'Instagram',
+            isBlocked: true,
+          };
+        }
+        return {
+          title: 'Instagram',
+          description: 'View on Instagram',
+          siteName: 'Instagram',
+          isBlocked: true,
+        };
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   private extractDomainFallback(url: string): EnrichmentData | null {
