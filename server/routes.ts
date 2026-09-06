@@ -2747,7 +2747,7 @@ You can now text anything with #${boardName} to share with everyone on the board
       // Check if this is a new tag (private board creation)
       const existingTags = await storage.getTags(userId);
       const isNewPrivateBoard = tags.some(
-        (tag) => tag !== "untagged" && !existingTags.includes(tag),
+        (tag: string) => tag !== "untagged" && !existingTags.includes(tag),
       );
 
       // Create message in storage
@@ -2762,7 +2762,7 @@ You can now text anything with #${boardName} to share with everyone on the board
         const user = await storage.getUserById(userId);
         if (user?.phoneNumber) {
           const newTags = tags.filter(
-            (tag) => tag !== "untagged" && !existingTags.includes(tag),
+            (tag: string) => tag !== "untagged" && !existingTags.includes(tag),
           );
           for (const newTag of newTags) {
             pendoServerService
@@ -2797,7 +2797,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           );
           // Don't fail the whole request if embedding generation fails
         }
-      })();
+      });
 
       // URL enrichment: Extract OG metadata for better searchability (async, non-blocking)
       (async () => {
@@ -2869,7 +2869,7 @@ You can now text anything with #${boardName} to share with everyone on the board
             .catch(() => {});
           // Don't fail the whole request if enrichment fails
         }
-      })();
+      });
 
       // Run WebSocket broadcasts and SMS notifications asynchronously for faster response
       setImmediate(async () => {
@@ -5193,7 +5193,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           log(`❌ [Pendo] Error updating visitor profile:`, error instanceof Error ? error.message : String(error));
           // Don't fail the SMS processing if Pendo update fails
         }
-      })();
+      });
 
       res.json(created);
     } catch (error) {

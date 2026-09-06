@@ -301,19 +301,19 @@ class PendoServerService {
       
       // Calculate counts
       const totalMessages = allMessages.length;
-      const last7Days = allMessages.filter(m => new Date(m.createdAt) >= sevenDaysAgo).length;
-      const last30Days = allMessages.filter(m => new Date(m.createdAt) >= thirtyDaysAgo).length;
+      const last7Days = allMessages.filter(m => new Date(m.timestamp) >= sevenDaysAgo).length;
+      const last30Days = allMessages.filter(m => new Date(m.timestamp) >= thirtyDaysAgo).length;
       
       // Find last message date
       const lastMessage = allMessages.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       )[0];
       
       return {
         totalMessages,
         last7Days,
         last30Days,
-        lastMessageDate: lastMessage ? new Date(lastMessage.createdAt) : null
+        lastMessageDate: lastMessage ? new Date(lastMessage.timestamp) : null
       };
     } catch (error) {
       log('Error getting SMS activity stats:', error instanceof Error ? error.message : String(error));

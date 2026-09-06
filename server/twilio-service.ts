@@ -46,7 +46,7 @@ class TwilioService {
   }
 
   // Helper function to format phone number to E164 format
-  private formatPhoneNumber(phoneNumber: string): string {
+  public formatPhoneNumber(phoneNumber: string): string {
     // Remove all non-digit characters
     const digitsOnly = phoneNumber.replace(/\D/g, '');
     

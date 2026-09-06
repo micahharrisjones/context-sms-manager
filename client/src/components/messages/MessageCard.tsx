@@ -486,7 +486,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
   });
   
   // Format timestamp - show relative time if recent
-  const formatTimestamp = (timestamp: string) => {
+  const formatTimestamp = (timestamp: string | Date) => {
     const date = new Date(timestamp);
     if (isToday(date)) {
       return `Today at ${format(date, "h:mm a")}`;

@@ -67,7 +67,8 @@ export async function loginUser(app: Express, phoneNumber: string): Promise<stri
     throw new Error('No session cookie received');
   }
 
-  const sessionCookie = cookies.find((c: string) => c.startsWith('connect.sid='));
+  const cookieValues = Array.isArray(cookies) ? cookies : [cookies];
+  const sessionCookie = cookieValues.find((c: string) => c.startsWith('connect.sid='));
   if (!sessionCookie) {
     throw new Error('Session cookie not found');
   }

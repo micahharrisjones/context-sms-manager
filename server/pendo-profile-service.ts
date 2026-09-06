@@ -122,21 +122,21 @@ export class PendoProfileService {
       const totalMessages = allMessages.length;
       
       // Calculate messages in last 7 days
-      const last7Days = allMessages.filter((msg: any) => 
-        new Date(msg.createdAt) >= sevenDaysAgo
+      const last7Days = allMessages.filter((msg) => 
+        new Date(msg.timestamp) >= sevenDaysAgo
       ).length;
       
       // Calculate messages in last 30 days
-      const last30Days = allMessages.filter((msg: any) => 
-        new Date(msg.createdAt) >= thirtyDaysAgo
+      const last30Days = allMessages.filter((msg) => 
+        new Date(msg.timestamp) >= thirtyDaysAgo
       ).length;
       
       // Get most recent message
-      const sortedMessages = [...allMessages].sort((a: any, b: any) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      const sortedMessages = [...allMessages].sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
       const lastMessage = sortedMessages.length > 0 ? sortedMessages[0] : null;
-      const lastMessageDate = lastMessage ? new Date(lastMessage.createdAt) : null;
+      const lastMessageDate = lastMessage ? new Date(lastMessage.timestamp) : null;
       
       // Calculate days since last SMS
       const daysSinceLastSms = lastMessageDate 

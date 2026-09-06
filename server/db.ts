@@ -22,8 +22,6 @@ export const pool = new Pool({
   max: 1, // Limit to single connection for serverless
   connectionTimeoutMillis: 10000, // Increased timeout
   idleTimeoutMillis: 1000, // Reduced idle timeout for serverless
-  maxRetries: 5, // Added retries
-  retryDelay: 1000 // 1 second between retries
 });
 
 export const db = drizzle({ client: pool, schema });
@@ -38,7 +36,7 @@ async function validateConnection(retryCount = 0) {
     const nextRetry = Math.min(retryCount + 1, 5);
     const delay = Math.min(1000 * Math.pow(2, retryCount), 10000); // Exponential backoff up to 10s
 
-    log(`Database connection attempt ${nextRetry} failed:`, error);
+    log(`Database connection attempt ${nextRetry} failed: ${error instanceof Error ? error.message : String(error)}`);
     log(`Retrying in ${delay}ms...`);
 
     setTimeout(() => validateConnection(nextRetry), delay);
@@ -50,7 +48,7 @@ validateConnection();
 
 // Handle pool errors
 pool.on('error', (err) => {
-  log("Unexpected database error:", err);
+  log(`Unexpected database error: ${err.message}`);
   // Attempt to re-establish connection
   validateConnection();
 });
@@ -61,6 +59,6 @@ process.on('beforeExit', async () => {
     await pool.end();
     log("Database pool closed successfully");
   } catch (error) {
-    log("Error closing database pool:", error);
+    log(`Error closing database pool: ${error instanceof Error ? error.message : String(error)}`);
   }
 });
