@@ -2614,13 +2614,7 @@ Reply STOP to opt out`;
           (await storage.getUserByPhoneNumber(normalizedPhoneNumber)) ||
           (await storage.getUserByPhoneNumber(`+1${normalizedPhoneNumber}`));
 
-        if (!inviteeUser) {
-          return res
-            .status(404)
-            .json({ error: "User with this phone number not found" });
-        }
-
-        if (inviteeUser.id === userId) {
+        if (inviteeUser?.id === userId) {
           return res.status(400).json({ error: "Cannot invite yourself" });
         }
 
@@ -2643,17 +2637,39 @@ Reply STOP to opt out`;
             });
         }
 
-        // Invite the user to the shared board
+        // Get inviter name for personalized messages
+        const inviterUser = await storage.getUserById(userId);
+        const inviterName = inviterUser?.displayName || "Someone";
+
+        if (!inviteeUser) {
+          // The recipient does not have an account yet. Send a board preview
+          // link where they can sign up and join the board.
+          const boardPreviewUrl = `https://textaside.app/board/${sharedBoard.id}/preview`;
+
+          await twilioService.sendSMS(
+            phoneNumber,
+            `${inviterName} invited you to the Aside board "#${boardName}"! Sign up to view and contribute: ${boardPreviewUrl}`,
+          );
+
+          log(
+            `Converted private board ${boardName} to shared board and sent signup invite to ${phoneNumber}`,
+          );
+
+          return res.status(200).json({
+            success: true,
+            message: `#${boardName} is now a shared board. An invitation SMS was sent to ${phoneNumber}.`,
+            sharedBoard,
+            pendingInvite: true,
+          });
+        }
+
+        // Invite the existing user to the shared board
         await storage.addBoardMember({
           boardId: sharedBoard.id,
           userId: inviteeUser.id,
           role: "member",
           invitedBy: userId,
         });
-
-        // Get inviter name for personalized message
-        const inviterUser = await storage.getUserById(userId);
-        const inviterName = inviterUser?.displayName || 'Someone';
 
         // Generate magic link with redirect to the shared board
         const { MagicLinkService } = await import("./magic-link-service");

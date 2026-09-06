@@ -99,7 +99,7 @@ export function InviteToPrivateBoardModal({ isOpen, onClose, boardName }: Invite
                 disabled={convertAndInviteMutation.isPending}
               />
               <p className="text-sm text-muted-foreground">
-                The user must have a Context account with this phone number to receive the invitation.
+                If they do not have an Aside account yet, we will text them a link to sign up and join this board.
               </p>
             </div>
             <div className="flex justify-end gap-2">
