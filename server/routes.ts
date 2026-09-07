@@ -3761,11 +3761,13 @@ You can now text anything with #${boardName} to share with everyone on the board
 
         log(`Fetching shared messages for board ${boardName}, user ${userId}`);
         const messages = await storage.getSharedMessages(userId, boardName);
+        const messagesWithSignedUrls =
+          await s3Service.generateSignedUrlsForMessages(messages);
 
         log(
           `Successfully retrieved ${messages.length} messages for shared board ${boardName}`,
         );
-        res.json(messages);
+        res.json(messagesWithSignedUrls);
       } catch (error) {
         log(
           `Error fetching shared messages: ${error instanceof Error ? error.message : String(error)}`,
