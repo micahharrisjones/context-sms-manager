@@ -1,16 +1,9 @@
-import OpenAI from "openai";
 import { log } from "./vite";
+import { embed } from "./knowledge/provider";
 
 // This service uses OpenAI's text-embedding-3-small model to generate vector embeddings
 // for semantic search capabilities. Reference: blueprint:javascript_openai
 export class EmbeddingService {
-  private client: OpenAI;
-
-  constructor() {
-    this.client = new OpenAI({
-      apiKey: process.env.NEW_OPENAI_API_KEY || process.env.OPENAI_API_KEY
-    });
-  }
 
   /**
    * Generate a vector embedding for a given text
@@ -19,21 +12,13 @@ export class EmbeddingService {
    */
   async generateEmbedding(text: string): Promise<number[]> {
     try {
-      log(`Generating embedding for text: "${text.substring(0, 50)}..."`);
-      
-      const response = await this.client.embeddings.create({
-        model: "text-embedding-3-small",
-        input: text,
-        encoding_format: "float"
-      });
-
-      const embedding = response.data[0].embedding;
+      const [embedding] = await embed([text.slice(0, 6000)]);
       log(`Generated embedding with ${embedding.length} dimensions`);
       
       return embedding;
     } catch (error) {
-      log(`Error generating embedding: ${error instanceof Error ? error.message : String(error)}`);
-      throw new Error(`Failed to generate embedding: ${error instanceof Error ? error.message : String(error)}`);
+      log("Embedding provider request failed");
+      throw new Error("Embedding provider request failed");
     }
   }
 
@@ -45,19 +30,14 @@ export class EmbeddingService {
     try {
       log(`Generating embeddings for batch of ${texts.length} texts`);
       
-      const response = await this.client.embeddings.create({
-        model: "text-embedding-3-small",
-        input: texts,
-        encoding_format: "float"
-      });
-
-      const embeddings = response.data.map(item => item.embedding);
+      const embeddings: number[][] = [];
+      for (let i = 0; i < texts.length; i += 32) embeddings.push(...await embed(texts.slice(i, i + 32).map(t => t.slice(0, 6000))));
       log(`Generated ${embeddings.length} embeddings`);
       
       return embeddings;
     } catch (error) {
-      log(`Error generating batch embeddings: ${error instanceof Error ? error.message : String(error)}`);
-      throw new Error(`Failed to generate batch embeddings: ${error instanceof Error ? error.message : String(error)}`);
+      log("Batch embedding provider request failed");
+      throw new Error("Batch embedding provider request failed");
     }
   }
 

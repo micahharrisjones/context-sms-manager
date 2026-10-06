@@ -26,6 +26,7 @@ import { sql, asc } from "drizzle-orm";
 import { fileTypeFromBuffer } from "file-type";
 import * as cron from "node-cron";
 import { registerPreviewRoute } from "./preview-route";
+import { registerKnowledgeRoutes } from "./knowledge/routes";
 
 // Helper function to check MMS rate limit for a user
 function checkMMSRateLimit(userId: number): { allowed: boolean; remaining: number } {
@@ -1442,6 +1443,8 @@ export async function registerRoutes(app: Express) {
 
   // Add database connection check middleware to all API routes
   app.use("/api", checkDatabaseConnection);
+  // Search and knowledge ingestion use permission-scoped RAG services.
+  registerKnowledgeRoutes(app, requireAuth);
 
   // Health check endpoint for deployment verification
   app.get("/api/health", async (_req, res) => {
@@ -2159,169 +2162,6 @@ Reply STOP to opt out`;
     }
   });
 
-  // Semantic-first hybrid search endpoint - AI understands natural language, keywords boost exact matches
-  app.get("/api/messages/hybrid-search", requireAuth, async (req, res) => {
-    try {
-      const userId = req.userId!;
-      const query = req.query.q as string;
-      const limit = parseInt(req.query.limit as string) || 50;
-
-      if (!query || query.trim().length === 0) {
-        return res.status(400).json({ error: "Search query is required" });
-      }
-
-      let messages: any[] = [];
-      let searchMethod = 'semantic';
-
-      // STEP 1: Generate embedding for semantic search (AI understanding first)
-      log(`🔍 Generating embedding for semantic search: "${query}"`);
-      const queryEmbedding = await embeddingService.generateEmbedding(query.trim());
-      
-      if (queryEmbedding) {
-        // STEP 2: Try pure semantic search first (vector-only for natural language)
-        log(`🧠 Performing pure semantic search for user ${userId}...`);
-        messages = await storage.semanticSearch(userId, queryEmbedding, Math.min(limit, 20));
-        searchMethod = 'semantic';
-        log(`Pure semantic search returned ${messages.length} results`);
-        
-        // STEP 3: If semantic found results, ALWAYS boost with keyword matches for better ranking
-        if (messages.length > 0) {
-          log(`✨ Boosting semantic results with keyword matches for reranking...`);
-          const hybridResults = await storage.hybridSearch(userId, query.trim(), queryEmbedding, 0.7, Math.min(limit, 20));
-          if (hybridResults.length > 0) {
-            // Always use hybrid results - they have keyword-boosted rankings
-            messages = hybridResults;
-            searchMethod = 'semantic-boosted';
-            log(`Keyword boosting applied - using ${messages.length} reranked results`);
-          }
-        }
-      }
-
-      // STEP 4: If semantic returns 0 results, fall back to keyword search
-      if (messages.length === 0) {
-        log(`⚡ Semantic search returned 0 results, falling back to keyword search`);
-        messages = await storage.keywordSearch(userId, query.trim(), limit);
-        searchMethod = 'keyword-fallback';
-        log(`Keyword fallback returned ${messages.length} results`);
-      }
-
-      log(
-        `${searchMethod} search for "${query}" returned ${messages.length} messages for user ${userId}`,
-      );
-      
-      // Generate signed URLs for images (S3 keys -> temporary signed URLs)
-      const messagesWithSignedUrls = await s3Service.generateSignedUrlsForMessages(messages);
-      
-      res.json(messagesWithSignedUrls);
-    } catch (error) {
-      log(
-        `Error in hybrid search: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      res.status(500).json({ error: "Failed to perform search" });
-    }
-  });
-
-  // AI-powered conversational search endpoint
-  // Uses OpenAI for intent detection and generates a conversational summary alongside results
-  app.get("/api/ai-search", requireAuth, async (req, res) => {
-    try {
-      const userId = req.userId!;
-      const query = req.query.q as string;
-      const limit = parseInt(req.query.limit as string) || 20;
-
-      if (!query || query.trim().length === 0) {
-        return res.status(400).json({ error: "Search query is required" });
-      }
-
-      const trimmedQuery = query.trim();
-      log(`🤖 AI Search: "${trimmedQuery}" for user ${userId}`);
-
-      let messages: any[] = [];
-      let searchMethod = 'keyword';
-
-      let queryEmbedding: number[] | null = null;
-      try {
-        queryEmbedding = await embeddingService.generateEmbedding(trimmedQuery);
-      } catch (embeddingError) {
-        log(`Embedding generation failed, falling back to keyword search: ${embeddingError instanceof Error ? embeddingError.message : String(embeddingError)}`);
-      }
-
-      if (queryEmbedding) {
-        messages = await storage.semanticSearch(userId, queryEmbedding, Math.min(limit, 20));
-        searchMethod = 'semantic';
-
-        if (messages.length > 0) {
-          const hybridResults = await storage.hybridSearch(userId, trimmedQuery, queryEmbedding, 0.7, Math.min(limit, 20));
-          if (hybridResults.length > 0) {
-            messages = hybridResults;
-            searchMethod = 'semantic-boosted';
-          }
-        }
-      }
-
-      if (messages.length === 0) {
-        messages = await storage.keywordSearch(userId, trimmedQuery, limit);
-        searchMethod = 'keyword-fallback';
-      }
-
-      log(`AI Search: ${searchMethod} returned ${messages.length} results`);
-
-      // Step 2: Generate signed URLs for images
-      const messagesWithSignedUrls = await s3Service.generateSignedUrlsForMessages(messages);
-
-      // Step 3: Generate AI conversational summary using OpenAI
-      let aiSummary = "";
-      try {
-        const OpenAI = (await import("openai")).default;
-        const openai = new OpenAI({ apiKey: process.env.NEW_OPENAI_API_KEY || process.env.OPENAI_API_KEY });
-
-        const resultSnippets = messagesWithSignedUrls.slice(0, 8).map((m: any, i: number) => {
-          const content = m.content || '';
-          const tags = m.tags ? (Array.isArray(m.tags) ? m.tags : [m.tags]) : [];
-          const snippet = content.length > 150 ? content.substring(0, 150) + '...' : content;
-          return `${i + 1}. ${snippet}${tags.length > 0 ? ` [tags: ${tags.join(', ')}]` : ''}`;
-        }).join('\n');
-
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: `You are Aside's search assistant. The user searched their saved content. Generate a brief, friendly 1-2 sentence summary of what was found. Be conversational and helpful. Don't list individual results — just give an overview of what types of content matched. If no results were found, be encouraging and suggest trying different terms. Keep it under 40 words. Don't use emojis.`
-            },
-            {
-              role: "user",
-              content: messagesWithSignedUrls.length > 0
-                ? `Search query: "${trimmedQuery}"\n\nFound ${messagesWithSignedUrls.length} results:\n${resultSnippets}`
-                : `Search query: "${trimmedQuery}"\n\nNo results found.`
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 100,
-        });
-
-        aiSummary = completion.choices[0].message.content || "";
-      } catch (aiError) {
-        log(`AI summary generation failed (non-critical): ${aiError instanceof Error ? aiError.message : String(aiError)}`);
-        if (messagesWithSignedUrls.length > 0) {
-          aiSummary = `Found ${messagesWithSignedUrls.length} result${messagesWithSignedUrls.length !== 1 ? 's' : ''} for "${trimmedQuery}".`;
-        } else {
-          aiSummary = `No results found for "${trimmedQuery}". Try different keywords or a broader search.`;
-        }
-      }
-
-      res.json({
-        messages: messagesWithSignedUrls,
-        aiSummary,
-        searchMethod,
-        query: trimmedQuery,
-      });
-    } catch (error) {
-      log(`Error in AI search: ${error instanceof Error ? error.message : String(error)}`);
-      res.status(500).json({ error: "Failed to perform AI search" });
-    }
-  });
-
   // Legacy keyword-only search endpoint (kept for backward compatibility)
   app.get("/api/messages/search", requireAuth, async (req, res) => {
     try {
@@ -2781,24 +2621,7 @@ You can now text anything with #${boardName} to share with everyone on the board
       // Immediately respond to user while background tasks run
       res.status(201).json(created);
 
-      // Generate initial embedding for hybrid search (async, non-blocking)
-      // Note: This will be regenerated with enriched content if URLs are found
-      (async () => {
-        try {
-          log(`Generating initial embedding for UI message ${created.id}`);
-          const embedding = await embeddingService.generateEmbedding(
-            created.content,
-          );
-          await storage.saveMessageEmbedding(created.id, embedding, created.content);
-          log(`Initial embedding saved for UI message ${created.id}`);
-        } catch (error) {
-          log(
-            `Error generating/saving embedding for UI message ${created.id}:`,
-            error instanceof Error ? error.message : String(error),
-          );
-          // Don't fail the whole request if embedding generation fails
-        }
-      })();
+      // Passage indexing is handled by the persistent ingestion worker.
 
       // URL enrichment: Extract OG metadata for better searchability (async, non-blocking)
       (async () => {
@@ -2842,21 +2665,7 @@ You can now text anything with #${boardName} to share with everyone on the board
             }, created.content);
             if (!saved) return;
 
-            // Regenerate embedding with enriched content for better search
-            const enrichedContent = [
-              created.content,
-              enrichmentData.title,
-              enrichmentData.description,
-            ]
-              .filter(Boolean)
-              .join(" ");
-
-            log(
-              `Regenerating embedding with enriched content for UI message ${created.id}`,
-            );
-            const enrichedEmbedding =
-              await embeddingService.generateEmbedding(enrichedContent);
-            await storage.saveMessageEmbedding(created.id, enrichedEmbedding, created.content);
+            // Preview completion does not trigger a second, unbounded AI call.
             wsManager.broadcastNewMessageToUser(userId);
             const members = await storage.getUsersForSharedBoardNotification(created.tags, created.userId);
             wsManager.broadcastNewMessageToUsers(members);
@@ -3035,10 +2844,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           } else if (sourceUrl) {
             await storage.updateMessageEnrichmentStatus(messageId, "failed", updatedMessage.content);
           }
-          const embedding = await embeddingService.generateEmbedding(
-            [updatedMessage.content, data?.title, data?.description].filter(Boolean).join(" "),
-          );
-          await storage.saveMessageEmbedding(messageId, embedding, updatedMessage.content);
+          // The version-aware worker indexes the edited save separately.
         } catch (error) {
           await storage.updateMessageEnrichmentStatus(messageId, "failed", updatedMessage.content).catch(() => {});
           log(`Edited message enrichment failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -4729,24 +4535,7 @@ You can now text anything with #${boardName} to share with everyone on the board
         }
       }
 
-      // Generate initial embedding for hybrid search (async, non-blocking)
-      // Note: This will be regenerated with enriched content if URLs are found
-      (async () => {
-        try {
-          log(`Generating initial embedding for message ${created.id}`);
-          const embedding = await embeddingService.generateEmbedding(
-            created.content,
-          );
-          await storage.saveMessageEmbedding(created.id, embedding, created.content);
-          log(`Initial embedding saved for message ${created.id}`);
-        } catch (error) {
-          log(
-            `Error generating/saving embedding for message ${created.id}:`,
-            error instanceof Error ? error.message : String(error),
-          );
-          // Don't fail the whole request if embedding generation fails
-        }
-      })();
+      // Passage indexing is handled by the persistent ingestion worker.
 
       // URL enrichment: Extract OG metadata for better searchability (async, non-blocking)
       (async () => {
@@ -4788,21 +4577,7 @@ You can now text anything with #${boardName} to share with everyone on the board
             }, created.content);
             if (!saved) return;
 
-            // Regenerate embedding with enriched content for better search
-            const enrichedContent = [
-              created.content,
-              enrichmentData.title,
-              enrichmentData.description,
-            ]
-              .filter(Boolean)
-              .join(" ");
-
-            log(
-              `Regenerating embedding with enriched content for message ${created.id}`,
-            );
-            const enrichedEmbedding =
-              await embeddingService.generateEmbedding(enrichedContent);
-            await storage.saveMessageEmbedding(created.id, enrichedEmbedding, created.content);
+            // Preview completion does not trigger a second, unbounded AI call.
             wsManager.broadcastNewMessageToUser(created.userId);
             const members = await storage.getUsersForSharedBoardNotification(created.tags, created.userId);
             wsManager.broadcastNewMessageToUsers(members);
@@ -5991,19 +5766,8 @@ You can now text anything with #${boardName} to share with everyone on the board
 
 // Request logging middleware
 function logRequest(req: any, res: any, next: any) {
-  log(
-    "Request received:",
-    JSON.stringify(
-      {
-        method: req.method,
-        url: req.url,
-        headers: req.headers,
-        body: req.body,
-        query: req.query,
-      },
-      null,
-      2,
-    ),
-  );
+  // Request bodies, search queries, cookies and authorization headers must
+  // never reach operational logs, especially now that saves contain sources.
+  log(`Request received: ${req.method} ${req.path}`);
   next();
 }

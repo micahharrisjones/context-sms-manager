@@ -1,4 +1,5 @@
-import { pgTable, text, serial, timestamp, varchar, integer, uniqueIndex, vector } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, varchar, integer, uniqueIndex, vector, boolean, jsonb, index } from "drizzle-orm/pg-core";
+import type { KnowledgeSource } from "./knowledge";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
@@ -68,6 +69,46 @@ export const messages = pgTable("messages", {
   // Using plain unique index (allows multiple NULLs by default in PostgreSQL)
   messageSidUnique: uniqueIndex("messages_message_sid_unique").on(table.messageSid),
 }));
+
+// Additive RAG storage. Original messages and the legacy 1536-dimensional
+// message index stay intact. No startup or production DDL.
+export const knowledgeSettings = pgTable("knowledge_settings", {
+  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").default(true).notNull(),
+  photoEnabled: boolean("photo_enabled").default(false).notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+export const knowledgeItems = pgTable("knowledge_items", {
+  messageId: integer("message_id").primaryKey().references(() => messages.id, { onDelete: "cascade" }),
+  fingerprint: text("fingerprint").notNull(),
+  status: text("status").default("queued").notNull(),
+  sources: jsonb("sources").$type<KnowledgeSource[]>().default([]).notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  availableAt: timestamp("available_at").defaultNow().notNull(),
+  leaseUntil: timestamp("lease_until"),
+  leaseToken: text("lease_token"),
+  errorCode: text("error_code"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({ queue: index("knowledge_queue_idx").on(t.status, t.availableAt) }));
+export const knowledgeChunks = pgTable("knowledge_chunks", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").notNull().references(() => messages.id, { onDelete: "cascade" }),
+  fingerprint: text("fingerprint").notNull(),
+  sourceId: text("source_id").notNull(),
+  ordinal: integer("ordinal").notNull(),
+  content: text("content").notNull(),
+  embedding: vector("embedding", { dimensions: 1536 }),
+}, (t) => ({
+  unique: uniqueIndex("knowledge_chunk_unique").on(t.messageId, t.sourceId, t.ordinal),
+  message: index("knowledge_chunk_message_idx").on(t.messageId),
+}));
+export const knowledgeUsage = pgTable("knowledge_usage", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  day: text("day").notNull(),
+  action: text("action").notNull(),
+  used: integer("used").default(0).notNull(),
+}, (t) => ({ unique: uniqueIndex("knowledge_usage_unique").on(t.userId, t.day, t.action) }));
 
 // Shared boards table
 export const sharedBoards = pgTable("shared_boards", {

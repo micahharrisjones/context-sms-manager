@@ -1,3 +1,4 @@
+import { queueSavedItem } from "./knowledge/repository";
 import { 
   type Message, 
   type InsertMessage, 
@@ -545,7 +546,7 @@ export class DatabaseStorage implements IStorage {
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
     try {
-      log("Creating new message:", JSON.stringify(insertMessage, null, 2));
+      log("Creating new saved message");
 
       // BULLETPROOF DEDUPLICATION: Use upsert for MessageSid-based deduplication
       if (insertMessage.messageSid) {
@@ -564,7 +565,8 @@ export class DatabaseStorage implements IStorage {
 
           // If insert succeeded (returned a row), we have the new message
           if (insertResult.length > 0) {
-            log("Successfully created new message via upsert:", JSON.stringify(insertResult[0], null, 2));
+            log("Successfully created new message via upsert");
+            await queueSavedItem(insertResult[0].id);
             return insertResult[0];
           } else {
             // If no rows returned, the MessageSid already exists - fetch existing message
@@ -576,7 +578,7 @@ export class DatabaseStorage implements IStorage {
               .limit(1);
             
             if (existing.length > 0) {
-              log("Returning existing message:", JSON.stringify(existing[0], null, 2));
+              await queueSavedItem(existing[0].id);
               return existing[0];
             } else {
               throw new Error(`Failed to find existing message with MessageSid: ${insertMessage.messageSid}`);
@@ -605,7 +607,7 @@ export class DatabaseStorage implements IStorage {
       // If we found a recent message, only merge if they have the same tags (same intent)
       if (recentMessages.length > 0) {
         const existingMessage = recentMessages[0];
-        log("Found recent message, checking if merge is appropriate:", JSON.stringify(existingMessage, null, 2));
+        log("Found recent message, checking merge eligibility");
 
         // Only merge if both messages have the same hashtags (indicates same conversation context)
         const existingTagsSet = new Set(existingMessage.tags);
@@ -624,7 +626,8 @@ export class DatabaseStorage implements IStorage {
             .returning()
             .then(rows => rows[0]);
 
-          log("Successfully merged message:", JSON.stringify(updatedMessage, null, 2));
+          log("Successfully merged message");
+          await queueSavedItem(updatedMessage.id);
           return updatedMessage;
         } else {
           log("Tags don't match, creating separate message instead of merging");
@@ -641,7 +644,8 @@ export class DatabaseStorage implements IStorage {
         })
         .returning();
 
-      log("Successfully created new message:", JSON.stringify(message, null, 2));
+      log("Successfully created new message");
+      await queueSavedItem(message.id);
       return message;
     } catch (error) {
       log("Error creating message:", error instanceof Error ? error.message : String(error));
@@ -796,6 +800,7 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(messages.id, messageId));
       log(`Successfully updated message ${messageId} tags`);
+      await queueSavedItem(messageId);
     } catch (error) {
       log("Error updating message tags:", error instanceof Error ? error.message : String(error));
       throw error;
@@ -824,6 +829,7 @@ export class DatabaseStorage implements IStorage {
       });
       
       log(`Successfully updated message ${messageId}`);
+      await queueSavedItem(messageId);
       return updatedMessage;
     } catch (error) {
       log("Error updating message:", error instanceof Error ? error.message : String(error));
@@ -895,7 +901,8 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(messages.id, messageId));
       
-      log(`Updated media for message ${messageId}: ${mediaUrl} (type: ${mediaType}, contentType: ${mediaContentType})`);
+      log(`Updated stored media for message ${messageId}`);
+      await queueSavedItem(messageId);
     } catch (error) {
       log(`Error updating media for message ${messageId}:`, error instanceof Error ? error.message : String(error));
       throw error;

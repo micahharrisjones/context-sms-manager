@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { BoardComment } from "@shared/schema";
 import { fetchLinkPreview } from "@/lib/link-preview";
 import { fetchMoviePreview } from "@/lib/movie-preview";
+import { KnowledgeItem } from "@/components/knowledge/KnowledgeItem";
 
 interface MessageCardProps {
   message: Message;
@@ -597,7 +598,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
 
   return (
     <>
-      <Card className="w-full h-fit relative group border-0 shadow-sm hover:shadow-md transition-shadow rounded-xl">
+      <Card id={`save-${message.id}`} className="w-full h-fit relative group border-0 shadow-sm hover:shadow-md transition-shadow rounded-xl scroll-mt-6">
         {/* Delete and Edit buttons - top right corner, visible on hover */}
         <div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity max-sm:opacity-100">
           <Button
@@ -1066,6 +1067,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
             isOpen={commentsOpen}
           />
         )}
+        <KnowledgeItem messageId={message.id} />
       </CardContent>
     </Card>
 

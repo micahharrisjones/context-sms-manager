@@ -1,5 +1,5 @@
 - [Custom analytics scope](analytics-scope.md) — Replit events measure successful web actions; preserve existing Pendo and avoid user content.
 - [Preview compatibility and providers](preview-integrations.md) — Preserve single-link legacy previews; verify the actual posted link, not just key inventory or unrelated sample links.
 - [Board isolation scope](board-isolation.md) — Preserve hashtag-based board names; enforce privacy using authorized board IDs, not global renames.
-- [Clean-install verification](clean-install-verification.md) — Passing tests on existing dependencies does not prove the lockfile can pass the package firewall.
+- [Dependency verification](clean-install-verification.md) — Verify clean lockfile installation and native browser launch separately; incremental test success does not prove either.
 - [AI product scope](ai-product-scope.md) — Prioritize finding and answering from saved content; organization and social-account connections need separate agreement.

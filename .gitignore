@@ -72,3 +72,6 @@ vite.config.ts.*
 # Temporary files
 tmp/
 temp/
+.cache/
+test-results/
+playwright-report/
