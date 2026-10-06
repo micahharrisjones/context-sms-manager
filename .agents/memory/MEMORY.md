@@ -1,1 +1,2 @@
 - [Custom analytics scope](analytics-scope.md) — Replit events measure successful web actions; preserve existing Pendo and avoid user content.
+- [Preview integration verification](preview-integrations.md) — Secret inventory alone does not establish whether preview providers work; verify runtime behavior.
