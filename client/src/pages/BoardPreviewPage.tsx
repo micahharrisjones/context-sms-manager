@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react";
 import { pendo } from "@/lib/pendo";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 
 interface BoardPreview {
   id: number;
@@ -57,6 +58,7 @@ export default function BoardPreviewPage() {
     },
     onSuccess: (data) => {
       // Redirect to the board using the slug from the response
+      trackEvent("board_join_completed", { method: "authenticated_preview" });
       setLocation(`/tag/shared/${data.boardName}`);
     },
   });
@@ -77,6 +79,7 @@ export default function BoardPreviewPage() {
     },
     onSuccess: () => {
       setStep('code');
+      trackEvent("board_join_code_sent");
       toast({
         title: "Code Sent!",
         description: `We sent a verification code to ${phoneNumber}`,
@@ -111,6 +114,7 @@ export default function BoardPreviewPage() {
     },
     onSuccess: (data) => {
       // Invalidate user query to refresh auth state
+      trackEvent("board_join_completed", { method: "phone_verification" });
       queryClient.invalidateQueries({ queryKey: ['/api/user'] });
       
       toast({

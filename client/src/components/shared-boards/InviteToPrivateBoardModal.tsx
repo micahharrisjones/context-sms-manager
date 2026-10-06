@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 import { useToast } from "@/hooks/use-toast";
 
 interface InviteToPrivateBoardModalProps {
@@ -32,6 +33,11 @@ export function InviteToPrivateBoardModal({ isOpen, onClose, boardName }: Invite
       return await response.json();
     },
     onSuccess: (data) => {
+      trackEvent("board_converted", { from_type: "private", to_type: "shared" });
+      trackEvent("board_invitation_completed", {
+        source: "private_board_conversion",
+        recipient_type: data.pendingInvite ? "new_user" : "existing_user",
+      });
       toast({
         title: "Board Converted & Invitation Sent",
         description: data.message || `#${boardName} is now a shared board and ${phoneNumber} has been invited!`,

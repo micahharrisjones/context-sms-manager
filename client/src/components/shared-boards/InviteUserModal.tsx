@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 
 interface InviteUserModalProps {
   isOpen: boolean;
@@ -26,6 +27,10 @@ export function InviteUserModal({ isOpen, onClose, boardName }: InviteUserModalP
       return await response.json();
     },
     onSuccess: (data) => {
+      trackEvent("board_invitation_completed", {
+        source: "shared_board",
+        recipient_type: data.pendingInvite ? "new_user" : "existing_user",
+      });
       toast({
         description: data.message || `Successfully invited user to #${boardName}`,
       });

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { trackEvent } from "@/lib/analytics";
 import { useToast } from '@/hooks/use-toast';
 
 interface DeleteMessageModalProps {
@@ -43,6 +44,7 @@ export function DeleteMessageModal({
       return response.json();
     },
     onSuccess: () => {
+      trackEvent("message_deleted", { source: "web" });
       toast({
         title: "Message deleted",
         description: "The message has been permanently removed.",

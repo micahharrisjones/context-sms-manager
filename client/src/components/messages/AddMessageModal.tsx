@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { trackEvent } from "@/lib/analytics";
 import { pendo } from '@/lib/pendo';
 import { X } from 'lucide-react';
 
@@ -60,6 +61,7 @@ export function AddMessageModal({ isOpen, onClose, currentTag }: AddMessageModal
       return response.json();
     },
     onSuccess: (data) => {
+      trackEvent("message_created", { source: "web" });
       // Track message creation success
       pendo.track('Message Created', {
         message_source: 'ui',

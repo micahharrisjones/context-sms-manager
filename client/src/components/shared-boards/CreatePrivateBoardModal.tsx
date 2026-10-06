@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 
 interface CreatePrivateBoardModalProps {
   isOpen: boolean;
@@ -41,6 +42,7 @@ export function CreatePrivateBoardModal({ isOpen, onClose }: CreatePrivateBoardM
       });
     },
     onSuccess: async () => {
+      trackEvent("board_created", { board_type: "private" });
       // Invalidate tags to refresh the sidebar
       queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
       const slug = boardName

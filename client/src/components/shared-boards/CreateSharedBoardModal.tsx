@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 
 interface CreateSharedBoardModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export function CreateSharedBoardModal({ isOpen, onClose }: CreateSharedBoardMod
       return await response.json();
     },
     onSuccess: (data) => {
+      trackEvent("board_created", { board_type: "shared" });
       toast({
         description: `Created shared board #${data.name}`,
       });

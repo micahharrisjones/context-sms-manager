@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { trackEvent } from "@/lib/analytics";
 import { Message } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { X } from "lucide-react";
@@ -85,6 +86,7 @@ export function EditMessageModal({ message, isOpen, onClose }: EditMessageModalP
       });
     },
     onSuccess: () => {
+      trackEvent("message_updated", { source: "web" });
       toast({
         title: "Message Updated",
         description: "Your message has been successfully updated and moved to the appropriate boards.",

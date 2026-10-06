@@ -1,0 +1,1 @@
+- [Custom analytics scope](analytics-scope.md) — Replit events measure successful web actions; preserve existing Pendo and avoid user content.
