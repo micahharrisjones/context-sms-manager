@@ -193,6 +193,44 @@ describe.skipIf(process.env.KNOWLEDGE_DB_TESTS !== "1")("knowledge database inte
     await db.delete(boardMemberships).where(and(eq(boardMemberships.boardId, boardId), eq(boardMemberships.userId, viewer)));
     await expect(searchKnowledge(viewer, "gin", { boardId })).rejects.toMatchObject({ status: 403 });
   });
+  it("denies shared search and source details when only the author has same-name boards", async () => {
+    const [board] = await db.select().from(sharedBoards).where(eq(sharedBoards.id, boardId));
+    const m = await save("Gin recipe intended for a same-name board", [board.name]);
+    await processOneJob();
+    // Establish a previously authorized result to exercise live reauthorization.
+    expect((await searchKnowledge(viewer, "gin", { boardId })).messages.map(row => row.id)).toContain(m.id);
+    actor = viewer;
+    expect((await request(app).get(`/api/knowledge/items/${m.id}`)).status).toBe(200);
+    const [other] = await db.insert(sharedBoards).values({ name: board.name, createdBy: owner }).returning();
+    boards.push(other.id);
+    await db.insert(boardMemberships).values([
+      { boardId: other.id, userId: owner, role: "owner" },
+      { boardId: other.id, userId: stranger, role: "member" },
+    ]);
+    vi.mocked(answer).mockClear();
+    const denied = await searchKnowledge(viewer, "gin", { boardId });
+    expect(denied.messages).toEqual([]);
+    expect(denied.citations).toEqual([]);
+    expect(denied.aiSummary).toBeNull();
+    expect(answer).not.toHaveBeenCalled();
+    expect((await request(app).get(`/api/knowledge/items/${m.id}`)).status).toBe(404);
+    const response = await request(app).get("/api/ai-search").query({ q: "gin", boardId });
+    expect(response.status).toBe(200);
+    expect(response.body.messages).toEqual([]);
+    expect(response.body.citations).toEqual([]);
+    await expect(searchKnowledge(viewer, "gin", { boardId: other.id })).rejects.toMatchObject({ status: 403 });
+    actor = stranger;
+    expect((await searchKnowledge(stranger, "gin", { boardId: other.id })).messages).toEqual([]);
+    expect((await request(app).get(`/api/knowledge/items/${m.id}`)).status).toBe(404);
+    // Ambiguous sharing must not deny the author their own saved evidence.
+    actor = owner;
+    expect((await searchKnowledge(owner, "gin")).messages.map(row => row.id)).toContain(m.id);
+    expect((await request(app).get(`/api/knowledge/items/${m.id}`)).status).toBe(200);
+    await db.delete(boardMemberships).where(and(eq(boardMemberships.boardId, other.id), eq(boardMemberships.userId, owner)));
+    expect((await searchKnowledge(viewer, "gin", { boardId })).messages.map(row => row.id)).toContain(m.id);
+    actor = viewer;
+    expect((await request(app).get(`/api/knowledge/items/${m.id}`)).status).toBe(200);
+  });
   it("rejects an obsolete worker result after editing or deleting the save", async () => {
     const m = await save(); const job = await claimJob();
     expect(job?.messageId).toBe(m.id);

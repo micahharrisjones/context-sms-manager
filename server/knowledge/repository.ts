@@ -25,6 +25,7 @@ export async function takeBudget(userId: number, action: string, amount: number,
 }
 // IDs authorize; names only select the established hashtag association.
 // All checks are in the SQL statement, not a cached membership list.
+// Both the viewer and author must have an unambiguous name-to-board association.
 export function scopeCondition(userId: number, boardId?: number): SQL {
   if (!boardId) return sql`m.user_id = ${userId}`;
   return sql`
@@ -32,7 +33,9 @@ export function scopeCondition(userId: number, boardId?: number): SQL {
     AND m.tags @> ARRAY[(SELECT name FROM shared_boards WHERE id = ${boardId})]::text[]
     AND m.user_id IN (SELECT user_id FROM board_memberships WHERE board_id = ${boardId})
     AND (SELECT count(*) FROM board_memberships bm JOIN shared_boards b ON b.id = bm.board_id
-      WHERE bm.user_id = ${userId} AND b.name = (SELECT name FROM shared_boards WHERE id = ${boardId})) = 1`;
+      WHERE bm.user_id = ${userId} AND b.name = (SELECT name FROM shared_boards WHERE id = ${boardId})) = 1
+    AND (SELECT count(*) FROM board_memberships author JOIN shared_boards b ON b.id = author.board_id
+      WHERE author.user_id = m.user_id AND b.name = (SELECT name FROM shared_boards WHERE id = ${boardId})) = 1`;
 }
 export function itemAccess(userId: number): SQL {
   return sql`(m.user_id = ${userId} OR EXISTS (
@@ -41,6 +44,8 @@ export function itemAccess(userId: number): SQL {
       AND EXISTS (SELECT 1 FROM board_memberships author WHERE author.board_id = b.id AND author.user_id = m.user_id)
       AND (SELECT count(*) FROM board_memberships other JOIN shared_boards ob ON ob.id = other.board_id
         WHERE other.user_id = ${userId} AND ob.name = b.name) = 1
+      AND (SELECT count(*) FROM board_memberships authorBoards JOIN shared_boards ab ON ab.id = authorBoards.board_id
+         WHERE authorBoards.user_id = m.user_id AND ab.name = b.name) = 1
   ))`;
 }
 export async function assertScope(userId: number, boardId?: number) {
