@@ -1,13 +1,13 @@
 import { log } from "./vite";
 
 // TMDB Service for fetching movie data and poster images
-class TMDBService {
+export class TMDBService {
   private apiKey: string;
   private baseUrl = "https://api.themoviedb.org/3";
   private imageBaseUrl = "https://image.tmdb.org/t/p/w500"; // 500px width posters
 
-  constructor() {
-    this.apiKey = process.env.TMDB_API_KEY || '';
+  constructor(apiKey = process.env.TMDB_API_KEY) {
+    this.apiKey = apiKey || '';
     if (!this.apiKey) {
       log("Warning: TMDB_API_KEY not configured - IMDB poster enhancement disabled");
     }
@@ -39,7 +39,15 @@ class TMDBService {
       const data = await response.json();
       
       if (data.movie_results && data.movie_results.length > 0) {
-        return data.movie_results[0];
+        return { ...data.movie_results[0], mediaType: "movie" };
+      }
+      if (data.tv_results && data.tv_results.length > 0) {
+        return { ...data.tv_results[0], mediaType: "tv" };
+      }
+      if (data.tv_episode_results && data.tv_episode_results.length > 0) {
+        const episode = data.tv_episode_results[0];
+        const details = await this.getMovieDetails(episode.show_id, "tv");
+        if (details) return { ...details, mediaType: "tv" };
       }
 
       return null;
@@ -58,14 +66,14 @@ class TMDBService {
   }
 
   // Get detailed movie data including genres
-  async getMovieDetails(movieId: number): Promise<any> {
+  async getMovieDetails(movieId: number, mediaType: "movie" | "tv" = "movie"): Promise<any> {
     if (!this.apiKey) {
       return null;
     }
 
     try {
       const response = await fetch(
-        `${this.baseUrl}/movie/${movieId}?api_key=${this.apiKey}`
+        `${this.baseUrl}/${mediaType}/${movieId}?api_key=${this.apiKey}`
       );
 
       if (!response.ok) {
@@ -104,17 +112,18 @@ class TMDBService {
     }
 
     // Get detailed movie data including genres
-    const detailedData = await this.getMovieDetails(movieData.id);
+    const detailedData = await this.getMovieDetails(movieData.id, movieData.mediaType);
     const genres = detailedData?.genres?.map((g: any) => g.name) || null;
 
     const posterUrl = this.buildPosterUrl(movieData.poster_path);
-    const releaseYear = movieData.release_date ? new Date(movieData.release_date).getFullYear().toString() : null;
+    const date = movieData.release_date || movieData.first_air_date;
+    const releaseYear = date ? date.slice(0, 4) : null;
     
-    log(`Found TMDB data for "${movieData.title}": poster=${posterUrl ? 'available' : 'none'}`);
+    log(`Found TMDB data for "${movieData.title || movieData.name}": poster=${posterUrl ? 'available' : 'none'}`);
     
     return {
       posterUrl,
-      title: movieData.title || null,
+      title: movieData.title || movieData.name || null,
       year: releaseYear,
       rating: movieData.vote_average || null,
       genres

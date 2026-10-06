@@ -4216,7 +4216,18 @@ You can now text anything with #${boardName} to share with everyone on the board
   });
 
   // Open Graph metadata endpoint
-  registerPreviewRoute(app, requireAuth, openGraphService);
+  registerPreviewRoute(app, requireAuth, {
+    shouldFetchOpenGraph: (url) => openGraphService.shouldFetchOpenGraph(url),
+    fetchOpenGraph: async (url) => {
+      // Old posts and new enrichment use the same platform-aware pipeline.
+      const data = await urlEnrichmentService.enrichUrl(url);
+      return data ? {
+        title: data.title, description: data.description, image: data.image,
+        site_name: data.siteName, isFallback: data.isFallback, isBlocked: data.isBlocked,
+        url,
+      } : null;
+    },
+  });
 
   // Delete shared board (only owner can delete)
   app.delete("/api/shared-boards/:boardId", requireAuth, async (req, res) => {

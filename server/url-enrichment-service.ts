@@ -1,5 +1,5 @@
 import { log } from "./vite";
-import { extractPreviewUrls } from "@shared/preview-urls";
+import { extractPreviewUrls, isGenericPreview } from "@shared/preview-urls";
 import { resolvePublicPreviewUrl, safePreviewFetch } from "./safe-preview-fetch";
 
 export interface EnrichmentData {
@@ -264,6 +264,7 @@ export class UrlEnrichmentService {
       }
 
       const data = await response.json();
+      if (isGenericPreview(url, data.title)) return null;
       
       // Special handling for Twitter to extract tweet text from HTML
       let description = data.description;
@@ -284,7 +285,7 @@ export class UrlEnrichmentService {
       return {
         title: data.title || data.name,
         description: description,
-        image: data.thumbnail_url || data.image || data.url,
+        image: data.thumbnail_url || data.image || (data.type === "photo" ? data.url : undefined),
         siteName: data.provider_name || platform
       };
     } catch (error) {

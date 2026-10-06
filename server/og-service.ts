@@ -1,5 +1,6 @@
 import { log } from "./vite";
 import { resolvePublicPreviewUrl, safePreviewFetch } from "./safe-preview-fetch";
+import { isGenericPreview } from "@shared/preview-urls";
 
 // Open Graph data interface
 interface OpenGraphData {
@@ -9,6 +10,8 @@ interface OpenGraphData {
   url?: string;
   site_name?: string;
   type?: string;
+  isFallback?: boolean;
+  isBlocked?: boolean;
 }
 
 // Cache entry with metadata
@@ -20,8 +23,9 @@ interface CacheEntry {
 }
 
 // Service for fetching Open Graph metadata from websites
-class OpenGraphService {
+export class OpenGraphService {
   private cache = new Map<string, CacheEntry>();
+  private inFlight = new Map<string, Promise<OpenGraphData | null>>();
   private readonly CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
   private readonly FAILURE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for failures (reduced from 1 hour)
   private readonly MAX_RETRIES = 3;
@@ -569,46 +573,37 @@ class OpenGraphService {
   // Main function to fetch Open Graph data
   async fetchOpenGraph(url: string): Promise<OpenGraphData | null> {
     await resolvePublicPreviewUrl(url);
-    // Special handling for Instagram URLs - use fallback immediately (before cache check)
-    // Instagram blocks all scrapers (Microlink, direct fetch, etc.) and requires login for embeds
-    if (this.isInstagramUrl(url)) {
-      log(`Instagram URL detected, using branded fallback (scraping blocked): ${url}`);
-      const instagramFallback = this.createInstagramFallback(url);
-      this.cacheSuccess(url, instagramFallback);
-      return instagramFallback;
-    }
-
-    // Special handling for Amazon URLs - use fallback immediately (before cache check)
-    // Amazon blocks all scrapers (Microlink, direct fetch, etc.)
-    if (this.isAmazonUrl(url)) {
-      log(`Amazon URL detected, using branded fallback: ${url}`);
-      const amazonFallback = this.createAmazonFallback(url);
-      this.cacheSuccess(url, amazonFallback);
-      return amazonFallback;
-    }
-
-    // Check cache for non-Amazon URLs
     const cached = this.cache.get(url);
-    if (cached && this.isCacheValid(cached)) {
-      // For failures, check if we should retry
-      if (cached.isFailure && (cached.retryCount || 0) < this.MAX_RETRIES) {
-        // Allow retry for failed URLs after some time
-      } else {
-        return cached.data;
-      }
-    }
+    if (cached && this.isCacheValid(cached)) return cached.data;
+    const pending = this.inFlight.get(url);
+    if (pending) return pending;
+    const request = this.loadOpenGraph(url).finally(() => this.inFlight.delete(url));
+    this.inFlight.set(url, request);
+    return request;
+  }
 
+  private async loadOpenGraph(url: string): Promise<OpenGraphData | null> {
     // Try Microlink first (handles bot protection)
     const microlinkData = await this.fetchFromMicrolink(url);
     
-    if (microlinkData && (microlinkData.title || microlinkData.description || microlinkData.image)) {
+    if (microlinkData && !isGenericPreview(url, microlinkData.title) &&
+        (microlinkData.title || microlinkData.description || microlinkData.image)) {
       this.cacheSuccess(url, microlinkData);
       return microlinkData;
     }
 
     // Fallback to direct fetch if Microlink fails or isn't configured
-    const retryCount = cached?.retryCount || 0;
-    return this.fetchWithRetry(url, retryCount);
+    const directData = await this.fetchWithRetry(url);
+    if (directData) return directData;
+    // A branded fallback is the last resort, not a reason to skip providers.
+    const fallback = this.isInstagramUrl(url) ? this.createInstagramFallback(url) :
+      this.isAmazonUrl(url) ? this.createAmazonFallback(url) : null;
+    if (fallback) {
+      const result = { ...fallback, isFallback: true, isBlocked: true };
+      this.cacheSuccess(url, result);
+      return result;
+    }
+    return null;
   }
 
   // Fetch with retry logic and exponential backoff
@@ -687,6 +682,10 @@ class OpenGraphService {
         ogData.image = this.makeAbsoluteUrl(ogData.image, url);
       }
 
+      if ((!ogData.title && !ogData.description && !ogData.image) || isGenericPreview(url, ogData.title)) {
+        this.cacheFailure(url, currentRetry);
+        return null;
+      }
       // Cache the successful result
       this.cacheSuccess(url, ogData);
       
@@ -781,7 +780,6 @@ class OpenGraphService {
       const alwaysSkipDomains = [
         'youtube.com',
         'youtu.be',
-        'imdb.com', // We handle IMDB with TMDB
       ];
       
       return !alwaysSkipDomains.some(domain => urlObj.hostname.includes(domain));

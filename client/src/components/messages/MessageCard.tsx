@@ -1,5 +1,5 @@
 import { Message } from "@shared/schema";
-import { extractPreviewUrls, storedPreviewMatches } from "@shared/preview-urls";
+import { extractPreviewUrls, storedPreviewMatches, storedMoviePreview, isGenericPreview } from "@shared/preview-urls";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, isToday, isYesterday } from "date-fns";
@@ -13,6 +13,8 @@ import { ImageModal } from "./ImageModal";
 import { CommentsSection } from "./CommentsSection";
 import { useQuery } from "@tanstack/react-query";
 import { BoardComment } from "@shared/schema";
+import { fetchLinkPreview } from "@/lib/link-preview";
+import { fetchMoviePreview } from "@/lib/movie-preview";
 
 interface MessageCardProps {
   message: Message;
@@ -375,6 +377,8 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
   
   // Extract URLs for Open Graph previews
   const urls = extractUrls(message.content);
+  const imdbUrl = urls.find(url => getIMDbInfo(url)) || null;
+  const imdbPreview: MovieData | null = movieData || storedMoviePreview(message, imdbUrl);
   
   // Check each URL individually for specific embeds instead of message-wide check
   // Note: Instagram is intentionally excluded from hasUrlSpecificEmbed — Instagram embeds
@@ -410,7 +414,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
     }
     
     // For IMDB, only hide if movie data has loaded
-    if (getIMDbInfo(url) && movieData) {
+    if (getIMDbInfo(url) && imdbPreview) {
       return true;
     }
     
@@ -503,18 +507,15 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
     setMovieData(null);
     setIsLoadingMovie(false);
     async function fetchMovieData() {
-      if (!imdbInfo) {
+      if (!imdbInfo || !imdbUrl) {
         return;
       }
       
       setIsLoadingMovie(true);
       
       try {
-        const response = await fetch(`/api/tmdb/movie/${imdbInfo.id}`, { signal: controller.signal });
-        if (response.ok) {
-          const data = await response.json();
-          if (active) setMovieData(data);
-        }
+        const data = await fetchMoviePreview(imdbInfo.id, imdbUrl, controller.signal);
+        if (active) setMovieData(data);
       } catch (error) {
         if (active) console.error('Error fetching movie data:', error);
       } finally {
@@ -524,12 +525,13 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
 
     fetchMovieData();
     return () => { active = false; controller.abort(); };
-  }, [imdbInfo?.id]);
+  }, [imdbInfo?.id, imdbUrl]);
 
   // Fetch Open Graph data for general URLs
   useEffect(() => {
     async function fetchOpenGraphData() {
       setOgData(null);
+      setOgImageError(false);
       setIsLoadingOg(false);
       if (!previewUrl) {
         setOgData(null);
@@ -539,7 +541,8 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
       setOgImageError(false);
       
       // First, check if we already have enriched OG data from the database
-      if (storedPreviewMatches(message.ogSourceUrl, previewUrl) &&
+      if (storedPreviewMatches(message.ogSourceUrl, previewUrl, message.content) &&
+          !isGenericPreview(previewUrl, message.ogTitle) &&
           (message.ogTitle || message.ogDescription || message.ogImage)) {
         console.log(`[OG Fetch] Using cached enriched data for URL: ${previewUrl}`);
         setOgData({
@@ -560,10 +563,8 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
       setIsLoadingOg(true);
       
       try {
-        const response = await fetch(`/api/og-preview?url=${encodeURIComponent(previewUrl)}`, { signal: controller.signal });
-        console.log(`[OG Fetch] Response status: ${response.status} ${response.statusText}`);
-        if (response.ok) {
-          const data = await response.json();
+        {
+          const data = await fetchLinkPreview(previewUrl);
           if (!active) return;
           console.log('[OG Fetch] Response data:', data);
           if (!data.skip && !data.error) {
@@ -709,19 +710,6 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
         )}
         
         {/* Fallback: Show styled card when preview fails and we're not loading */}
-        {previewUrl && !isLoadingOg && (!ogData || !ogData.title) && (
-          <div className="w-full">
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline text-sm break-all block p-3 shadow-md rounded-lg bg-[#263d57]/5 hover:bg-[#263d57]/10 transition-colors"
-              data-pendo="content-external-link-btn"
-            >
-              {previewUrl}
-            </a>
-          </div>
-        )}
         
         {/* MMS Image Display - Show if message has an attached image */}
         {message.mediaUrl && message.mediaType === 'image' && !imageError && (
@@ -866,9 +854,9 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
             subreddit={redditPostInfo.subreddit} 
             postId={redditPostInfo.postId} 
             url={urls.find(url => getRedditPostInfo(url)) || ''}
-            ogTitle={storedPreviewMatches(message.ogSourceUrl, urls.find(url => getRedditPostInfo(url)) || null) ? message.ogTitle || undefined : undefined}
-            ogImage={storedPreviewMatches(message.ogSourceUrl, urls.find(url => getRedditPostInfo(url)) || null) ? message.ogImage || undefined : undefined}
-            ogDescription={storedPreviewMatches(message.ogSourceUrl, urls.find(url => getRedditPostInfo(url)) || null) ? message.ogDescription || undefined : undefined}
+            ogTitle={storedPreviewMatches(message.ogSourceUrl, urls.find(url => getRedditPostInfo(url)) || null, message.content) ? message.ogTitle || undefined : undefined}
+            ogImage={storedPreviewMatches(message.ogSourceUrl, urls.find(url => getRedditPostInfo(url)) || null, message.content) ? message.ogImage || undefined : undefined}
+            ogDescription={storedPreviewMatches(message.ogSourceUrl, urls.find(url => getRedditPostInfo(url)) || null, message.content) ? message.ogDescription || undefined : undefined}
           />
         )}
         {youtubeVideoId && (
@@ -930,7 +918,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
                 data-pendo="content-external-link-btn"
                 data-embed-type="tiktok-fallback"
               >
-                {message.ogImage && storedPreviewMatches(message.ogSourceUrl, urls.find(url => getTikTokVideoId(url)) || null) && (
+                {message.ogImage && storedPreviewMatches(message.ogSourceUrl, urls.find(url => getTikTokVideoId(url)) || null, message.content) && (
                   <div className="aspect-video w-full bg-[#263d57]/10 overflow-hidden">
                     <img src={message.ogImage} alt={message.ogTitle || ''} className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   </div>
@@ -942,7 +930,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
                     </svg>
                     <span className="text-xs font-medium" style={{ color: '#010101' }}>TikTok</span>
                   </div>
-                  <p className="text-sm font-semibold text-[#263d57] line-clamp-2">{storedPreviewMatches(message.ogSourceUrl, urls.find(url => getTikTokVideoId(url)) || null) ? message.ogTitle || 'View on TikTok' : 'View on TikTok'}</p>
+                  <p className="text-sm font-semibold text-[#263d57] line-clamp-2">{storedPreviewMatches(message.ogSourceUrl, urls.find(url => getTikTokVideoId(url)) || null, message.content) ? message.ogTitle || 'View on TikTok' : 'View on TikTok'}</p>
                   {message.ogDescription && <p className="text-xs text-[#263d57]/60 mt-0.5 line-clamp-2">{message.ogDescription}</p>}
                   <div className="flex items-center gap-1 mt-2 text-xs text-[#263d57]/40">
                     <ExternalLink className="w-3 h-3" />
@@ -953,7 +941,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
             )}
           </div>
         )}
-        {imdbInfo && movieData && (
+        {imdbInfo && imdbPreview && (
           <div className="w-full" data-pendo="content-imdb-embed" data-imdb-id={imdbInfo.id}>
             <a 
               href={urls.find(url => url.includes('imdb.com')) || '#'}
@@ -964,11 +952,11 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
               data-link-type="imdb"
             >
               <div className="flex flex-col">
-                {movieData.posterUrl && (
+                {imdbPreview.posterUrl && (
                   <div className="w-full mb-4">
                     <img 
-                      src={movieData.posterUrl}
-                      alt={movieData.title || "Movie Poster"}
+                      src={imdbPreview.posterUrl}
+                      alt={imdbPreview.title || "Movie Poster"}
                       className="w-full h-auto object-cover rounded-lg shadow-lg"
                     />
                   </div>
@@ -977,20 +965,20 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="font-bold text-[#263d57] text-lg leading-tight">
-                      {movieData.title}
-                      {movieData.year && <span className="text-[#263d57]/70 font-normal"> ({movieData.year})</span>}
+                      {imdbPreview.title}
+                      {imdbPreview.year && <span className="text-[#263d57]/70 font-normal"> ({imdbPreview.year})</span>}
                     </h3>
-                    {movieData.rating && (
+                    {imdbPreview.rating && (
                       <div className="flex items-center gap-1">
                         <span className="text-yellow-500">⭐</span>
-                        <span className="font-bold text-[#263d57]">{movieData.rating.toFixed(1)}</span>
+                        <span className="font-bold text-[#263d57]">{imdbPreview.rating.toFixed(1)}</span>
                       </div>
                     )}
                   </div>
                   
-                  {movieData.genres && movieData.genres.length > 0 && (
+                  {imdbPreview.genres && imdbPreview.genres.length > 0 && (
                     <p className="text-[#263d57]/70 text-sm">
-                      {movieData.genres.join(', ')}
+                      {imdbPreview.genres.join(', ')}
                     </p>
                   )}
                   
