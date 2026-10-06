@@ -2,7 +2,7 @@ import express from "express";
 import session from "express-session";
 import { registerRoutes } from "../routes";
 
-export async function createTestApp() {
+export async function createTestApp(options?: { authenticatedUserId?: number }) {
   const app = express();
 
   app.use(express.json());
@@ -18,6 +18,13 @@ export async function createTestApp() {
       maxAge: 30 * 24 * 60 * 60 * 1000
     }
   }));
+
+  if (options?.authenticatedUserId) {
+    app.use((req, _res, next) => {
+      req.session.userId = options.authenticatedUserId;
+      next();
+    });
+  }
 
   await registerRoutes(app);
 
