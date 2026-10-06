@@ -1,10 +1,11 @@
 import { db } from "../db";
-import { messages, messageEmbeddings } from "@shared/schema";
+import { messages } from "@shared/schema";
 import { isNull, or, sql } from "drizzle-orm";
 import { log } from "../vite";
 import { UrlEnrichmentService } from "../url-enrichment-service";
 import { openGraphService } from "../og-service";
 import { embeddingService } from "../embedding-service";
+import { storage } from "../storage";
 
 // Create an instance of the URL enrichment service
 const urlEnrichmentService = new UrlEnrichmentService(openGraphService);
@@ -57,27 +58,24 @@ async function backfillEnrichment(limit: number = 100) {
         log(`  Message ${message.id}: Found ${urls.length} URL(s), enriching...`);
         
         // Mark as pending
-        await db
-          .update(messages)
-          .set({ enrichmentStatus: 'pending' })
-          .where(sql`${messages.id} = ${message.id}`);
+        await storage.updateMessageEnrichmentStatus(message.id, "pending", message.content);
         
         // Enrich the first URL
         const enrichmentData = await urlEnrichmentService.enrichUrl(urls[0]);
         
         if (enrichmentData && (enrichmentData.title || enrichmentData.description)) {
           // Update message with enrichment data
-          await db
-            .update(messages)
-            .set({
+          const saved = await storage.updateMessageEnrichment(message.id, {
               ogTitle: enrichmentData.title || null,
               ogDescription: enrichmentData.description || null,
               ogImage: enrichmentData.image || null,
               ogSiteName: enrichmentData.siteName || null,
+              ogSourceUrl: urls[0],
+              ogIsBlocked: enrichmentData.isBlocked,
+              ogIsFallback: enrichmentData.isFallback,
               enrichmentStatus: 'completed',
-              enrichedAt: new Date()
-            })
-            .where(sql`${messages.id} = ${message.id}`);
+            }, message.content);
+          if (!saved) { skipped++; continue; }
           
           // Regenerate embedding with enriched content
           const enrichedContent = [
@@ -88,26 +86,12 @@ async function backfillEnrichment(limit: number = 100) {
           
           const embedding = await embeddingService.generateEmbedding(enrichedContent);
           
-          // Delete old embedding if exists
-          await db
-            .delete(messageEmbeddings)
-            .where(sql`${messageEmbeddings.messageId} = ${message.id}`);
-          
-          // Insert new enriched embedding
-          await db
-            .insert(messageEmbeddings)
-            .values({
-              messageId: message.id,
-              embedding: embedding
-            });
+          await storage.saveMessageEmbedding(message.id, embedding, message.content);
           
           log(`  Message ${message.id}: ✓ Enriched with "${enrichmentData.title}"`);
           enriched++;
         } else {
-          await db
-            .update(messages)
-            .set({ enrichmentStatus: 'failed' })
-            .where(sql`${messages.id} = ${message.id}`);
+          await storage.updateMessageEnrichmentStatus(message.id, "failed", message.content);
           
           log(`  Message ${message.id}: No enrichment data found`);
           failed++;
@@ -120,10 +104,7 @@ async function backfillEnrichment(limit: number = 100) {
         log(`  Message ${message.id}: Error - ${error instanceof Error ? error.message : String(error)}`);
         failed++;
         
-        await db
-          .update(messages)
-          .set({ enrichmentStatus: 'failed' })
-          .where(sql`${messages.id} = ${message.id}`)
+        await storage.updateMessageEnrichmentStatus(message.id, "failed", message.content)
           .catch(() => {});
       }
     }

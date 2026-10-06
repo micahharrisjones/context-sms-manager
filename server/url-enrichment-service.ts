@@ -1,4 +1,6 @@
 import { log } from "./vite";
+import { extractPreviewUrls } from "@shared/preview-urls";
+import { resolvePublicPreviewUrl, safePreviewFetch } from "./safe-preview-fetch";
 
 export interface EnrichmentData {
   title?: string;
@@ -17,12 +19,11 @@ export class UrlEnrichmentService {
   }
 
   extractUrls(text: string): string[] {
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const matches = text.match(urlRegex);
-    return matches || [];
+    return extractPreviewUrls(text);
   }
 
   async enrichUrl(url: string): Promise<EnrichmentData | null> {
+    await resolvePublicPreviewUrl(url);
     try {
       log(`[Enrichment] ========== Starting smart platform routing for: ${url} ==========`);
 
@@ -55,7 +56,9 @@ export class UrlEnrichmentService {
             title: microlinkData.title,
             description: microlinkData.description,
             image: microlinkData.image,
-            siteName: microlinkData.site_name
+            siteName: microlinkData.site_name,
+            isBlocked: microlinkData.isBlocked,
+            isFallback: microlinkData.isFallback
           });
           this.logDataStatus(result, 'Microlink');
           
@@ -144,7 +147,9 @@ export class UrlEnrichmentService {
       title: existing.title || newData.title,
       description: existing.description || newData.description,
       image: existing.image || newData.image,
-      siteName: existing.siteName || newData.siteName
+      siteName: existing.siteName || newData.siteName,
+      isBlocked: existing.isBlocked || newData.isBlocked,
+      isFallback: existing.isFallback || newData.isFallback
     };
   }
 
@@ -245,7 +250,7 @@ export class UrlEnrichmentService {
           return null;
       }
 
-      const response = await fetch(oembedEndpoint, {
+      const response = await safePreviewFetch(oembedEndpoint, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0)',
           'Accept': 'application/json',
@@ -291,7 +296,7 @@ export class UrlEnrichmentService {
 
   private async tryDirectParsing(url: string): Promise<EnrichmentData | null> {
     try {
-      const response = await fetch(url, {
+      const response = await safePreviewFetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0)',
           'Accept': 'text/html',

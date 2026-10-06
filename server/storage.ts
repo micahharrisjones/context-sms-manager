@@ -41,6 +41,7 @@ import {
 import { db } from "./db";
 import { desc, eq, sql, gte, lt, and, inArray, or, like, count, asc } from "drizzle-orm";
 import { log } from "./vite";
+import { extractPreviewUrls } from "@shared/preview-urls";
 
 export interface IStorage {
   // User management
@@ -78,14 +79,17 @@ export interface IStorage {
   getRecentMessagesBySender(userId: number, senderId: string, since: Date): Promise<Message[]>;
   updateMessageTags(messageId: number, tags: string[]): Promise<void>;
   updateMessage(messageId: number, content: string, tags: string[]): Promise<Message>;
-  updateMessageEnrichmentStatus(messageId: number, status: string): Promise<void>;
+  updateMessageEnrichmentStatus(messageId: number, status: string, expectedContent?: string): Promise<void>;
   updateMessageEnrichment(messageId: number, data: {
     ogTitle: string | null;
     ogDescription: string | null;
     ogImage: string | null;
     ogSiteName: string | null;
+    ogSourceUrl: string;
+    ogIsBlocked?: boolean;
+    ogIsFallback?: boolean;
     enrichmentStatus: string;
-  }): Promise<void>;
+  }, expectedContent: string): Promise<boolean>;
   updateMessageMedia(messageId: number, mediaUrl: string, mediaType: string, mediaContentType?: string): Promise<void>;
   
   // Shared board management
@@ -99,7 +103,7 @@ export interface IStorage {
   removeBoardMember(boardId: number, userId: number): Promise<void>;
   deleteSharedBoard(boardId: number): Promise<void>;
   getSharedMessages(userId: number, boardName: string): Promise<Message[]>;
-  getUsersForSharedBoardNotification(tags: string[]): Promise<number[]>;
+  getUsersForSharedBoardNotification(tags: string[], senderUserId: number): Promise<number[]>;
   getBoardMembersPhoneNumbers(boardName: string, excludeUserId?: number): Promise<string[]>;
   getSharedBoardsByNameForUser(boardName: string, userId: number): Promise<SharedBoard[]>;
   getSharedBoardMessageCounts(userId: number): Promise<{ boardName: string; totalCount: number; thisWeekCount: number }[]>;
@@ -158,7 +162,7 @@ export interface IStorage {
   updateUserReferral(userId: number, referralSource: string): Promise<void>;
   
   // Embedding methods for hybrid search
-  saveMessageEmbedding(messageId: number, embedding: number[]): Promise<void>;
+  saveMessageEmbedding(messageId: number, embedding: number[], expectedContent?: string): Promise<void>;
   getMessageEmbedding(messageId: number): Promise<number[] | null>;
   semanticSearch(userId: number, queryEmbedding: number[], limit: number): Promise<Message[]>;
   keywordSearch(userId: number, query: string, limit: number): Promise<Message[]>;
@@ -801,14 +805,23 @@ export class DatabaseStorage implements IStorage {
   async updateMessage(messageId: number, content: string, tags: string[]): Promise<Message> {
     try {
       log(`Updating message ${messageId} with content and tags: [${tags.join(', ')}]`);
-      const [updatedMessage] = await db
-        .update(messages)
-        .set({
-          content: content,
-          tags: tags
-        })
-        .where(eq(messages.id, messageId))
-        .returning();
+      const updatedMessage = await db.transaction(async (tx) => {
+        const [updated] = await tx.update(messages).set({
+          content,
+          tags,
+          ogTitle: null,
+          ogDescription: null,
+          ogImage: null,
+          ogSiteName: null,
+          ogSourceUrl: null,
+          ogIsBlocked: null,
+          ogIsFallback: null,
+          enrichmentStatus: extractPreviewUrls(content).length ? "pending" : null,
+          enrichedAt: null,
+        }).where(eq(messages.id, messageId)).returning();
+        await tx.delete(messageEmbeddings).where(eq(messageEmbeddings.messageId, messageId));
+        return updated;
+      });
       
       log(`Successfully updated message ${messageId}`);
       return updatedMessage;
@@ -818,7 +831,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async updateMessageEnrichmentStatus(messageId: number, status: string): Promise<void> {
+  async updateMessageEnrichmentStatus(messageId: number, status: string, expectedContent?: string): Promise<void> {
     try {
       await db
         .update(messages)
@@ -826,7 +839,8 @@ export class DatabaseStorage implements IStorage {
           enrichmentStatus: status,
           enrichedAt: status === 'completed' ? new Date() : null
         })
-        .where(eq(messages.id, messageId));
+        .where(and(eq(messages.id, messageId),
+          expectedContent === undefined ? undefined : eq(messages.content, expectedContent)));
       
       log(`Updated enrichment status for message ${messageId}: ${status}`);
     } catch (error) {
@@ -840,26 +854,30 @@ export class DatabaseStorage implements IStorage {
     ogDescription: string | null;
     ogImage: string | null;
     ogSiteName: string | null;
+    ogSourceUrl: string;
     ogIsBlocked?: boolean;
     ogIsFallback?: boolean;
     enrichmentStatus: string;
-  }): Promise<void> {
+  }, expectedContent: string): Promise<boolean> {
     try {
-      await db
+      const updated = await db
         .update(messages)
         .set({
           ogTitle: data.ogTitle,
           ogDescription: data.ogDescription,
           ogImage: data.ogImage,
           ogSiteName: data.ogSiteName,
+          ogSourceUrl: data.ogSourceUrl,
           ogIsBlocked: data.ogIsBlocked ? 'true' : null,
           ogIsFallback: data.ogIsFallback ? 'true' : null,
           enrichmentStatus: data.enrichmentStatus,
           enrichedAt: new Date()
         })
-        .where(eq(messages.id, messageId));
+        .where(and(eq(messages.id, messageId), eq(messages.content, expectedContent)))
+        .returning({ id: messages.id });
       
       log(`Updated enrichment data for message ${messageId}: ${data.ogTitle || 'No title'}`);
+      return updated.length > 0;
     } catch (error) {
       log(`Error updating enrichment data for message ${messageId}:`, error instanceof Error ? error.message : String(error));
       throw error;
@@ -1150,6 +1168,10 @@ export class DatabaseStorage implements IStorage {
         log(`User ${userId} does not have access to board ${boardName}`);
         return [];
       }
+      if (boardMembership.length !== 1) {
+        throw new Error("Ambiguous board name; use a uniquely named board");
+      }
+      const authorizedBoardId = boardMembership[0].board.id;
 
       // Get all members of this board
       const boardMembers = await db
@@ -1158,7 +1180,7 @@ export class DatabaseStorage implements IStorage {
         })
         .from(boardMemberships)
         .innerJoin(sharedBoards, eq(boardMemberships.boardId, sharedBoards.id))
-        .where(eq(sharedBoards.name, boardName));
+        .where(eq(boardMemberships.boardId, authorizedBoardId));
 
       const memberIds = boardMembers.map(m => m.userId);
       
@@ -1183,6 +1205,7 @@ export class DatabaseStorage implements IStorage {
           ogDescription: messages.ogDescription,
           ogImage: messages.ogImage,
           ogSiteName: messages.ogSiteName,
+          ogSourceUrl: messages.ogSourceUrl,
           ogIsBlocked: messages.ogIsBlocked,
           ogIsFallback: messages.ogIsFallback,
           enrichmentStatus: messages.enrichmentStatus,
@@ -1287,7 +1310,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUsersForSharedBoardNotification(tags: string[]): Promise<number[]> {
+  async getUsersForSharedBoardNotification(tags: string[], senderUserId: number): Promise<number[]> {
     try {
       if (tags.length === 0) {
         return [];
@@ -1299,7 +1322,8 @@ export class DatabaseStorage implements IStorage {
       const matchingBoards = await db
         .select({ id: sharedBoards.id, name: sharedBoards.name, createdBy: sharedBoards.createdBy })
         .from(sharedBoards)
-        .where(inArray(sharedBoards.name, tags));
+        .innerJoin(boardMemberships, eq(boardMemberships.boardId, sharedBoards.id))
+        .where(and(inArray(sharedBoards.name, tags), eq(boardMemberships.userId, senderUserId)));
 
       if (matchingBoards.length === 0) {
         log("No shared boards found for the given tags");
@@ -1338,9 +1362,11 @@ export class DatabaseStorage implements IStorage {
       const board = await db
         .select({ id: sharedBoards.id, createdBy: sharedBoards.createdBy })
         .from(sharedBoards)
-        .where(eq(sharedBoards.name, boardName));
+        .innerJoin(boardMemberships, eq(boardMemberships.boardId, sharedBoards.id))
+        .where(and(eq(sharedBoards.name, boardName),
+          eq(boardMemberships.userId, excludeUserId ?? -1)));
 
-      if (board.length === 0) {
+      if (board.length !== 1) {
         log(`No shared board found with name ${boardName}`);
         return [];
       }
@@ -1875,12 +1901,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Embedding methods for hybrid search
-  async saveMessageEmbedding(messageId: number, embedding: number[]): Promise<void> {
+  async saveMessageEmbedding(messageId: number, embedding: number[], expectedContent?: string): Promise<void> {
     try {
       // Format embedding as PostgreSQL vector string
       const embeddingString = `[${embedding.join(',')}]`;
       
-      await db
+      await db.transaction(async (tx) => {
+        const [current] = await tx.select({ content: messages.content }).from(messages)
+          .where(eq(messages.id, messageId)).for("update");
+        if (!current || (expectedContent !== undefined && current.content !== expectedContent)) return;
+        await tx
         .insert(messageEmbeddings)
         .values({
           messageId: messageId,
@@ -1890,6 +1920,7 @@ export class DatabaseStorage implements IStorage {
           target: messageEmbeddings.messageId,
           set: { embedding: sql`${embeddingString}::vector` }
         });
+      });
       
       log(`Saved embedding for message ${messageId}`);
     } catch (error) {
@@ -1988,7 +2019,7 @@ export class DatabaseStorage implements IStorage {
           m.id, m.content, m.sender_id AS "senderId", m.user_id AS "userId", 
           m.timestamp, m.tags, m.media_url AS "mediaUrl", m.media_type AS "mediaType", 
           m.message_sid AS "messageSid", m.og_title AS "ogTitle", m.og_description AS "ogDescription",
-          m.og_image AS "ogImage", m.og_site_name AS "ogSiteName", m.og_is_blocked AS "ogIsBlocked", 
+          m.og_image AS "ogImage", m.og_site_name AS "ogSiteName", m.og_source_url AS "ogSourceUrl", m.og_is_blocked AS "ogIsBlocked",
           m.og_is_fallback AS "ogIsFallback", m.enrichment_status AS "enrichmentStatus", 
           m.enriched_at AS "enrichedAt"
         FROM ${messages} m
@@ -2022,7 +2053,7 @@ export class DatabaseStorage implements IStorage {
             m.id, m.content, m.sender_id AS "senderId", m.user_id AS "userId", 
             m.timestamp, m.tags, m.media_url AS "mediaUrl", m.media_type AS "mediaType", 
             m.message_sid AS "messageSid", m.og_title AS "ogTitle", m.og_description AS "ogDescription",
-            m.og_image AS "ogImage", m.og_site_name AS "ogSiteName", m.og_is_blocked AS "ogIsBlocked", 
+            m.og_image AS "ogImage", m.og_site_name AS "ogSiteName", m.og_source_url AS "ogSourceUrl", m.og_is_blocked AS "ogIsBlocked",
             m.og_is_fallback AS "ogIsFallback", m.enrichment_status AS "enrichmentStatus", 
             m.enriched_at AS "enrichedAt",
             1 - (me.embedding <=> ${embeddingString}::vector) as similarity_score
@@ -2119,7 +2150,7 @@ export class DatabaseStorage implements IStorage {
           id, content, sender_id AS "senderId", user_id AS "userId", timestamp, tags, 
           media_url AS "mediaUrl", media_type AS "mediaType", message_sid AS "messageSid", 
           og_title AS "ogTitle", og_description AS "ogDescription",
-          og_image AS "ogImage", og_site_name AS "ogSiteName", og_is_blocked AS "ogIsBlocked", 
+          og_image AS "ogImage", og_site_name AS "ogSiteName", og_source_url AS "ogSourceUrl", og_is_blocked AS "ogIsBlocked",
           og_is_fallback AS "ogIsFallback", enrichment_status AS "enrichmentStatus", 
           enriched_at AS "enrichedAt",
           -- Apply stop word multiplier: if query has meaningful words, downweight matches on common words

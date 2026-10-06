@@ -25,6 +25,7 @@ import { feedbackReminderService } from "./feedback-reminder-service";
 import { sql, asc } from "drizzle-orm";
 import { fileTypeFromBuffer } from "file-type";
 import * as cron from "node-cron";
+import { registerPreviewRoute } from "./preview-route";
 
 // Helper function to check MMS rate limit for a user
 function checkMMSRateLimit(userId: number): { allowed: boolean; remaining: number } {
@@ -2788,7 +2789,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           const embedding = await embeddingService.generateEmbedding(
             created.content,
           );
-          await storage.saveMessageEmbedding(created.id, embedding);
+          await storage.saveMessageEmbedding(created.id, embedding, created.content);
           log(`Initial embedding saved for UI message ${created.id}`);
         } catch (error) {
           log(
@@ -2797,7 +2798,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           );
           // Don't fail the whole request if embedding generation fails
         }
-      });
+      })();
 
       // URL enrichment: Extract OG metadata for better searchability (async, non-blocking)
       (async () => {
@@ -2815,7 +2816,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           );
 
           // Mark as pending enrichment
-          await storage.updateMessageEnrichmentStatus(created.id, "pending");
+          await storage.updateMessageEnrichmentStatus(created.id, "pending", created.content);
 
           // Enrich the first URL (for now, could extend to handle multiple URLs)
           const enrichmentData = await urlEnrichmentService.enrichUrl(urls[0]);
@@ -2829,15 +2830,17 @@ You can now text anything with #${boardName} to share with everyone on the board
             );
 
             // Update message with enrichment data
-            await storage.updateMessageEnrichment(created.id, {
+            const saved = await storage.updateMessageEnrichment(created.id, {
               ogTitle: enrichmentData.title || null,
               ogDescription: enrichmentData.description || null,
               ogImage: enrichmentData.image || null,
               ogSiteName: enrichmentData.siteName || null,
+              ogSourceUrl: urls[0],
               ogIsBlocked: enrichmentData.isBlocked,
               ogIsFallback: enrichmentData.isFallback,
               enrichmentStatus: "completed",
-            });
+            }, created.content);
+            if (!saved) return;
 
             // Regenerate embedding with enriched content for better search
             const enrichedContent = [
@@ -2853,11 +2856,14 @@ You can now text anything with #${boardName} to share with everyone on the board
             );
             const enrichedEmbedding =
               await embeddingService.generateEmbedding(enrichedContent);
-            await storage.saveMessageEmbedding(created.id, enrichedEmbedding);
+            await storage.saveMessageEmbedding(created.id, enrichedEmbedding, created.content);
+            wsManager.broadcastNewMessageToUser(userId);
+            const members = await storage.getUsersForSharedBoardNotification(created.tags, created.userId);
+            wsManager.broadcastNewMessageToUsers(members);
             log(`✓ Enriched embedding saved for UI message ${created.id}`);
           } else {
             log(`No enrichment data found for UI message ${created.id}`);
-            await storage.updateMessageEnrichmentStatus(created.id, "failed");
+            await storage.updateMessageEnrichmentStatus(created.id, "failed", created.content);
           }
         } catch (error) {
           log(
@@ -2865,11 +2871,11 @@ You can now text anything with #${boardName} to share with everyone on the board
             error instanceof Error ? error.message : String(error),
           );
           await storage
-            .updateMessageEnrichmentStatus(created.id, "failed")
+            .updateMessageEnrichmentStatus(created.id, "failed", created.content)
             .catch(() => {});
           // Don't fail the whole request if enrichment fails
         }
-      });
+      })();
 
       // Run WebSocket broadcasts and SMS notifications asynchronously for faster response
       setImmediate(async () => {
@@ -2880,7 +2886,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           // Also notify shared board members if message has relevant tags
           if (created.tags && created.tags.length > 0) {
             const sharedBoardUsers =
-              await storage.getUsersForSharedBoardNotification(created.tags);
+              await storage.getUsersForSharedBoardNotification(created.tags, created.userId);
             if (sharedBoardUsers.length > 0) {
               log(
                 `Notifying shared board users of UI message: [${sharedBoardUsers.join(", ")}]`,
@@ -2998,7 +3004,7 @@ You can now text anything with #${boardName} to share with everyone on the board
       // Also notify shared board members if message has relevant tags
       if (updatedMessage.tags && updatedMessage.tags.length > 0) {
         const sharedBoardUsers =
-          await storage.getUsersForSharedBoardNotification(updatedMessage.tags);
+          await storage.getUsersForSharedBoardNotification(updatedMessage.tags, updatedMessage.userId);
         if (sharedBoardUsers.length > 0) {
           log(
             `Notifying shared board users of updated message: [${sharedBoardUsers.join(", ")}]`,
@@ -3008,6 +3014,44 @@ You can now text anything with #${boardName} to share with everyone on the board
       }
 
       res.json(updatedMessage);
+      // Regenerate metadata and search data after edits. Compare-and-set storage
+      // rejects results from an older edit if the content changed in the meantime.
+      void (async () => {
+        try {
+          const sourceUrl = urlEnrichmentService.extractUrls(updatedMessage.content)[0];
+          const data = sourceUrl ? await urlEnrichmentService.enrichUrl(sourceUrl) : null;
+          if (sourceUrl && data) {
+            const saved = await storage.updateMessageEnrichment(messageId, {
+              ogSourceUrl: sourceUrl,
+              ogTitle: data.title || null,
+              ogDescription: data.description || null,
+              ogImage: data.image || null,
+              ogSiteName: data.siteName || null,
+              ogIsBlocked: data.isBlocked,
+              ogIsFallback: data.isFallback,
+              enrichmentStatus: "completed",
+            }, updatedMessage.content);
+            if (!saved) return;
+          } else if (sourceUrl) {
+            await storage.updateMessageEnrichmentStatus(messageId, "failed", updatedMessage.content);
+          }
+          const embedding = await embeddingService.generateEmbedding(
+            [updatedMessage.content, data?.title, data?.description].filter(Boolean).join(" "),
+          );
+          await storage.saveMessageEmbedding(messageId, embedding, updatedMessage.content);
+        } catch (error) {
+          await storage.updateMessageEnrichmentStatus(messageId, "failed", updatedMessage.content).catch(() => {});
+          log(`Edited message enrichment failed: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+          try {
+            wsManager.broadcastNewMessageToUser(userId);
+            const members = await storage.getUsersForSharedBoardNotification(updatedMessage.tags, updatedMessage.userId);
+            wsManager.broadcastNewMessageToUsers(members);
+          } catch (error) {
+            log(`Edited message notification failed: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      })();
     } catch (error) {
       log(
         `Error updating message: ${error instanceof Error ? error.message : String(error)}`,
@@ -3241,7 +3285,7 @@ You can now text anything with #${boardName} to share with everyone on the board
         openGraphService.clearCache();
 
         // Set status to pending
-        await storage.updateMessageEnrichmentStatus(messageId, "pending");
+        await storage.updateMessageEnrichmentStatus(messageId, "pending", message.content);
 
         // Enrich the first URL
         const enrichmentData = await urlEnrichmentService.enrichUrl(urls[0]);
@@ -3258,10 +3302,11 @@ You can now text anything with #${boardName} to share with everyone on the board
             ogDescription: enrichmentData.description || null,
             ogImage: enrichmentData.image || null,
             ogSiteName: enrichmentData.siteName || null,
+            ogSourceUrl: urls[0],
             ogIsBlocked: enrichmentData.isBlocked,
             ogIsFallback: enrichmentData.isFallback,
             enrichmentStatus: "completed",
-          });
+          }, message.content);
 
           res.json({
             success: true,
@@ -3272,7 +3317,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           log(
             `Re-enrichment failed for message ${messageId} - no data returned`,
           );
-          await storage.updateMessageEnrichmentStatus(messageId, "failed");
+          await storage.updateMessageEnrichmentStatus(messageId, "failed", message.content);
           res
             .status(500)
             .json({ error: "Re-enrichment failed - no data returned" });
@@ -4171,44 +4216,7 @@ You can now text anything with #${boardName} to share with everyone on the board
   });
 
   // Open Graph metadata endpoint
-  app.get("/api/og-preview", async (req, res) => {
-    try {
-      const { url } = req.query;
-
-      if (!url || typeof url !== "string") {
-        return res.status(400).json({ error: "URL parameter is required" });
-      }
-
-      // Validate URL format
-      try {
-        new URL(url);
-      } catch {
-        return res.status(400).json({ error: "Invalid URL format" });
-      }
-
-      // Check if we should fetch Open Graph data for this URL
-      if (!openGraphService.shouldFetchOpenGraph(url)) {
-        return res.json({ skip: true });
-      }
-
-      // Use request queue to limit concurrent Microlink.io API calls (max 3 at a time)
-      const ogData = await microlinkQueue.add(() =>
-        openGraphService.fetchOpenGraph(url),
-      );
-
-      if (!ogData) {
-        return res.json({ error: "Failed to fetch Open Graph data" });
-      }
-
-      res.json(ogData);
-    } catch (error) {
-      log(
-        "Error fetching Open Graph data:",
-        error instanceof Error ? error.message : String(error),
-      );
-      res.status(500).json({ error: "Failed to fetch Open Graph data" });
-    }
-  });
+  registerPreviewRoute(app, requireAuth, openGraphService);
 
   // Delete shared board (only owner can delete)
   app.delete("/api/shared-boards/:boardId", requireAuth, async (req, res) => {
@@ -4718,7 +4726,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           const embedding = await embeddingService.generateEmbedding(
             created.content,
           );
-          await storage.saveMessageEmbedding(created.id, embedding);
+          await storage.saveMessageEmbedding(created.id, embedding, created.content);
           log(`Initial embedding saved for message ${created.id}`);
         } catch (error) {
           log(
@@ -4743,7 +4751,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           );
 
           // Mark as pending enrichment
-          await storage.updateMessageEnrichmentStatus(created.id, "pending");
+          await storage.updateMessageEnrichmentStatus(created.id, "pending", created.content);
 
           // Enrich the first URL (for now, could extend to handle multiple URLs)
           const enrichmentData = await urlEnrichmentService.enrichUrl(urls[0]);
@@ -4757,15 +4765,17 @@ You can now text anything with #${boardName} to share with everyone on the board
             );
 
             // Update message with enrichment data
-            await storage.updateMessageEnrichment(created.id, {
+            const saved = await storage.updateMessageEnrichment(created.id, {
               ogTitle: enrichmentData.title || null,
               ogDescription: enrichmentData.description || null,
               ogImage: enrichmentData.image || null,
               ogSiteName: enrichmentData.siteName || null,
+              ogSourceUrl: urls[0],
               ogIsBlocked: enrichmentData.isBlocked,
               ogIsFallback: enrichmentData.isFallback,
               enrichmentStatus: "completed",
-            });
+            }, created.content);
+            if (!saved) return;
 
             // Regenerate embedding with enriched content for better search
             const enrichedContent = [
@@ -4781,11 +4791,14 @@ You can now text anything with #${boardName} to share with everyone on the board
             );
             const enrichedEmbedding =
               await embeddingService.generateEmbedding(enrichedContent);
-            await storage.saveMessageEmbedding(created.id, enrichedEmbedding);
+            await storage.saveMessageEmbedding(created.id, enrichedEmbedding, created.content);
+            wsManager.broadcastNewMessageToUser(created.userId);
+            const members = await storage.getUsersForSharedBoardNotification(created.tags, created.userId);
+            wsManager.broadcastNewMessageToUsers(members);
             log(`✓ Enriched embedding saved for message ${created.id}`);
           } else {
             log(`No enrichment data found for message ${created.id}`);
-            await storage.updateMessageEnrichmentStatus(created.id, "failed");
+            await storage.updateMessageEnrichmentStatus(created.id, "failed", created.content);
           }
         } catch (error) {
           log(
@@ -4793,7 +4806,7 @@ You can now text anything with #${boardName} to share with everyone on the board
             error instanceof Error ? error.message : String(error),
           );
           await storage
-            .updateMessageEnrichmentStatus(created.id, "failed")
+            .updateMessageEnrichmentStatus(created.id, "failed", created.content)
             .catch(() => {});
           // Don't fail the whole request if enrichment fails
         }
@@ -5052,7 +5065,7 @@ You can now text anything with #${boardName} to share with everyone on the board
       // Also notify all users who have shared boards matching this message's tags
       if (created.tags && created.tags.length > 0) {
         const sharedBoardUsers =
-          await storage.getUsersForSharedBoardNotification(created.tags);
+          await storage.getUsersForSharedBoardNotification(created.tags, created.userId);
         if (sharedBoardUsers.length > 0) {
           log(`Notifying shared board users: [${sharedBoardUsers.join(", ")}]`);
           wsManager.broadcastNewMessageToUsers(sharedBoardUsers);
@@ -5292,10 +5305,11 @@ You can now text anything with #${boardName} to share with everyone on the board
             ogDescription: enrichmentData.description || null,
             ogImage: enrichmentData.image || null,
             ogSiteName: enrichmentData.siteName || null,
+            ogSourceUrl: urls[0],
             ogIsBlocked: enrichmentData.isBlocked,
             ogIsFallback: enrichmentData.isFallback,
             enrichmentStatus: "completed",
-          });
+          }, message.content);
 
           // Regenerate embedding with enriched content for better search
           const enrichedContent = [
@@ -5311,7 +5325,7 @@ You can now text anything with #${boardName} to share with everyone on the board
           );
           const embedding =
             await embeddingService.generateEmbedding(enrichedContent);
-          await storage.saveMessageEmbedding(message.id, embedding);
+          await storage.saveMessageEmbedding(message.id, embedding, message.content);
 
           processed++;
           log(

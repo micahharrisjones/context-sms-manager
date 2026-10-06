@@ -1,4 +1,5 @@
 import { Message } from "@shared/schema";
+import { extractPreviewUrls, storedPreviewMatches } from "@shared/preview-urls";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format, isToday, isYesterday } from "date-fns";
@@ -237,10 +238,7 @@ function getIMDbInfo(url: string): { type: string; id: string } | null {
 
 // Extract all URLs from message content
 function extractUrls(content: string): string[] {
-  // More robust URL regex that handles special characters, paths, and query strings
-  const urlRegex = /https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&\/=]*)/g;
-  const matches = content.match(urlRegex);
-  return matches || [];
+  return extractPreviewUrls(content);
 }
 
 // Check if URL should get Open Graph preview (not already handled by social embeds)
@@ -396,6 +394,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
   // Check if a URL has a rich preview (social media embed, IMDB, Open Graph)
   // IMPORTANT: Only hide URL if preview has actually loaded successfully
   const hasRichPreview = (url: string): boolean => {
+    url = extractPreviewUrls(url)[0] || url;
     // Always hide social media embeds (Facebook, Twitter, YouTube, TikTok)
     // Note: Instagram is excluded — we show an OG card for it instead
     if (getFacebookPostId(url) || getTwitterPostId(url) || getYouTubeVideoId(url) || getTikTokVideoId(url)) {
@@ -499,6 +498,10 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
   
   // Fetch movie data from TMDB when IMDB link is detected
   useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    setMovieData(null);
+    setIsLoadingMovie(false);
     async function fetchMovieData() {
       if (!imdbInfo) {
         return;
@@ -507,24 +510,27 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
       setIsLoadingMovie(true);
       
       try {
-        const response = await fetch(`/api/tmdb/movie/${imdbInfo.id}`);
+        const response = await fetch(`/api/tmdb/movie/${imdbInfo.id}`, { signal: controller.signal });
         if (response.ok) {
           const data = await response.json();
-          setMovieData(data);
+          if (active) setMovieData(data);
         }
       } catch (error) {
-        console.error('Error fetching movie data:', error);
+        if (active) console.error('Error fetching movie data:', error);
       } finally {
-        setIsLoadingMovie(false);
+        if (active) setIsLoadingMovie(false);
       }
     }
 
     fetchMovieData();
+    return () => { active = false; controller.abort(); };
   }, [imdbInfo?.id]);
 
   // Fetch Open Graph data for general URLs
   useEffect(() => {
     async function fetchOpenGraphData() {
+      setOgData(null);
+      setIsLoadingOg(false);
       if (!previewUrl) {
         setOgData(null);
         setOgImageError(false);
@@ -533,7 +539,8 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
       setOgImageError(false);
       
       // First, check if we already have enriched OG data from the database
-      if (message.ogTitle || message.ogDescription || message.ogImage) {
+      if (storedPreviewMatches(message.ogSourceUrl, previewUrl) &&
+          (message.ogTitle || message.ogDescription || message.ogImage)) {
         console.log(`[OG Fetch] Using cached enriched data for URL: ${previewUrl}`);
         setOgData({
           title: message.ogTitle || undefined,
@@ -553,10 +560,11 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
       setIsLoadingOg(true);
       
       try {
-        const response = await fetch(`/api/og-preview?url=${encodeURIComponent(previewUrl)}`);
+        const response = await fetch(`/api/og-preview?url=${encodeURIComponent(previewUrl)}`, { signal: controller.signal });
         console.log(`[OG Fetch] Response status: ${response.status} ${response.statusText}`);
         if (response.ok) {
           const data = await response.json();
+          if (!active) return;
           console.log('[OG Fetch] Response data:', data);
           if (!data.skip && !data.error) {
             setOgData(data);
@@ -565,14 +573,17 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
           }
         }
       } catch (error) {
-        console.error('[OG Fetch] Error fetching Open Graph data:', error);
+        if (active) console.error('[OG Fetch] Error fetching Open Graph data:', error);
       } finally {
-        setIsLoadingOg(false);
+        if (active) setIsLoadingOg(false);
       }
     }
 
+    let active = true;
+    const controller = new AbortController();
     fetchOpenGraphData();
-  }, [previewUrl, message.ogTitle, message.ogDescription, message.ogImage, message.ogSiteName]);
+    return () => { active = false; controller.abort(); };
+  }, [previewUrl, message.ogSourceUrl, message.ogTitle, message.ogDescription, message.ogImage, message.ogSiteName, message.ogIsBlocked, message.ogIsFallback]);
 
   // TikTok numeric embeds frequently load blank pages — use a timeout fallback
   const tiktokIsNumericEmbed = tiktokVideoId ? /^\d+$/.test(tiktokVideoId) : false;
@@ -855,9 +866,9 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
             subreddit={redditPostInfo.subreddit} 
             postId={redditPostInfo.postId} 
             url={urls.find(url => getRedditPostInfo(url)) || ''}
-            ogTitle={message.ogTitle || undefined}
-            ogImage={message.ogImage || undefined}
-            ogDescription={message.ogDescription || undefined}
+            ogTitle={storedPreviewMatches(message.ogSourceUrl, urls.find(url => getRedditPostInfo(url)) || null) ? message.ogTitle || undefined : undefined}
+            ogImage={storedPreviewMatches(message.ogSourceUrl, urls.find(url => getRedditPostInfo(url)) || null) ? message.ogImage || undefined : undefined}
+            ogDescription={storedPreviewMatches(message.ogSourceUrl, urls.find(url => getRedditPostInfo(url)) || null) ? message.ogDescription || undefined : undefined}
           />
         )}
         {youtubeVideoId && (
@@ -919,7 +930,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
                 data-pendo="content-external-link-btn"
                 data-embed-type="tiktok-fallback"
               >
-                {message.ogImage && (
+                {message.ogImage && storedPreviewMatches(message.ogSourceUrl, urls.find(url => getTikTokVideoId(url)) || null) && (
                   <div className="aspect-video w-full bg-[#263d57]/10 overflow-hidden">
                     <img src={message.ogImage} alt={message.ogTitle || ''} className="w-full h-full object-cover" loading="lazy" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   </div>
@@ -931,7 +942,7 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
                     </svg>
                     <span className="text-xs font-medium" style={{ color: '#010101' }}>TikTok</span>
                   </div>
-                  <p className="text-sm font-semibold text-[#263d57] line-clamp-2">{message.ogTitle || 'View on TikTok'}</p>
+                  <p className="text-sm font-semibold text-[#263d57] line-clamp-2">{storedPreviewMatches(message.ogSourceUrl, urls.find(url => getTikTokVideoId(url)) || null) ? message.ogTitle || 'View on TikTok' : 'View on TikTok'}</p>
                   {message.ogDescription && <p className="text-xs text-[#263d57]/60 mt-0.5 line-clamp-2">{message.ogDescription}</p>}
                   <div className="flex items-center gap-1 mt-2 text-xs text-[#263d57]/40">
                     <ExternalLink className="w-3 h-3" />

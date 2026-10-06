@@ -1,4 +1,5 @@
 import { log } from "./vite";
+import { resolvePublicPreviewUrl, safePreviewFetch } from "./safe-preview-fetch";
 
 // Open Graph data interface
 interface OpenGraphData {
@@ -184,7 +185,7 @@ class OpenGraphService {
     const ogData: OpenGraphData = {};
     
     try {
-      const response = await fetch(endpoint, {
+      const response = await safePreviewFetch(endpoint, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0)',
           'Accept': 'application/json',
@@ -367,7 +368,7 @@ class OpenGraphService {
       }
       
       log(`Fetching from ${microlinkEndpoint} for: ${url}`);
-      const response = await fetch(microlinkUrl.toString(), {
+      const response = await safePreviewFetch(microlinkUrl.toString(), {
         headers,
         signal: AbortSignal.timeout(20000), // 20 second timeout
       });
@@ -567,6 +568,7 @@ class OpenGraphService {
 
   // Main function to fetch Open Graph data
   async fetchOpenGraph(url: string): Promise<OpenGraphData | null> {
+    await resolvePublicPreviewUrl(url);
     // Special handling for Instagram URLs - use fallback immediately (before cache check)
     // Instagram blocks all scrapers (Microlink, direct fetch, etc.) and requires login for embeds
     if (this.isInstagramUrl(url)) {
@@ -617,7 +619,7 @@ class OpenGraphService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout
 
-      const response = await fetch(url, {
+      const response = await safePreviewFetch(url, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; AsideBot/1.0; +https://textaside.app)',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
@@ -670,7 +672,7 @@ class OpenGraphService {
         const oembedEndpoint = this.discoverOembedEndpoint(html);
         if (oembedEndpoint) {
           log(`Found oEmbed endpoint for ${url}: ${oembedEndpoint}`);
-          const oembedData = await this.fetchOembed(oembedEndpoint);
+          const oembedData = await this.fetchOembed(new URL(oembedEndpoint, url).href);
           
           // Merge oEmbed data with existing data (oEmbed fills in gaps)
           if (!ogData.title && oembedData.title) ogData.title = oembedData.title;
