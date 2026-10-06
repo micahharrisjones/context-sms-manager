@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Archive, LoaderCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { trackKnowledgeBackfill } from "@/lib/analytics";
 
 interface BackfillEstimate {
   count: number;
@@ -14,8 +15,14 @@ export function KnowledgeBackfill() {
   const [loading, setLoading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState("");
+  const controllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => { controllerRef.current?.abort(); }, []);
 
   async function preview() {
+    if (controllerRef.current && !controllerRef.current.signal.aborted) return;
+    const controller = new AbortController();
+    controllerRef.current = controller;
     setLoading(true);
     setError("");
     setQueued(null);
@@ -23,33 +30,47 @@ export function KnowledgeBackfill() {
       const response = await apiRequest("/api/knowledge/backfill", {
         method: "POST",
         body: JSON.stringify({ dryRun: true, limit: 20 }),
+        signal: controller.signal,
       });
-      setEstimate(await response.json() as BackfillEstimate);
+      const result = await response.json() as BackfillEstimate;
+      if (controller.signal.aborted) return;
+      setEstimate(result);
       setConfirming(false);
     } catch {
-      setError("The estimate is unavailable right now. Try again.");
+      if (!controller.signal.aborted) setError("The estimate is unavailable right now. Try again.");
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        controllerRef.current = null;
+        setLoading(false);
+      }
     }
   }
 
   async function startBatch() {
-    if (!confirming) return;
+    if (!confirming || (controllerRef.current && !controllerRef.current.signal.aborted)) return;
+    const controller = new AbortController();
+    controllerRef.current = controller;
     setLoading(true);
     setError("");
     try {
       const response = await apiRequest("/api/knowledge/backfill", {
         method: "POST",
         body: JSON.stringify({ dryRun: false, confirm: true, limit: 20 }),
+        signal: controller.signal,
       });
       const result = await response.json() as { queued: number };
+      if (controller.signal.aborted) return;
       setQueued(result.queued);
       setEstimate(null);
       setConfirming(false);
+      trackKnowledgeBackfill(result.queued);
     } catch {
-      setError("The batch couldn't be queued. No changes were made; try again.");
+      if (!controller.signal.aborted) setError("The batch couldn't be queued. No changes were made; try again.");
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        controllerRef.current = null;
+        setLoading(false);
+      }
     }
   }
 

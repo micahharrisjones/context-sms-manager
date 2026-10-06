@@ -4,6 +4,7 @@ import { AlertCircle, CalendarDays, Search, SearchX, Sparkles, X } from "lucide-
 import Masonry from "react-masonry-css";
 import type { KnowledgePreferences, KnowledgeSearchResponse } from "@shared/knowledge";
 import { apiRequest } from "@/lib/queryClient";
+import { trackKnowledgeCitation, trackKnowledgeSearch } from "@/lib/analytics";
 import { Input } from "@/components/ui/input";
 import { MessageCard } from "@/components/messages/MessageCard";
 import { KnowledgeBackfill } from "@/components/knowledge/KnowledgeBackfill";
@@ -78,6 +79,12 @@ export default function SearchPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const controllerRef = useRef<AbortController | null>(null);
   const requestIdRef = useRef(0);
+  const inspectedCitationsRef = useRef(new Set<string>());
+
+  useEffect(() => () => {
+    requestIdRef.current += 1;
+    controllerRef.current?.abort();
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,6 +101,7 @@ export default function SearchPage() {
     requestIdRef.current += 1;
     controllerRef.current?.abort();
     controllerRef.current = null;
+    inspectedCitationsRef.current.clear();
     setResponse(null);
     setError("");
     setLoading(false);
@@ -138,7 +146,9 @@ export default function SearchPage() {
       const result = await apiRequest(`/api/ai-search?${params.toString()}`, { signal: controller.signal });
       const data = await result.json() as KnowledgeSearchResponse;
       if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+      inspectedCitationsRef.current.clear();
       setResponse(data);
+      trackKnowledgeSearch(data.answerStatus, data.searchMethod, data.messages.length, data.citations.length);
       saveRecentSearch(trimmed);
       setRecentSearches(getRecentSearches());
     } catch {
@@ -282,7 +292,11 @@ export default function SearchPage() {
                     <ol className="grid gap-2 sm:grid-cols-2">
                       {citations.map((citation) => (
                         <li key={citation.id}>
-                          <a href={`#save-${citation.messageId}`} className="block min-h-12 rounded-xl border border-[#e1d7ca] bg-[#fffdf9] p-3 transition-colors hover:border-[#a7b49e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#526650]">
+                          <a href={`#save-${citation.messageId}`} onClick={() => {
+                            if (!response.messages.some((message) => message.id === citation.messageId) || inspectedCitationsRef.current.has(citation.id)) return;
+                            inspectedCitationsRef.current.add(citation.id);
+                            trackKnowledgeCitation(citation.kind);
+                          }} className="block min-h-12 rounded-xl border border-[#e1d7ca] bg-[#fffdf9] p-3 transition-colors hover:border-[#a7b49e] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#526650]">
                             <span className="flex items-start justify-between gap-3"><span className="text-xs font-semibold text-[#344851]">{citation.title || "Saved source"}</span><span className="shrink-0 rounded-full bg-[#edf1e9] px-2 py-0.5 text-[10px] text-[#526650]">{citation.kind}</span></span>
                             <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-[#68746d]">{citation.excerpt || "Open this saved item to review its source."}</span>
                           </a>

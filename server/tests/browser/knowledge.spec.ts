@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
+// This spec also runs under the preview config; date assertions need a fixed zone.
+test.use({ timezoneId: "America/Los_Angeles" });
+
 interface ApiResult {
   status?: number;
   body: unknown;
@@ -36,6 +39,7 @@ interface KnowledgeFixture {
     errorCode?: string | null;
   }>;
   searchHandler: (url: URL) => Promise<ApiResult>;
+  backfillHandler?: (data: { dryRun: boolean; confirm?: boolean; limit: number }) => Promise<ApiResult>;
 }
 
 function message(id: number) {
@@ -175,6 +179,15 @@ async function installApiFixtures(page: Page, fixture: KnowledgeFixture) {
     if (path === "/api/knowledge/backfill" && request.method() === "POST") {
       const data = request.postDataJSON() as { dryRun: boolean; confirm?: boolean; limit: number };
       fixture.backfills.push(data);
+      if (fixture.backfillHandler) {
+        const result = await fixture.backfillHandler(data);
+        try {
+          await fulfill(route, result.body, result.status ?? 200);
+        } catch {
+          // Navigating away deliberately aborts the request.
+        }
+        return;
+      }
       await fulfill(route, data.dryRun
         ? { count: 7, limit: data.limit, estimatedPassagesUpperBound: 42 }
         : { queued: 7 });
@@ -293,6 +306,7 @@ test("a denied search in a shared scope removes the previous answer", async ({ p
 });
 
 test("an older delayed response cannot overwrite the newest submitted query", async ({ page }) => {
+  await installAnalytics(page, "record", true);
   const fixture = createFixture();
   fixture.searchHandler = async (url) => {
     const query = url.searchParams.get("q");
@@ -315,6 +329,222 @@ test("an older delayed response cannot overwrite the newest submitted query", as
   await page.waitForTimeout(850);
   await expect(page.getByText("Current answer for latest question.")).toBeVisible();
   await expect(page.getByText("Stale answer for slow question.")).toHaveCount(0);
+  expect(await knowledgeEvents(page)).toEqual([{
+    name: "knowledge_search_completed",
+    data: { answer_status: "ready", search_method: "hybrid", result_count: 1, citation_count: 1 },
+  }]);
+});
+
+type AnalyticsMode = "record" | "absent" | "throw" | "reject";
+type CapturedEvent = { name: string; data?: Record<string, string | number | boolean> };
+
+async function installAnalytics(page: Page, mode: AnalyticsMode = "record", ignoreAbort = false) {
+  await page.addInitScript(({ mode, ignoreAbort }) => {
+    const browser = window as typeof window & { capturedEvents: CapturedEvent[] };
+    browser.capturedEvents = [];
+    if (mode !== "absent") {
+      window.umami = {
+        track(name, data) {
+          browser.capturedEvents.push({ name, data });
+          if (mode === "throw") throw new Error("test tracker failure");
+          if (mode === "reject") return Promise.reject(new Error("test tracker rejection"));
+        },
+      };
+    }
+    // Simulate a transport ignoring cancellation to exercise stale/unmounted guards.
+    if (ignoreAbort) {
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = (input, init) => {
+        const url = String(input);
+        return originalFetch(input, url.includes("/api/ai-search") || url.includes("/api/knowledge/backfill")
+          ? { ...init, signal: undefined } : init);
+      };
+    }
+  }, { mode, ignoreAbort });
+}
+
+async function knowledgeEvents(page: Page): Promise<CapturedEvent[]> {
+  return page.evaluate(() => (window as typeof window & { capturedEvents: CapturedEvent[] })
+    .capturedEvents.filter((event) => event.name.startsWith("knowledge_")));
+}
+
+for (const status of ["ready", "insufficient", "unavailable", "disabled"] as const) {
+  test(`analytics records the accepted ${status} outcome once, not typing or rerenders`, async ({ page }) => {
+    await installAnalytics(page);
+    const fixture = createFixture();
+    fixture.searchHandler = async (url) => ({
+      body: {
+        ...searchResponse(url),
+        answerStatus: status,
+        searchMethod: status === "ready" ? "hybrid" : "keyword",
+        aiSummary: status === "ready" ? "Accepted answer." : null,
+        messages: status === "ready" ? [message(71)] : [],
+        citations: status === "ready" ? searchResponse(url).citations : [],
+      },
+    });
+    await openSearch(page, fixture);
+    await page.getByLabel("Search your saved links, photos and notes").fill("private query #private-tag");
+    expect(await knowledgeEvents(page)).toEqual([]);
+    await page.locator('form button[type="submit"]').click();
+    await expect(page.getByText("Library coverage", { exact: true }).first()).toBeVisible();
+    const expected = [{
+      name: "knowledge_search_completed",
+      data: { answer_status: status, search_method: status === "ready" ? "hybrid" : "keyword",
+        result_count: status === "ready" ? 1 : 0, citation_count: status === "ready" ? 1 : 0 },
+    }];
+    expect(await knowledgeEvents(page)).toEqual(expected);
+    await page.getByLabel("Search your saved links, photos and notes").fill("another private draft");
+    expect(await knowledgeEvents(page)).toEqual(expected);
+  });
+}
+
+for (const kind of ["note", "page", "photo", "preview"] as const) {
+  test(`cited ${kind} inspection sends only the kind, once per citation per accepted search`, async ({ page }) => {
+    await installAnalytics(page);
+    const fixture = createFixture();
+    fixture.searchHandler = async (url) => {
+      const body = searchResponse(url);
+      body.citations[0].kind = kind;
+      body.citations[0].url = "https://private.test/photo?signature=secret";
+      return { body };
+    };
+    await openSearch(page, fixture);
+    await runQuery(page, "private query");
+    const citation = page.getByRole("link", { name: /Fixture source about garden herbs/ });
+    await citation.click();
+    await citation.click();
+    await page.getByRole("button", { name: /Library coverage/ }).click();
+    const inspections = () => knowledgeEvents(page).then((events) => events.filter((event) => event.name === "knowledge_cited_source_inspected"));
+    expect(await inspections()).toEqual([{ name: "knowledge_cited_source_inspected", data: { source_kind: kind } }]);
+    await runQuery(page, "another search");
+    await citation.click();
+    expect(await inspections()).toHaveLength(2);
+  });
+}
+
+for (const cancel of ["clear", "filter", "preferences", "unmount"] as const) {
+  test(`a delayed search after ${cancel} sends no success even if the transport ignores abort`, async ({ page }) => {
+    await installAnalytics(page, "record", true);
+    const fixture = createFixture();
+    let release!: () => void;
+    const pending = new Promise<void>((resolve) => { release = resolve; });
+    fixture.searchHandler = async (url) => {
+      await pending;
+      return { body: searchResponse(url) };
+    };
+    await openSearch(page, fixture);
+    await runQuery(page, "delayed private query");
+    await expect.poll(() => fixture.searches.length).toBe(1);
+    if (cancel === "clear") await page.getByRole("button", { name: "Clear search" }).click();
+    if (cancel === "filter") await page.getByLabel("Search scope").selectOption("17");
+    if (cancel === "preferences") {
+      await page.getByLabel("Enable answers from saved content").uncheck();
+      await expect.poll(() => fixture.preferenceWrites.length).toBe(1);
+    }
+    if (cancel === "unmount") await page.locator('[data-pendo="bottom-tab-profile"]').click();
+    release();
+    await page.waitForTimeout(300);
+    expect(await knowledgeEvents(page)).toEqual([]);
+    await expect(page.getByTestId("knowledge-answer")).toHaveCount(0);
+  });
+}
+
+test("failed searches and failed confirmed batches are not successes; only accepted queueing counts", async ({ page }) => {
+  await installAnalytics(page);
+  const fixture = createFixture();
+  fixture.searchHandler = async () => ({ status: 503, body: { error: "private provider error" } });
+  let failBatch = true;
+  fixture.backfillHandler = async (data) => data.dryRun
+    ? { body: { count: 7, limit: 20, estimatedPassagesUpperBound: 42 } }
+    : failBatch ? { status: 503, body: { error: "private provider error" } } : { body: { queued: 7 } };
+  await openSearch(page, fixture);
+  await runQuery(page, "failed query");
+  await expect(page.getByText("Search couldn't finish")).toBeVisible();
+  await page.getByRole("button", { name: "Estimate a batch" }).click();
+  await page.getByRole("button", { name: "Review and confirm batch" }).click();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  expect(await knowledgeEvents(page)).toEqual([]);
+  await page.getByRole("button", { name: "Review and confirm batch" }).click();
+  await page.getByRole("button", { name: "Yes, queue batch" }).click();
+  await expect(page.getByText(/The batch couldn't be queued/)).toBeVisible();
+  expect(await knowledgeEvents(page)).toEqual([]);
+  failBatch = false;
+  await page.getByRole("button", { name: "Yes, queue batch" }).click();
+  await expect(page.getByText("7 saves were queued for processing.")).toBeVisible();
+  expect(await knowledgeEvents(page)).toEqual([{ name: "knowledge_older_saves_queued", data: { queued_count: 7 } }]);
+  await page.getByRole("button", { name: "Estimate a batch" }).click();
+  await page.getByRole("button", { name: "Review and confirm batch" }).click();
+  expect(await knowledgeEvents(page)).toHaveLength(1);
+});
+
+test("a confirmed batch is locked while pending and does not emit after unmount", async ({ page }) => {
+  await installAnalytics(page, "record", true);
+  const fixture = createFixture();
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => { release = resolve; });
+  fixture.backfillHandler = async (data) => {
+    if (data.dryRun) return { body: { count: 7, limit: 20, estimatedPassagesUpperBound: 42 } };
+    await pending;
+    return { body: { queued: 7 } };
+  };
+  await openSearch(page, fixture);
+  await page.getByRole("button", { name: "Estimate a batch" }).click();
+  await page.getByRole("button", { name: "Review and confirm batch" }).click();
+  await page.getByRole("button", { name: "Yes, queue batch" }).evaluate((element: HTMLButtonElement) => {
+    element.click();
+    element.click();
+  });
+  await expect.poll(() => fixture.backfills.length).toBe(2);
+  await expect(page.getByRole("button", { name: "Queueing…" })).toBeDisabled();
+  await page.locator('[data-pendo="bottom-tab-profile"]').click();
+  release();
+  await page.waitForTimeout(300);
+  expect(fixture.backfills).toHaveLength(2);
+  expect(await knowledgeEvents(page)).toEqual([]);
+});
+
+for (const mode of ["absent", "throw", "reject"] as const) {
+  test(`search, citation navigation and batch confirmation work with ${mode} analytics`, async ({ page }) => {
+    const errors: string[] = [];
+    await installAnalytics(page, mode);
+    await openSearch(page);
+    // Measure interaction errors, not the existing local Vite HMR startup failure.
+    page.on("pageerror", (error) => errors.push(error.message));
+    await runQuery(page, "basil");
+    await expect(page.getByTestId("knowledge-answer")).toBeVisible();
+    await page.getByRole("link", { name: /Fixture source about garden herbs/ }).click();
+    await expect(page).toHaveURL(/#save-71$/);
+    await page.getByRole("button", { name: "Estimate a batch" }).click();
+    await page.getByRole("button", { name: "Review and confirm batch" }).click();
+    await page.getByRole("button", { name: "Yes, queue batch" }).click();
+    await expect(page.getByText("7 saves were queued for processing.")).toBeVisible();
+    expect(await knowledgeEvents(page)).toHaveLength(mode === "absent" ? 0 : 3);
+    expect(errors).toEqual([]);
+  });
+}
+
+test("mounted mobile analytics caps oversized citation and queue counts", async ({ page }) => {
+  await installAnalytics(page);
+  const fixture = createFixture();
+  fixture.searchHandler = async (url) => {
+    const body = searchResponse(url);
+    body.citations = Array.from({ length: 101 }, (_, index) => ({ ...body.citations[0], id: `citation-${index}` }));
+    return { body };
+  };
+  fixture.backfillHandler = async (data) => ({
+    body: data.dryRun ? { count: 20, limit: 20, estimatedPassagesUpperBound: 120 } : { queued: 200 },
+  });
+  await openSearch(page, fixture);
+  await runQuery(page, "private query");
+  await expect(page.getByTestId("knowledge-answer")).toBeVisible();
+  await page.getByRole("button", { name: "Estimate a batch" }).click();
+  await page.getByRole("button", { name: "Review and confirm batch" }).click();
+  await page.getByRole("button", { name: "Yes, queue batch" }).click();
+  await expect(page.getByText("200 saves were queued for processing.")).toBeVisible();
+  expect(await knowledgeEvents(page)).toEqual([
+    { name: "knowledge_search_completed", data: { answer_status: "ready", search_method: "hybrid", result_count: 1, citation_count: 100 } },
+    { name: "knowledge_older_saves_queued", data: { queued_count: 20 } },
+  ]);
 });
 
 for (const state of ["insufficient", "unavailable"] as const) {
