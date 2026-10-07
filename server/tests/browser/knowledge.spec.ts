@@ -316,7 +316,7 @@ test("simplified search waits for submission and does not request hidden scopes,
   expect(fixture.backfills).toEqual([]);
 });
 
-test("citations jump to the displayed save and on-demand coverage separates source text from interpretations", async ({ page }) => {
+test("citations jump to the displayed save without exposing indexing controls", async ({ page }) => {
   const fixture = await openSearch(page);
   await runQuery(page, "basil");
 
@@ -326,14 +326,10 @@ test("citations jump to the displayed save and on-demand coverage separates sour
   await expect(page.locator("#save-71")).toBeVisible();
   await expect(page).toHaveURL(/#save-71$/);
 
-  await page.getByRole("button", { name: /Library coverage/ }).click();
-  await expect(page.getByText("Basil prefers bright, indirect light and evenly moist soil.")).toBeVisible();
-  await expect(page.getByText("This save is about caring for basil indoors.")).toBeVisible();
-  await expect(page.getByText("Source text", { exact: true })).toBeVisible();
-  await expect(page.getByText("Interpretations", { exact: true })).toBeVisible();
-
-  await page.getByRole("button", { name: "Retry analysis" }).click();
-  await expect.poll(() => fixture.retries).toEqual([71]);
+  await expect(page.getByRole("button", { name: /Library coverage|Retry analysis/ })).toHaveCount(0);
+  await expect(page.getByText("Source text", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Interpretations", { exact: true })).toHaveCount(0);
+  expect(fixture.retries).toEqual([]);
 });
 
 test("a denied search removes previous saves and citations", async ({ page }) => {
@@ -468,7 +464,7 @@ for (const kind of ["note", "page", "photo", "preview"] as const) {
     const citation = page.getByRole("link", { name: /Fixture source about garden herbs/ });
     await citation.click();
     await citation.click();
-    await page.getByRole("button", { name: /Library coverage/ }).click();
+    await expect(page.getByRole("button", { name: /Library coverage/ })).toHaveCount(0);
     const inspections = () => knowledgeEvents(page).then((events) => events.filter((event) => event.name === "knowledge_cited_source_inspected"));
     expect(await inspections()).toEqual([{ name: "knowledge_cited_source_inspected", data: { source_kind: kind } }]);
     await runQuery(page, "another search");
@@ -740,8 +736,12 @@ test("provider unavailability never prevents turning off photo processing", asyn
   ]);
 });
 
-test("owners can retry eligible saves; a shared-scope viewer cannot retry", async ({ page }) => {
+test("owned and shared saved-item cards omit coverage controls and make no indexing-detail requests", async ({ page }) => {
   const fixture = createFixture();
+  const detailRequests: string[] = [];
+  page.on("request", request => {
+    if (new URL(request.url()).pathname.startsWith("/api/knowledge/items/")) detailRequests.push(request.url());
+  });
   fixture.searchHandler = async (url) => ({
     body: {
       ...searchResponse(url),
@@ -754,18 +754,17 @@ test("owners can retry eligible saves; a shared-scope viewer cannot retry", asyn
   await runQuery(page, "owner save");
 
   const ownerCard = page.locator("#save-71");
-  await ownerCard.getByRole("button", { name: /Library coverage/ }).click();
-  await expect(ownerCard.getByRole("button", { name: "Retry analysis" })).toBeVisible();
-
-  await ownerCard.getByRole("button", { name: "Retry analysis" }).click();
-  await expect.poll(() => fixture.retries).toEqual([71]);
+  await expect(ownerCard).toBeVisible();
+  await expect(ownerCard.getByRole("button", { name: /Library coverage|Retry analysis/ })).toHaveCount(0);
+  await expect(ownerCard.getByText(/sources found|Not in your library yet/)).toHaveCount(0);
 
   await runQuery(page, "shared archive save");
   const viewerCard = page.locator("#save-73");
-  await viewerCard.getByRole("button", { name: /Library coverage/ }).click();
-  await expect(viewerCard.getByText("Processing didn't finish")).toBeVisible();
-  await expect(viewerCard.getByRole("button", { name: "Retry analysis" })).toHaveCount(0);
-  expect(fixture.retries).not.toContain(73);
+  await expect(viewerCard).toBeVisible();
+  await expect(viewerCard.getByRole("button", { name: /Library coverage|Retry analysis/ })).toHaveCount(0);
+  await expect(viewerCard.getByText("Processing didn't finish")).toHaveCount(0);
+  expect(fixture.retries).toEqual([]);
+  expect(detailRequests).toEqual([]);
 });
 
 test("backfill dry-run makes no batch request until the user confirms the charge", async ({ page }) => {

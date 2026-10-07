@@ -15,7 +15,6 @@ import { useQuery } from "@tanstack/react-query";
 import { BoardComment } from "@shared/schema";
 import { fetchLinkPreview } from "@/lib/link-preview";
 import { fetchMoviePreview } from "@/lib/movie-preview";
-import { KnowledgeItem } from "@/components/knowledge/KnowledgeItem";
 
 interface MessageCardProps {
   message: Message;
@@ -1067,7 +1066,6 @@ export function MessageCard({ message, sharedBoard }: MessageCardProps) {
             isOpen={commentsOpen}
           />
         )}
-        <KnowledgeItem messageId={message.id} />
       </CardContent>
     </Card>
 
