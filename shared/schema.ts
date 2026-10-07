@@ -1,5 +1,5 @@
 import { pgTable, text, serial, timestamp, varchar, integer, uniqueIndex, vector, boolean, jsonb, index } from "drizzle-orm/pg-core";
-import type { KnowledgeSource } from "./knowledge";
+import type { KnowledgeSource, LibraryScanStatus } from "./knowledge";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
@@ -102,6 +102,16 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
   unique: uniqueIndex("knowledge_chunk_unique").on(t.messageId, t.sourceId, t.ordinal),
   message: index("knowledge_chunk_message_idx").on(t.messageId),
 }));
+export const knowledgeLibraryScans = pgTable("knowledge_library_scans", {
+  userId: integer("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("running"),
+  entries: jsonb("entries").$type<{ messageId: number; fingerprint: string; reuse: boolean }[]>().notNull(),
+  cursor: integer("cursor").notNull().default(0),
+  report: jsonb("report").$type<LibraryScanStatus>(),
+  acknowledgedAt: timestamp("acknowledged_at"),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+});
+
 export const knowledgeUsage = pgTable("knowledge_usage", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),

@@ -17,6 +17,12 @@ export function KnowledgePreferencesPanel({ onSettingsChange }: KnowledgePrefere
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
+    const refresh = () => setReloadKey(key => key + 1);
+    window.addEventListener("aside-knowledge-settings-changed", refresh);
+    return () => window.removeEventListener("aside-knowledge-settings-changed", refresh);
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
     setError("");

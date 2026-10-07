@@ -66,7 +66,8 @@ export const test = base.extend<{ harness: Harness }>({
       }
       if (local) {
         const allowedApi = /^(\/api\/(auth\/session|profile|tags|shared-boards|messages|admin\/stats|admin\/feedback\/unread-count))(\/|$)/;
-        if (url.pathname.startsWith("/api/") && !allowedApi.test(url.pathname)) {
+        const scanStatus = url.pathname === "/api/knowledge/library-scan" && request.method() === "GET";
+        if (url.pathname.startsWith("/api/") && !allowedApi.test(url.pathname) && !scanStatus) {
           unexpected.push(request.url());
           return route.abort();
         }

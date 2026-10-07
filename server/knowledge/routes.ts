@@ -10,6 +10,7 @@ import { providerAvailable } from "./provider";
 import { accessibleMessage, backfillCandidates, enqueue, KnowledgeError, settings } from "./repository";
 import { searchKnowledge } from "./search";
 import { startKnowledgeWorker } from "./ingestion";
+import { libraryScanStatus, startLibraryScan, dismissLibraryScan } from "./library-scan";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(v => !isNaN(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v);
 const searchInput = z.object({
@@ -86,6 +87,17 @@ export function registerKnowledgeRoutes(app: Express, requireAuth: RequestHandle
     let queued = 0;
     for (const id of ids) if (await enqueue(id, true)) queued++;
     res.json({ queued });
+  }));
+  app.get("/api/knowledge/library-scan", requireAuth, wrap(async (req, res) => {
+    res.set("Cache-Control", "no-store").json(await libraryScanStatus(req.userId));
+  }));
+  app.post("/api/knowledge/library-scan", requireAuth, rate, wrap(async (req, res) => {
+    z.object({ confirm: z.literal(true) }).strict().parse(req.body);
+    res.set("Cache-Control", "no-store").json(await startLibraryScan(req.userId));
+  }));
+  app.post("/api/knowledge/library-scan/dismiss", requireAuth, rate, wrap(async (req, res) => {
+    await dismissLibraryScan(req.userId);
+    res.set("Cache-Control", "no-store").json({ dismissed: true });
   }));
   const search = wrap(async (req, res) => {
     const input = searchInput.parse(req.query);

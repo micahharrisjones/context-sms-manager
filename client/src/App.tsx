@@ -21,6 +21,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { pendo } from "@/lib/pendo";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import BoardsPage from "@/pages/BoardsPage";
+import { SearchUpgradePrompt } from "@/components/knowledge/SearchUpgradePrompt";
 
 function LoadingScreen() {
   return (
@@ -109,6 +110,7 @@ function Router() {
           </Route>
           <Route component={NotFound} />
         </Switch>
+        <SearchUpgradePrompt />
       </Layout>
     </Switch>
   );

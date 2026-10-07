@@ -139,6 +139,15 @@ export function useAuth() {
       }
       
       // Clear auth state regardless of API call success
+      // Deferred post-login prompts are scoped to one user's browser session only.
+      // Clear them at logout so they can be offered again on the next login.
+      try {
+        Object.keys(window.sessionStorage)
+          .filter((key) => key.startsWith('aside-library-scan-deferred:'))
+          .forEach((key) => window.sessionStorage.removeItem(key));
+      } catch {
+        // Storage may be unavailable in private browsing contexts.
+      }
       setAuthState({
         user: null,
         isLoading: false,

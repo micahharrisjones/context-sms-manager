@@ -53,6 +53,10 @@ app.get("/api/profile", (_req, res) => res.json({
   id: 900001, phoneNumber: "fixture-only", firstName: "Preview", lastName: "Tester",
   displayName: "Preview Tester", avatarUrl: null,
 }));
+app.get("/api/knowledge/library-scan", (_req, res) => res.json({
+  status: "dismissed", total: 0, processed: 0, indexed: 0, partial: 0, notIndexed: 0, reasons: [],
+  available: true, photoEnabled: false, analysisEnabled: true,
+}));
 app.get("/api/tags", (_req, res) => res.json([{ tag: "previews", count: 1 }]));
 app.get("/api/shared-boards", (_req, res) => res.json([
   { id: 900002, name: "previews", role: "owner", createdBy: 900001 },

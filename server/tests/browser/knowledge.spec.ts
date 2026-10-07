@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import type { LibraryScanStatus } from "../../../shared/knowledge";
 
 // This spec also runs under the preview config; requests use a fixed local zone.
 test.use({ timezoneId: "America/Los_Angeles" });
@@ -135,6 +136,11 @@ async function installApiFixtures(page: Page, fixture: KnowledgeFixture) {
     const url = new URL(request.url());
     const path = url.pathname;
 
+    if (path === "/api/knowledge/library-scan" && request.method() === "GET") {
+      await fulfill(route, { status: "dismissed", total: 0, processed: 0, indexed: 0, partial: 0, notIndexed: 0, reasons: [],
+        available: true, photoEnabled: false, analysisEnabled: true });
+      return;
+    }
     if (path === "/api/auth/session" && request.method() === "GET") {
       await fulfill(route, { authenticated: true, userId: 900007 });
       return;
@@ -229,6 +235,132 @@ async function openSearch(page: Page, fixture = createFixture()) {
   await expect(page.getByRole("heading", { name: "Your library, understood" })).toHaveCount(0);
   return fixture;
 }
+
+async function installScanFixture(page: Page, initial: Partial<LibraryScanStatus> = {}) {
+  const fixture = createFixture();
+  fixture.preferences.enabled = initial.analysisEnabled ?? true;
+  fixture.preferences.photoEnabled = initial.photoEnabled ?? false;
+  await installApiFixtures(page, fixture);
+  const control = {
+    status: { status: "intro", total: 3, processed: 0, indexed: 0, partial: 0, notIndexed: 0,
+      reasons: [], available: true, photoEnabled: false, analysisEnabled: true, ...initial } as LibraryScanStatus,
+    starts: 0, dismissals: 0, failStart: false, failDismiss: false, failPoll: false,
+  };
+  await page.route("**/api/knowledge/library-scan**", async route => {
+    if (route.request().url().endsWith("/dismiss")) {
+      control.dismissals++;
+      if (control.failDismiss) return fulfill(route, { error: "synthetic failure" }, 503);
+      control.status = { ...control.status, status: "dismissed" };
+      return fulfill(route, { dismissed: true });
+    }
+    if (route.request().method() === "POST") {
+      control.starts++;
+      expect(route.request().postDataJSON()).toEqual({ confirm: true });
+      if (control.failStart) return fulfill(route, { error: "synthetic failure" }, 503);
+      fixture.preferences.enabled = true;
+      control.status = { ...control.status, status: control.status.total === 0 ? "completed" : "running", analysisEnabled: true };
+    } else if (control.failPoll) {
+      return fulfill(route, { error: "synthetic status failure" }, 503);
+    }
+    return fulfill(route, control.status);
+  });
+  return { control, fixture };
+}
+
+test("search upgrade can be deferred for the current login without starting AI work", async ({ page }) => {
+  const { control } = await installScanFixture(page);
+  await page.goto("/search");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("more robust AI");
+  await expect(dialog).toContainText("AI usage charges");
+  await expect(dialog).toContainText("this scan does not change your photo choice");
+  const later = dialog.getByRole("button", { name: "let's do this next time", exact: true });
+  expect(await later.evaluate(el => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(page.viewportSize()!.height);
+  await page.screenshot({ path: "/tmp/aside-scan-intro.jpg", fullPage: true });
+  await dialog.getByRole("button", { name: "let's do this next time", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByLabel("Include photos")).toBeVisible();
+  await expect(dialog).toHaveCount(0);
+  expect(control.starts).toBe(0);
+  expect(control.dismissals).toBe(0);
+});
+
+test("older-save scan shows real progress then counts, reasons and a working search action", async ({ page }) => {
+  const { control } = await installScanFixture(page, { analysisEnabled: false });
+  await page.goto("/profile");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toContainText("will enable AI analysis");
+  await dialog.getByRole("button", { name: "Scan and index older saves", exact: true }).click();
+  const progress = dialog.getByRole("progressbar");
+  await expect(progress).toHaveAttribute("aria-valuenow", "0");
+  await expect(dialog.getByRole("button", { name: "try searching now" })).toHaveCount(0);
+  control.status = { ...control.status, processed: 1, indexed: 1 };
+  await expect(progress).toHaveAttribute("aria-valuenow", "1", { timeout: 8000 });
+  await page.screenshot({ path: "/tmp/aside-scan-progress.jpg", fullPage: true });
+  control.status = { ...control.status, status: "completed", processed: 3, indexed: 2, partial: 1, notIndexed: 1,
+    reasons: [{ reason: "Private, paywalled or blocked link could not be read", count: 1 }] };
+  await expect(dialog.getByRole("button", { name: "try searching now" })).toBeVisible({ timeout: 8000 });
+  await expect(dialog).toContainText("including 1 partial save");
+  await expect(dialog).toContainText("Private, paywalled or blocked link could not be read");
+  expect(await dialog.getByRole("button", { name: "I'll try it later", exact: true }).evaluate(el => el.getBoundingClientRect().bottom))
+    .toBeLessThanOrEqual(page.viewportSize()!.height);
+  await page.screenshot({ path: "/tmp/aside-scan-complete.jpg", fullPage: true });
+  await dialog.getByRole("button", { name: "try searching now", exact: true }).click();
+  await expect(page).toHaveURL(/\/search$/);
+  await expect(dialog).toHaveCount(0);
+  expect(control.starts).toBe(1);
+  expect(control.dismissals).toBe(1);
+});
+
+test("a minimized scan survives reload and completion can be acknowledged for later", async ({ page }) => {
+  const { control } = await installScanFixture(page, { status: "running", processed: 1, indexed: 1 });
+  await page.goto("/search");
+  await page.getByRole("button", { name: "Close for now", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
+  control.status = { ...control.status, status: "completed", processed: 3, indexed: 3 };
+  await page.getByRole("button", { name: "I'll try it later", exact: true }).click({ timeout: 8000 });
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByLabel("Include photos")).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  expect(control.starts).toBe(0);
+});
+
+test("failed scan starts and failed completion acknowledgements stay honest and retryable", async ({ page }) => {
+  const { control } = await installScanFixture(page);
+  control.failStart = true;
+  await page.goto("/search");
+  await page.getByRole("button", { name: "Scan and index older saves", exact: true }).click();
+  await expect(page.getByRole("alert")).toContainText("couldn't confirm");
+  await expect(page.getByRole("progressbar")).toHaveCount(0);
+  control.failStart = false;
+  await page.getByRole("button", { name: "Scan and index older saves", exact: true }).click();
+  control.status = { ...control.status, status: "completed", processed: 3, indexed: 3 };
+  control.failDismiss = true;
+  await page.getByRole("button", { name: "I'll try it later", exact: true }).click({ timeout: 8000 });
+  await expect(page.getByRole("alert")).toContainText("couldn't save");
+  await expect(page.getByRole("dialog")).toBeVisible();
+  control.failDismiss = false;
+  await page.getByRole("button", { name: "I'll try it later", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("empty libraries complete with zero indexed cards; unavailable providers never start", async ({ page }) => {
+  const { control } = await installScanFixture(page, { total: 0 });
+  await page.goto("/search");
+  await page.getByRole("button", { name: "Scan and index older saves", exact: true }).click();
+  await expect(page.getByRole("dialog")).toContainText("of 0 total saves");
+  await page.getByRole("button", { name: "I'll try it later", exact: true }).click();
+  await page.evaluate(() => sessionStorage.clear());
+  control.status = { ...control.status, status: "intro", total: 3, available: false };
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Scan and index older saves", exact: true })).toBeDisabled();
+  await expect(page.getByRole("dialog")).toContainText("isn’t available right now");
+  expect(control.starts).toBe(1);
+});
 
 async function runQuery(page: Page, query: string) {
   const input = page.getByLabel("Search your saved links, photos and notes");

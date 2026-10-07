@@ -2,6 +2,14 @@
 name: AI product scope
 description: User-selected purpose of Aside's AI rework and boundaries on adjacent features.
 ---
+## Search-upgrade introduction
+
+After login, introduce rebuilt AI search and offer an explicit scan of the user's older saved cards. Deferring the introduction is for that login session; acknowledging a completed scan should keep it from reappearing. Progress and indexed/not-indexed counts with reasons belong in this popup, not on individual save cards.
+
+**Why:** On 2026-10-07 the user requested an optional post-login introduction, scanning all older saves, real progress, and a completion summary with choices to search now or later.
+
+**How to apply:** Preserve account ownership boundaries and existing photo opt-in. Scan the whole older-card cohort rather than stopping at one batch; report failures and usage limits honestly.
+
 Aside's AI rework should build a growing, user-queryable RAG knowledge base from saves, rather than merely summarize search results or automatically organize boards. It includes retrieving actual link content and extracting useful evidence from photos at save time.
 
 **Why:** On 2026-10-06 the user selected “Search and answers,” then clarified that links, photos, and information should form a growing RAG database with enough ingested content to answer useful questions. The user also set aside connecting users' social-platform accounts for now.

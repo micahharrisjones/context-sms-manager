@@ -27,6 +27,18 @@ export interface KnowledgePreferences {
   disclosure: string;
   limits: { savesPerDay: number; photosPerDay: number; searchesPerDay: number; linksPerSave: number; backfillBatch: number };
 }
+export interface LibraryScanStatus {
+  status: "intro" | "running" | "completed" | "dismissed";
+  total: number;
+  processed: number;
+  indexed: number;
+  partial: number;
+  notIndexed: number;
+  reasons: { reason: string; count: number }[];
+  available: boolean;
+  photoEnabled: boolean;
+  analysisEnabled: boolean;
+}
 export interface KnowledgeCitation {
   id: string;
   messageId: number;

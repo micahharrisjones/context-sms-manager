@@ -72,12 +72,16 @@ export async function accessibleMessage(userId: number, messageId: number): Prom
   return decodeMessage(result.rows[0].message as Record<string, any>);
 }
 // This writes only a persistent job, never calls a provider on the save path.
-export async function enqueue(messageId: number, force = false): Promise<boolean> {
+export async function enqueue(messageId: number, force = false, scan?: { ownerId: number; fingerprint: string; startedAt: Date }): Promise<boolean> {
   return db.transaction(async tx => {
     const [m] = await tx.select().from(messages).where(eq(messages.id, messageId)).for("update");
-    if (!m) return false;
+    if (!m || (scan && m.userId !== scan.ownerId)) return false;
     const version = fingerprint(m);
+    if (scan && version !== scan.fingerprint) return false;
     const [existing] = await tx.select().from(knowledgeItems).where(eq(knowledgeItems.messageId, messageId));
+    // Another coordinator may have finished this version since the admission read.
+    if (scan && existing?.fingerprint === version &&
+      (["ready", "partial"].includes(existing.status) || existing.updatedAt >= scan.startedAt)) return false;
     if (existing?.fingerprint === version && !force) return false;
     // A forced retry cannot invalidate work already queued/running.
     if (existing?.fingerprint === version && ["queued", "processing"].includes(existing.status)) return false;

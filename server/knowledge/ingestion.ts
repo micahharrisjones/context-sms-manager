@@ -165,7 +165,12 @@ export function startKnowledgeWorker() {
   running = true;
   const tick = async () => {
     let delay = 5000;
-    try { if (await processOneJob()) delay = 250; }
+    try {
+      const { admitLibraryScanBatch } = await import("./library-scan");
+      try { if (await admitLibraryScanBatch()) delay = 250; }
+      catch { console.warn("[Knowledge] Older-save scan admission unavailable; existing ingestion continues."); }
+      if (await processOneJob()) delay = 250;
+    }
     catch { console.warn("[Knowledge] Worker unavailable; check additive schema and database health."); delay = 60_000; }
     if (running) { timer = setTimeout(tick, delay); timer.unref(); }
   };

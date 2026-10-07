@@ -58,7 +58,7 @@ vi.mock("@aws-sdk/client-s3", async original => {
 vi.mock("../s3-service", () => ({ s3Service: { generateSignedUrlsForMessages: async (m: any[]) => m } }));
 
 import { db, pool } from "../db";
-import { users, messages, sharedBoards, boardMemberships, knowledgeItems, knowledgeChunks, knowledgeSettings, knowledgeUsage } from "@shared/schema";
+import { users, messages, sharedBoards, boardMemberships, knowledgeItems, knowledgeChunks, knowledgeSettings, knowledgeUsage, knowledgeLibraryScans } from "@shared/schema";
 import { storage } from "../storage";
 import { claimJob as claimFixtureJob, enqueue, finishJob, takeBudget } from "../knowledge/repository";
 import { fingerprint } from "../knowledge/core";
@@ -66,6 +66,7 @@ import { processOneJob as processFixtureJob } from "../knowledge/ingestion";
 import { searchKnowledge, searchLinkedKnowledge } from "../knowledge/search";
 import { registerKnowledgeRoutes } from "../knowledge/routes";
 import { answer, embed, readPhoto } from "../knowledge/provider";
+import { admitLibraryScanBatch } from "../knowledge/library-scan";
 
 // Explicit opt-in: uses ONLY temporary development fixtures and mock providers.
 // Stop the app worker while running this suite; never point it at production.
@@ -107,6 +108,39 @@ describe.skipIf(process.env.KNOWLEDGE_DB_TESTS !== "1")("knowledge database inte
   }
   async function processOneJob() { return processFixtureJob(await fixtureMessageId()); }
   async function claimJob() { return claimFixtureJob(await fixtureMessageId()); }
+  it("scans the entire owned snapshot beyond a batch, reuses indexes, resumes idempotently and reports actual completion", async () => {
+    const ready = await save("Existing indexed gin note");
+    await processFixtureJob(ready.id);
+    const legacy = await db.insert(messages).values(Array.from({ length: 25 }, (_, i) => ({
+      userId: owner, senderId: "fixture", content: `Older note ${i}`, tags: [],
+    }))).returning();
+    const [foreign] = await db.insert(messages).values({ userId: stranger, senderId: "fixture", content: "Not mine", tags: [] }).returning();
+    const [hashtagCommand] = await db.insert(messages).values({ userId: owner, senderId: "fixture", content: "#onlytag", tags: ["onlytag"] }).returning();
+    await db.update(knowledgeSettings).set({ enabled: false, photoEnabled: true }).where(eq(knowledgeSettings.userId, owner));
+    expect((await request(app).post("/api/knowledge/library-scan").send({ confirm: false })).status).toBe(400);
+    const initial = await request(app).post("/api/knowledge/library-scan").send({ confirm: true });
+    expect(initial.body).toMatchObject({ status: "running", total: 26, processed: 1, indexed: 1, photoEnabled: true, analysisEnabled: true });
+    const later = await save("Saved after the scan started");
+    expect((await request(app).post("/api/knowledge/library-scan").send({ confirm: true })).body.total).toBe(26);
+    const [run] = await db.select().from(knowledgeLibraryScans).where(eq(knowledgeLibraryScans.userId, owner));
+    expect(run.entries.map(e => e.messageId)).not.toContain(foreign.id);
+    expect(run.entries.map(e => e.messageId)).not.toContain(hashtagCommand.id);
+    expect(run.entries.map(e => e.messageId)).not.toContain(later.id);
+    expect((await request(app).post("/api/knowledge/library-scan/dismiss")).status).toBe(409);
+    await Promise.all([admitLibraryScanBatch(owner), admitLibraryScanBatch(owner)]);
+    expect((await request(app).get("/api/knowledge/library-scan")).body.status).toBe("running");
+    await admitLibraryScanBatch(owner);
+    for (const m of legacy) await processFixtureJob(m.id);
+    expect((await request(app).get("/api/knowledge/library-scan")).body).toMatchObject({
+      status: "completed", total: 26, processed: 26, indexed: 26, notIndexed: 0,
+    });
+    await db.delete(messages).where(eq(messages.id, legacy[0].id));
+    expect((await request(app).get("/api/knowledge/library-scan")).body.indexed).toBe(26);
+    expect((await request(app).post("/api/knowledge/library-scan/dismiss")).status).toBe(200);
+    expect((await request(app).get("/api/knowledge/library-scan")).body.status).toBe("dismissed");
+    actor = viewer;
+    expect((await request(app).get("/api/knowledge/library-scan")).body.status).toBe("intro");
+  });
   it("persists a save job once and indexes each link separately plus the note", async () => {
     const m = await save("My cocktail https://fixtures.example/a https://fixtures.example/b");
     expect(await enqueue(m.id)).toBe(false);
