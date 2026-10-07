@@ -225,6 +225,7 @@ async function openSearch(page: Page, fixture = createFixture()) {
   await page.goto("/search");
   await expect(page.getByLabel("Search your saved links, photos and notes")).toBeVisible();
   await expect(page.getByLabel("Include photos")).toBeVisible();
+  await expect(page.getByLabel("Include photos")).toHaveAccessibleDescription("Allow OpenAI to analyze saved photos. This preference applies across your library, not just this search.");
   await expect(page.getByRole("heading", { name: "Your library, understood" })).toHaveCount(0);
   return fixture;
 }
@@ -373,12 +374,14 @@ test("an older delayed response cannot overwrite the newest submitted query", as
 
   const input = page.getByLabel("Search your saved links, photos and notes");
   await input.fill("slow question");
-  await page.locator('form button[type="submit"]').click();
+  await page.getByRole("button", { name: "Search", exact: true }).click();
   await expect.poll(() => fixture.searches.length).toBe(1);
+  await expect(page.getByRole("button", { name: "Search again", exact: true })).toBeVisible();
 
   await input.fill("latest question");
-  await page.locator('form button[type="submit"]').click();
+  await page.getByRole("button", { name: "Search again", exact: true }).click();
   await expect(page.getByText("Current save for latest question.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Search", exact: true })).toBeVisible();
   await page.waitForTimeout(850);
   await expect(page.getByText("Current save for latest question.")).toBeVisible();
   await expect(page.getByText("Stale save for slow question.")).toHaveCount(0);
@@ -710,6 +713,7 @@ for (const viewport of [
   test(`simplified search stays readable on ${viewport.name}`, async ({ page }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await openSearch(page);
+    await expect(page.getByRole("button", { name: "Search", exact: true })).toBeDisabled();
     await expect(page.getByLabel("Include photos")).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `/tmp/aside-search-${viewport.name}.jpg`, fullPage: true });

@@ -149,7 +149,7 @@ export default function SearchPage() {
               aria-describedby="search-reading-limit"
             />
             {query && <button type="button" onClick={clearQuery} className="absolute right-[6.7rem] top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full text-[#68746d] hover:bg-[#f0ede5]" aria-label="Clear search"><X className="h-4 w-4" /></button>}
-            <button type="submit" disabled={!query.trim()} className="absolute right-2 top-1/2 inline-flex h-10 -translate-y-1/2 items-center gap-2 rounded-xl bg-[#526650] px-4 text-sm font-medium text-white transition-colors hover:bg-[#435842] disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="submit" aria-label={loading ? "Search again" : "Search"} disabled={!query.trim()} className="absolute right-2 top-1/2 inline-flex h-10 -translate-y-1/2 items-center gap-2 rounded-xl bg-[#526650] px-4 text-sm font-medium text-white transition-colors hover:bg-[#435842] disabled:cursor-not-allowed disabled:opacity-50">
               <Search className="h-4 w-4" /><span className="hidden sm:inline">{loading ? "Search again" : "Search"}</span>
             </button>
           </div>

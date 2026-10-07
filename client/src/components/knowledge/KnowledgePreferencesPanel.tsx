@@ -93,7 +93,7 @@ export function KnowledgePreferencesPanel({ onSettingsChange }: KnowledgePrefere
           Include photos
         </label>
         {saving && <LoaderCircle className="h-3.5 w-3.5 animate-spin text-[#526650]" aria-label="Saving preference" />}
-        <span id="photo-analysis-description" className="text-[11px] text-[#64717b]">Let OpenAI read text and details in saved photos.</span>
+        <span id="photo-analysis-description" className="text-[11px] text-[#64717b]">Allow OpenAI to analyze saved photos. This preference applies across your library, not just this search.</span>
       </div>
       {!preferences.available && <p className="mt-1 text-xs text-[#7c6954]">Library answers aren’t currently available for this account.</p>}
       {error && <p className="mt-1 flex items-center gap-2 text-xs text-[#9b4934]" role="alert"><AlertCircle className="h-3.5 w-3.5" />{error}</p>}
