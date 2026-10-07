@@ -609,6 +609,7 @@ test("mounted mobile analytics caps oversized citation and queue counts", async 
 for (const state of ["insufficient", "unavailable"] as const) {
   test(`${state} answer states do not render a fabricated AI summary`, async ({ page }) => {
     const fixture = createFixture();
+    const warning = "Some saves have incomplete or unavailable source content. Answers can only use the evidence retrieved.";
     fixture.searchHandler = async (url) => ({
       body: {
         messages: [],
@@ -618,7 +619,7 @@ for (const state of ["insufficient", "unavailable"] as const) {
         citations: [],
         searchMethod: "keyword",
         filters: { tags: [] },
-        warnings: [],
+        warnings: [warning],
         coverage: { total: 2, ready: 0, partial: 1, pending: 0, failed: 0, unindexed: 1 },
       },
     });
@@ -632,6 +633,16 @@ for (const state of ["insufficient", "unavailable"] as const) {
     await expect(page.getByText("This inconsistent answer must not appear.")).toHaveCount(0);
     await expect(page.getByText("1 partial", { exact: true })).toHaveCount(0);
     await expect(page.getByText("No matching saves found")).toBeVisible();
+    await expect(page.getByText(warning, { exact: true })).toHaveCount(1);
+    if (state === "insufficient") {
+      const notice = page.getByRole("note", { name: "Search content notice" });
+      await expect(notice).toContainText("There isn't enough indexed source material");
+      await expect(notice.getByText(warning, { exact: true })).toBeVisible();
+      await page.screenshot({ path: "/tmp/aside-search-no-matches.jpg", fullPage: true });
+    } else {
+      await expect(page.getByRole("note", { name: "Search content notice" })).toHaveCount(0);
+      await expect(page.getByText(warning, { exact: true })).toBeVisible();
+    }
   });
 }
 

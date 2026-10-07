@@ -119,6 +119,7 @@ export default function SearchPage() {
 
   const hasSubmitted = submittedQuery.length > 0;
   const citations = response?.citations ?? [];
+  const combineSourceWarnings = response?.answerStatus === "insufficient" && !response.aiSummary && response.messages.length === 0;
 
   return (
     <div className="min-h-[70dvh] space-y-5 pb-8 md:space-y-6">
@@ -201,9 +202,14 @@ export default function SearchPage() {
             <div className="space-y-4">
               {response.answerStatus === "disabled" && <p className="mx-auto max-w-3xl rounded-xl bg-[#f4f0e5] px-4 py-3 text-sm text-[#655d4c]">Library answers are paused. Search can still show matching saved items.</p>}
               {response.answerStatus === "unavailable" && <p className="mx-auto max-w-3xl rounded-xl bg-[#f4f0e5] px-4 py-3 text-sm text-[#655d4c]">A generated answer isn't available for this search. Your saved items below are still searchable.</p>}
-              {response.answerStatus === "insufficient" && !response.aiSummary && <p className="mx-auto max-w-3xl rounded-xl bg-[#f4f0e5] px-4 py-3 text-sm text-[#655d4c]">There isn't enough indexed source material for a reliable answer yet. Try a different phrase.</p>}
+              {response.answerStatus === "insufficient" && !response.aiSummary && (
+                <div role="note" aria-label="Search content notice" className="mx-auto max-w-3xl space-y-2 rounded-xl bg-[#f4f0e5] px-4 py-3 text-sm text-[#655d4c]">
+                  <p>There isn't enough indexed source material for a reliable answer yet. Try a different phrase.</p>
+                  {combineSourceWarnings && response.warnings.map((warning, index) => <p key={`${index}-${warning}`} className="text-xs leading-relaxed">{warning}</p>)}
+                </div>
+              )}
               <div className="mx-auto max-w-6xl space-y-3">
-                {response.warnings.map((warning, index) => <p key={`${index}-${warning}`} className="rounded-lg border border-[#e8dfcf] bg-[#fffaf0] px-3 py-2 text-xs text-[#74654d]">{warning}</p>)}
+                {!combineSourceWarnings && response.warnings.map((warning, index) => <p key={`${index}-${warning}`} className="rounded-lg border border-[#e8dfcf] bg-[#fffaf0] px-3 py-2 text-xs text-[#74654d]">{warning}</p>)}
                 <p className="text-sm text-[#68746d]"><strong className="text-[#334450]">{response.messages.length}</strong> saves · {response.searchMethod === "hybrid" ? "meaning + keyword search" : "keyword search"}</p>
                 <div>
                   <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-[#69756b]">Sources in your library</h2>
