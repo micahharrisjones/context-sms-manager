@@ -91,7 +91,7 @@ export function KnowledgeItem({ messageId }: { messageId: number }) {
                 )}
               </div>
               {(detail.status === "not_indexed" || detail.status === "paused") && (
-                <p className="mt-2 text-xs leading-relaxed text-[#606c64]">Check “Answer from my saves” in your library preferences to allow new analysis and answers. Daily limits can also pause processing. Photos require separate opt-in. Existing extracts are preserved when analysis is turned off.</p>
+                <p className="mt-2 text-xs leading-relaxed text-[#606c64]">Analysis is paused or has not started for this save. Daily limits can pause processing. Photos require separate opt-in. Existing extracts are preserved when analysis is turned off.</p>
               )}
               <p className="mt-2 text-xs text-[#68736d]">
                 {detail.sources.length} {detail.sources.length === 1 ? "source" : "sources"} found. Coverage can be incomplete: some sites limit accessible text, and photos are analyzed only with photo opt-in.

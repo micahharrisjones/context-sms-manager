@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 
-// This spec also runs under the preview config; date assertions need a fixed zone.
+// This spec also runs under the preview config; requests use a fixed local zone.
 test.use({ timezoneId: "America/Los_Angeles" });
 
 interface ApiResult {
@@ -10,6 +10,7 @@ interface ApiResult {
 
 interface KnowledgeFixture {
   searches: URL[];
+  scopeRequests: number;
   preferenceWrites: Array<{ enabled: boolean; photoEnabled: boolean }>;
   backfills: Array<{ dryRun: boolean; confirm?: boolean; limit: number }>;
   retries: number[];
@@ -80,6 +81,7 @@ function createFixture(): KnowledgeFixture {
   const now = "2025-02-14T16:32:00.000Z";
   return {
     searches: [],
+    scopeRequests: 0,
     preferenceWrites: [],
     backfills: [],
     retries: [],
@@ -127,6 +129,7 @@ async function fulfill(route: Route, body: unknown, status = 200) {
 }
 
 async function installApiFixtures(page: Page, fixture: KnowledgeFixture) {
+  await page.addInitScript(() => localStorage.setItem("pwa-install-dismissed", Date.now().toString()));
   await page.route("**/api/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -158,6 +161,7 @@ async function installApiFixtures(page: Page, fixture: KnowledgeFixture) {
       return;
     }
     if (path === "/api/knowledge/scopes" && request.method() === "GET") {
+      fixture.scopeRequests++;
       await fulfill(route, {
         boards: [
           { id: 17, name: "Shared archive", ambiguous: false },
@@ -230,37 +234,74 @@ async function runQuery(page: Page, query: string) {
   await page.locator('form button[type="submit"]').click();
 }
 
-test("typing waits for explicit submit; scopes and dates reach the search request and filters clear the old answer", async ({ page }) => {
+// Backfill remains available as a retained component, but is deliberately absent
+// from the search page. Mount it only in isolated component tests below.
+async function mountBackfillFixture(page: Page) {
+  await page.evaluate(async () => {
+    const componentPath = "/src/components/knowledge/KnowledgeBackfill.tsx";
+    const [componentCode, mainCode] = await Promise.all([
+      fetch(componentPath).then(r => r.text()), fetch("/src/main.tsx").then(r => r.text()),
+    ]);
+    const reactPath = componentCode.match(/from\s+["']([^"']*\/react\.js[^"']*)["']/)?.[1];
+    const rootPath = mainCode.match(/from\s+["']([^"']*\/react-dom_client\.js[^"']*)["']/)?.[1];
+    if (!reactPath || !rootPath) throw new Error("Could not locate the app's shared React modules for the retained-component fixture.");
+    const [react, dom, component] = await Promise.all([import(reactPath), import(rootPath), import(componentPath)]);
+    const container = document.createElement("div");
+    container.id = "retained-backfill-fixture";
+    Object.assign(container.style, {
+      position: "fixed", inset: "16px", zIndex: "10000",
+      overflowY: "auto", background: "#fffdf9", padding: "16px",
+    });
+    document.body.append(container);
+    const root = (dom.default ?? dom).createRoot(container);
+    (window as typeof window & { backfillFixtureRoot: { unmount(): void } }).backfillFixtureRoot = root;
+    root.render((react.default ?? react).createElement(component.KnowledgeBackfill));
+  });
+  await expect(page.getByRole("button", { name: "Estimate a batch" })).toBeVisible();
+}
+
+test("simplified search waits for submission and does not request hidden scopes, dates or backfills", async ({ page }) => {
   const fixture = await openSearch(page);
   const input = page.getByLabel("Search your saved links, photos and notes");
+  await expect(page.getByLabel("Search scope")).toHaveCount(0);
+  await expect(page.locator('input[type="date"]')).toHaveCount(0);
+  await expect(page.getByLabel("Enable answers from saved content")).toHaveCount(0);
+  await expect(page.getByText("Fixture disclosure.")).toHaveCount(0);
+  await expect(page.getByText(/Page text from your saves is sent to OpenAI/)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Bring older saves into your library" })).toHaveCount(0);
+  await expect(page.getByLabel("Include photos")).toBeVisible();
+  await expect(page.getByText("Private, paywalled and blocked pages may not be readable.", { exact: true })).toBeVisible();
 
   await input.fill("basil");
   await page.waitForTimeout(850);
   expect(fixture.searches).toHaveLength(0);
 
-  await page.getByLabel("Search scope").selectOption("17");
-  await page.getByLabel("Filter from date").fill("2025-01-03");
-  await page.getByLabel("Filter to date").fill("2025-02-15");
   await page.locator('form button[type="submit"]').click();
-  await expect(page.getByText("A useful answer from your saved sources.")).toBeVisible();
+  await expect(page.locator("#save-71")).toBeVisible();
+  await expect(page.getByTestId("knowledge-answer")).toHaveCount(0);
+  await expect(page.getByText("From your saves", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("2 ready", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("1 partial", { exact: true })).toHaveCount(0);
   await expect.poll(() => fixture.searches.length).toBe(1);
 
   const sent = fixture.searches[0];
   expect(sent.searchParams.get("q")).toBe("basil");
-  expect(sent.searchParams.get("boardId")).toBe("17");
-  expect(sent.searchParams.get("from")).toBe("2025-01-03");
-  expect(sent.searchParams.get("to")).toBe("2025-02-15");
+  expect(sent.searchParams.has("boardId")).toBe(false);
+  expect(sent.searchParams.has("from")).toBe(false);
+  expect(sent.searchParams.has("to")).toBe(false);
   expect(sent.searchParams.get("tz")).toBe("America/Los_Angeles");
 
-  await page.getByLabel("Search scope").selectOption("");
-  await expect(page.getByText("A useful answer from your saved sources.")).toHaveCount(0);
+  await page.getByRole("button", { name: "Clear search" }).click();
+  await expect(page.locator("#save-71")).toHaveCount(0);
   await expect(page.getByText("Fixture source about garden herbs")).toHaveCount(0);
   await input.fill("basil in my saves");
   await input.press("Enter");
-  await expect(page.getByText("A useful answer from your saved sources.")).toBeVisible();
+  await expect(page.locator("#save-71")).toBeVisible();
   await expect.poll(() => fixture.searches.length).toBe(2);
   expect(fixture.searches[1].searchParams.has("boardId")).toBe(false);
-  expect(fixture.searches[1].searchParams.get("from")).toBe("2025-01-03");
+  expect(fixture.searches[1].searchParams.has("from")).toBe(false);
+  expect(fixture.scopeRequests).toBe(0);
+  expect(fixture.backfills).toEqual([]);
 });
 
 test("citations jump to the displayed save and on-demand coverage separates source text from interpretations", async ({ page }) => {
@@ -283,7 +324,7 @@ test("citations jump to the displayed save and on-demand coverage separates sour
   await expect.poll(() => fixture.retries).toEqual([71]);
 });
 
-test("a denied search in a shared scope removes the previous answer", async ({ page }) => {
+test("a denied search removes previous saves and citations", async ({ page }) => {
   const fixture = createFixture();
   fixture.searchHandler = async (url) => {
     if (url.searchParams.get("q") === "denied private archive") {
@@ -293,16 +334,17 @@ test("a denied search in a shared scope removes the previous answer", async ({ p
   };
   await openSearch(page, fixture);
 
-  await page.getByLabel("Search scope").selectOption("17");
   await runQuery(page, "saved in this archive");
-  await expect(page.getByText("Earlier answer from this scope.")).toBeVisible();
+  await expect(page.locator("#save-71")).toBeVisible();
 
   const input = page.getByLabel("Search your saved links, photos and notes");
   await input.fill("denied private archive");
   await page.locator('form button[type="submit"]').click();
   await expect(page.getByText("Search couldn't finish")).toBeVisible();
   await expect(page.getByText("Earlier answer from this scope.")).toHaveCount(0);
-  expect(fixture.searches.at(-1)?.searchParams.get("boardId")).toBe("17");
+  await expect(page.locator("#save-71")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: /Fixture source about garden herbs/ })).toHaveCount(0);
+  expect(fixture.searches.at(-1)?.searchParams.has("boardId")).toBe(false);
 });
 
 test("an older delayed response cannot overwrite the newest submitted query", async ({ page }) => {
@@ -312,9 +354,9 @@ test("an older delayed response cannot overwrite the newest submitted query", as
     const query = url.searchParams.get("q");
     if (query === "slow question") {
       await new Promise((resolve) => setTimeout(resolve, 700));
-      return { body: searchResponse(url, "Stale answer for slow question.") };
+      return { body: { ...searchResponse(url), messages: [{ ...message(71), content: "Stale save for slow question." }] } };
     }
-    return { body: searchResponse(url, "Current answer for latest question.") };
+    return { body: { ...searchResponse(url), messages: [{ ...message(71), content: "Current save for latest question." }] } };
   };
   await openSearch(page, fixture);
 
@@ -325,10 +367,10 @@ test("an older delayed response cannot overwrite the newest submitted query", as
 
   await input.fill("latest question");
   await page.locator('form button[type="submit"]').click();
-  await expect(page.getByText("Current answer for latest question.")).toBeVisible();
+  await expect(page.getByText("Current save for latest question.")).toBeVisible();
   await page.waitForTimeout(850);
-  await expect(page.getByText("Current answer for latest question.")).toBeVisible();
-  await expect(page.getByText("Stale answer for slow question.")).toHaveCount(0);
+  await expect(page.getByText("Current save for latest question.")).toBeVisible();
+  await expect(page.getByText("Stale save for slow question.")).toHaveCount(0);
   expect(await knowledgeEvents(page)).toEqual([{
     name: "knowledge_search_completed",
     data: { answer_status: "ready", search_method: "hybrid", result_count: 1, citation_count: 1 },
@@ -386,13 +428,12 @@ for (const status of ["ready", "insufficient", "unavailable", "disabled"] as con
     await page.getByLabel("Search your saved links, photos and notes").fill("private query #private-tag");
     expect(await knowledgeEvents(page)).toEqual([]);
     await page.locator('form button[type="submit"]').click();
-    await expect(page.getByText("Library coverage", { exact: true }).first()).toBeVisible();
     const expected = [{
       name: "knowledge_search_completed",
       data: { answer_status: status, search_method: status === "ready" ? "hybrid" : "keyword",
         result_count: status === "ready" ? 1 : 0, citation_count: status === "ready" ? 1 : 0 },
     }];
-    expect(await knowledgeEvents(page)).toEqual(expected);
+    await expect.poll(() => knowledgeEvents(page)).toEqual(expected);
     await page.getByLabel("Search your saved links, photos and notes").fill("another private draft");
     expect(await knowledgeEvents(page)).toEqual(expected);
   });
@@ -422,7 +463,7 @@ for (const kind of ["note", "page", "photo", "preview"] as const) {
   });
 }
 
-for (const cancel of ["clear", "filter", "preferences", "unmount"] as const) {
+for (const cancel of ["clear", "preferences", "unmount"] as const) {
   test(`a delayed search after ${cancel} sends no success even if the transport ignores abort`, async ({ page }) => {
     await installAnalytics(page, "record", true);
     const fixture = createFixture();
@@ -436,9 +477,8 @@ for (const cancel of ["clear", "filter", "preferences", "unmount"] as const) {
     await runQuery(page, "delayed private query");
     await expect.poll(() => fixture.searches.length).toBe(1);
     if (cancel === "clear") await page.getByRole("button", { name: "Clear search" }).click();
-    if (cancel === "filter") await page.getByLabel("Search scope").selectOption("17");
     if (cancel === "preferences") {
-      await page.getByLabel("Enable answers from saved content").uncheck();
+      await page.getByLabel("Include photos").check();
       await expect.poll(() => fixture.preferenceWrites.length).toBe(1);
     }
     if (cancel === "unmount") await page.locator('[data-pendo="bottom-tab-profile"]').click();
@@ -460,6 +500,7 @@ test("failed searches and failed confirmed batches are not successes; only accep
   await openSearch(page, fixture);
   await runQuery(page, "failed query");
   await expect(page.getByText("Search couldn't finish")).toBeVisible();
+  await mountBackfillFixture(page);
   await page.getByRole("button", { name: "Estimate a batch" }).click();
   await page.getByRole("button", { name: "Review and confirm batch" }).click();
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
@@ -488,6 +529,7 @@ test("a confirmed batch is locked while pending and does not emit after unmount"
     return { body: { queued: 7 } };
   };
   await openSearch(page, fixture);
+  await mountBackfillFixture(page);
   await page.getByRole("button", { name: "Estimate a batch" }).click();
   await page.getByRole("button", { name: "Review and confirm batch" }).click();
   await page.getByRole("button", { name: "Yes, queue batch" }).evaluate((element: HTMLButtonElement) => {
@@ -496,6 +538,10 @@ test("a confirmed batch is locked while pending and does not emit after unmount"
   });
   await expect.poll(() => fixture.backfills.length).toBe(2);
   await expect(page.getByRole("button", { name: "Queueing…" })).toBeDisabled();
+  await page.evaluate(() => {
+    (window as typeof window & { backfillFixtureRoot: { unmount(): void } }).backfillFixtureRoot.unmount();
+    document.getElementById("retained-backfill-fixture")?.remove();
+  });
   await page.locator('[data-pendo="bottom-tab-profile"]').click();
   release();
   await page.waitForTimeout(300);
@@ -511,9 +557,10 @@ for (const mode of ["absent", "throw", "reject"] as const) {
     // Measure interaction errors, not the existing local Vite HMR startup failure.
     page.on("pageerror", (error) => errors.push(error.message));
     await runQuery(page, "basil");
-    await expect(page.getByTestId("knowledge-answer")).toBeVisible();
+    await expect(page.locator("#save-71")).toBeVisible();
     await page.getByRole("link", { name: /Fixture source about garden herbs/ }).click();
     await expect(page).toHaveURL(/#save-71$/);
+    await mountBackfillFixture(page);
     await page.getByRole("button", { name: "Estimate a batch" }).click();
     await page.getByRole("button", { name: "Review and confirm batch" }).click();
     await page.getByRole("button", { name: "Yes, queue batch" }).click();
@@ -536,7 +583,8 @@ test("mounted mobile analytics caps oversized citation and queue counts", async 
   });
   await openSearch(page, fixture);
   await runQuery(page, "private query");
-  await expect(page.getByTestId("knowledge-answer")).toBeVisible();
+  await expect(page.locator("#save-71")).toBeVisible();
+  await mountBackfillFixture(page);
   await page.getByRole("button", { name: "Estimate a batch" }).click();
   await page.getByRole("button", { name: "Review and confirm batch" }).click();
   await page.getByRole("button", { name: "Yes, queue batch" }).click();
@@ -567,50 +615,85 @@ for (const state of ["insufficient", "unavailable"] as const) {
     await runQuery(page, `${state} query`);
 
     await expect(page.getByText(state === "insufficient"
-      ? "There isn't enough indexed source material for a reliable answer yet. Try a different phrase or check the coverage below."
+      ? "There isn't enough indexed source material for a reliable answer yet. Try a different phrase."
       : "A generated answer isn't available for this search. Your saved items below are still searchable.")).toBeVisible();
     await expect(page.getByTestId("knowledge-answer")).toHaveCount(0);
     await expect(page.getByText("This inconsistent answer must not appear.")).toHaveCount(0);
-    await expect(page.getByText("1 partial")).toBeVisible();
+    await expect(page.getByText("1 partial", { exact: true })).toHaveCount(0);
     await expect(page.getByText("No matching saves found")).toBeVisible();
   });
 }
 
-test("preferences send explicit analysis and photo opt-in choices", async ({ page }) => {
+test("photo preference changes preserve the existing analysis consent", async ({ page }) => {
   const fixture = await openSearch(page);
-  const analysis = page.getByLabel("Enable answers from saved content");
   const photos = page.getByLabel("Include photos");
 
-  await analysis.uncheck();
-  await expect.poll(() => fixture.preferenceWrites.length).toBe(1);
-  expect(fixture.preferenceWrites[0]).toEqual({ enabled: false, photoEnabled: false });
-
-  await analysis.check();
-  await expect.poll(() => fixture.preferenceWrites.length).toBe(2);
-  await expect(photos).toBeEnabled();
   await photos.check();
-  await expect.poll(() => fixture.preferenceWrites.length).toBe(3);
-  expect(fixture.preferenceWrites[2]).toEqual({ enabled: true, photoEnabled: true });
-  await expect(page.getByText(/Page text from your saves is sent to OpenAI/)).toBeVisible();
+  await expect.poll(() => fixture.preferenceWrites.length).toBe(1);
+  expect(fixture.preferenceWrites[0]).toEqual({ enabled: true, photoEnabled: true });
+  await expect(photos).toBeEnabled();
+  await photos.uncheck();
+  await expect.poll(() => fixture.preferenceWrites.length).toBe(2);
+  expect(fixture.preferenceWrites[1]).toEqual({ enabled: true, photoEnabled: false });
+  await expect(page.getByLabel("Enable answers from saved content")).toHaveCount(0);
+  await expect(photos).toHaveAttribute("aria-describedby", "photo-reading-limit");
 });
 
-test("provider unavailability never prevents turning off analysis or photo processing", async ({ page }) => {
+test("photo opt-in does not silently reactivate paused library analysis", async ({ page }) => {
+  const fixture = createFixture();
+  fixture.preferences.enabled = false;
+  await openSearch(page, fixture);
+  await page.getByLabel("Include photos").check();
+  await expect.poll(() => fixture.preferenceWrites).toEqual([{ enabled: false, photoEnabled: true }]);
+  await expect(page.getByLabel("Include photos")).toBeChecked();
+  await expect(page.getByText(/Library analysis is paused/)).toBeVisible();
+});
+
+test("failed photo preference updates restore the checkbox and show a safe retry error", async ({ page }) => {
+  await openSearch(page);
+  await page.route("**/api/knowledge/settings", async route => {
+    if (route.request().method() === "PUT") return fulfill(route, { error: "private provider diagnostic" }, 503);
+    await route.fallback();
+  });
+  // A rejected optimistic update may roll back before check()'s checked-state
+  // assertion; click verifies the interaction without expecting it to persist.
+  await page.getByLabel("Include photos").click();
+  await expect(page.getByRole("alert")).toContainText("Your preference wasn't saved. Please try again.");
+  await expect(page.getByLabel("Include photos")).not.toBeChecked();
+  await expect(page.getByLabel("Include photos")).toBeEnabled();
+  await expect(page.getByText("private provider diagnostic")).toHaveCount(0);
+});
+
+for (const viewport of [
+  { name: "mobile", width: 390, height: 844 },
+  { name: "desktop", width: 1440, height: 1000 },
+]) {
+  test(`simplified search stays readable on ${viewport.name}`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await openSearch(page);
+    await expect(page.getByLabel("Include photos")).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: `/tmp/aside-search-${viewport.name}.jpg`, fullPage: true });
+    await runQuery(page, "basil");
+    await expect(page.locator("#save-71")).toBeVisible();
+    await expect(page.getByTestId("knowledge-answer")).toHaveCount(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await page.screenshot({ path: `/tmp/aside-search-${viewport.name}-results.jpg`, fullPage: true });
+  });
+}
+
+test("provider unavailability never prevents turning off photo processing", async ({ page }) => {
   const fixture = createFixture();
   fixture.preferences = { ...fixture.preferences, available: false, enabled: true, photoEnabled: true };
   await openSearch(page, fixture);
 
-  const analysis = page.getByLabel("Enable answers from saved content");
   const photos = page.getByLabel("Include photos");
   await expect(page.getByText("Library answers aren’t currently available for this account.")).toBeVisible();
-  await expect(analysis).toBeEnabled();
-  await analysis.uncheck();
-  await expect.poll(() => fixture.preferenceWrites.length).toBe(1);
   await expect(photos).toBeEnabled();
   await photos.uncheck();
-  await expect.poll(() => fixture.preferenceWrites.length).toBe(2);
+  await expect.poll(() => fixture.preferenceWrites.length).toBe(1);
   expect(fixture.preferenceWrites).toEqual([
-    { enabled: false, photoEnabled: true },
-    { enabled: false, photoEnabled: false },
+    { enabled: true, photoEnabled: false },
   ]);
 });
 
@@ -619,7 +702,7 @@ test("owners can retry eligible saves; a shared-scope viewer cannot retry", asyn
   fixture.searchHandler = async (url) => ({
     body: {
       ...searchResponse(url),
-      messages: url.searchParams.has("boardId")
+      messages: url.searchParams.get("q") === "shared archive save"
         ? [{ ...message(73), content: "Shared archive item" }]
         : [message(71)],
     },
@@ -634,7 +717,6 @@ test("owners can retry eligible saves; a shared-scope viewer cannot retry", asyn
   await ownerCard.getByRole("button", { name: "Retry analysis" }).click();
   await expect.poll(() => fixture.retries).toEqual([71]);
 
-  await page.getByLabel("Search scope").selectOption("17");
   await runQuery(page, "shared archive save");
   const viewerCard = page.locator("#save-73");
   await viewerCard.getByRole("button", { name: /Library coverage/ }).click();
@@ -645,6 +727,7 @@ test("owners can retry eligible saves; a shared-scope viewer cannot retry", asyn
 
 test("backfill dry-run makes no batch request until the user confirms the charge", async ({ page }) => {
   const fixture = await openSearch(page);
+  await mountBackfillFixture(page);
 
   await page.getByRole("button", { name: "Estimate a batch" }).click();
   await expect(page.getByText(/This batch includes 7 saves/)).toBeVisible();

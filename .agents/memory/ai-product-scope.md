@@ -13,3 +13,9 @@ The user confirmed “Hey Aside” SMS recall should return up to five newest ma
 **Why:** On 2026-10-06 the user approved connecting SMS to the knowledge base, then explicitly specified the five latest results and direct original links using a pasta-recipe example.
 
 **How to apply:** Reuse authorized source retrieval, order eligible results by saved date rather than relevance alone, and never substitute a dashboard/login link for the requested original URL. Keep help and login commands intact. Do not label capped or incomplete counts as exhaustive.
+
+Aside's default search surface should emphasize finding saved items rather than scope/date configuration, an answer-summary card or indexing-management/coverage sections. Photo inclusion remains an explicit opt-in.
+
+**Why:** On 2026-10-06 the user requested these specific removals to simplify search, while keeping “Include photos” and a brief notice about unreadable private/paywalled/blocked pages. This was a presentation change, not permission to reset privacy choices or stop ingestion.
+
+**How to apply:** Do not reintroduce these sections by default without new agreement. Preserve existing analysis consent when updating photo preferences, and retain backend indexing/backfill capabilities even when their search-page controls are hidden.

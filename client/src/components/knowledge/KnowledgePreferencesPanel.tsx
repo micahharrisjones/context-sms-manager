@@ -86,34 +86,16 @@ export function KnowledgePreferencesPanel({ onSettingsChange }: KnowledgePrefere
           </span>
           <div>
             <h2 id="knowledge-preferences-title" className="font-semibold text-[#263d57]">Your library, understood</h2>
-            <p className="mt-1 max-w-xl text-xs leading-relaxed text-[#536170]">
-              {preferences.disclosure && <>{preferences.disclosure} </>}
-              Page text from your saves is sent to OpenAI to prepare answers. Photos are processed only when you separately opt in below.
-            </p>
           </div>
         </div>
         {saving && <LoaderCircle className="h-4 w-4 animate-spin text-[#526650]" aria-label="Saving preference" />}
       </div>
       {!preferences.available && <p className="mt-3 text-xs text-[#7c6954]">Library answers aren’t currently available for this account.</p>}
-      <div className="mt-4 grid gap-3 border-t border-[#eee6dc] pt-4 sm:grid-cols-2">
-        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-[#f7f4ec] px-3 py-3">
-          <span>
-            <span className="block text-sm font-medium text-[#263d57]">Answer from my saves</span>
-            <span className="mt-0.5 block text-xs text-[#64717b]">Off preserves existing extracts, but stops new analysis and answers.</span>
-          </span>
-          <input
-            type="checkbox"
-            className="h-5 w-5 accent-[#526650]"
-            checked={preferences.enabled}
-            disabled={saving}
-            onChange={(event) => update({ enabled: event.target.checked, photoEnabled: preferences.photoEnabled })}
-            aria-label="Enable answers from saved content"
-          />
-        </label>
+      <div className="mt-4 border-t border-[#eee6dc] pt-4">
         <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-[#f7f4ec] px-3 py-3">
           <span>
             <span className="block text-sm font-medium text-[#263d57]">Include photos</span>
-            <span className="mt-0.5 block text-xs text-[#64717b]">Photos are processed only with your opt-in.</span>
+            <span className="mt-0.5 block text-xs text-[#64717b]">Let OpenAI read text and details in saved photos.</span>
           </span>
           <input
             type="checkbox"
@@ -122,11 +104,13 @@ export function KnowledgePreferencesPanel({ onSettingsChange }: KnowledgePrefere
             disabled={saving}
             onChange={(event) => update({ enabled: preferences.enabled, photoEnabled: event.target.checked })}
             aria-label="Include photos"
+            aria-describedby="photo-reading-limit"
           />
         </label>
+        <p id="photo-reading-limit" className="mt-2 text-[11px] leading-relaxed text-[#7c847e]">Private, paywalled and blocked pages may not be readable.</p>
       </div>
       {error && <p className="mt-3 flex items-center gap-2 text-xs text-[#9b4934]" role="alert"><AlertCircle className="h-3.5 w-3.5" />{error}</p>}
-      {preferences.enabled && <p className="mt-3 flex items-center gap-1.5 text-[11px] text-[#637566]"><Check className="h-3.5 w-3.5" />You can change these choices any time.</p>}
+      {preferences.enabled && <p className="mt-3 flex items-center gap-1.5 text-[11px] text-[#637566]"><Check className="h-3.5 w-3.5" />You can change this preference any time.</p>}
     </section>
   );
 }
