@@ -95,11 +95,9 @@ export function KnowledgePreferencesPanel({ onSettingsChange }: KnowledgePrefere
             disabled={saving}
             onChange={(event) => update({ enabled: preferences.enabled, photoEnabled: event.target.checked })}
             aria-label="Include photos"
-            aria-describedby="photo-reading-limit"
           />
           </span>
         </label>
-        <p id="photo-reading-limit" className="mt-2 text-[11px] leading-relaxed text-[#7c847e]">Private, paywalled and blocked pages may not be readable.</p>
       </div>
       {error && <p className="mt-3 flex items-center gap-2 text-xs text-[#9b4934]" role="alert"><AlertCircle className="h-3.5 w-3.5" />{error}</p>}
       {preferences.enabled && <p className="mt-3 flex items-center gap-1.5 text-[11px] text-[#637566]"><Check className="h-3.5 w-3.5" />You can change this preference any time.</p>}

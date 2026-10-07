@@ -272,6 +272,10 @@ test("simplified search waits for submission and does not request hidden scopes,
   await expect(page.getByRole("heading", { name: "Bring older saves into your library" })).toHaveCount(0);
   await expect(page.getByLabel("Include photos")).toBeVisible();
   await expect(page.getByText("Private, paywalled and blocked pages may not be readable.", { exact: true })).toBeVisible();
+  await expect(page.locator("form #search-reading-limit")).toHaveText("Private, paywalled and blocked pages may not be readable.");
+  await expect(input).toHaveAttribute("aria-describedby", "search-reading-limit");
+  await expect(page.getByText(/Search runs only when you submit|Up to 800 characters/)).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Photo preferences" }).getByText(/Private, paywalled/)).toHaveCount(0);
 
   await input.fill("basil");
   await page.waitForTimeout(850);
@@ -637,7 +641,7 @@ test("photo preference changes preserve the existing analysis consent", async ({
   await expect.poll(() => fixture.preferenceWrites.length).toBe(2);
   expect(fixture.preferenceWrites[1]).toEqual({ enabled: true, photoEnabled: false });
   await expect(page.getByLabel("Enable answers from saved content")).toHaveCount(0);
-  await expect(photos).toHaveAttribute("aria-describedby", "photo-reading-limit");
+  await expect(page.getByLabel("Search your saved links, photos and notes")).toHaveAttribute("aria-describedby", "search-reading-limit");
 });
 
 test("photo opt-in does not silently reactivate paused library analysis", async ({ page }) => {
