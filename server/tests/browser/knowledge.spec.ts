@@ -224,7 +224,8 @@ async function openSearch(page: Page, fixture = createFixture()) {
   await installApiFixtures(page, fixture);
   await page.goto("/search");
   await expect(page.getByLabel("Search your saved links, photos and notes")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Your library, understood" })).toBeVisible();
+  await expect(page.getByLabel("Include photos")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your library, understood" })).toHaveCount(0);
   return fixture;
 }
 

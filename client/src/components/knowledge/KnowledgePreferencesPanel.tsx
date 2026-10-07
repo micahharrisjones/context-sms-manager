@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Check, LoaderCircle, Sparkles } from "lucide-react";
+import { AlertCircle, Check, LoaderCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { KnowledgePreferences } from "@shared/knowledge";
 
@@ -78,25 +78,16 @@ export function KnowledgePreferencesPanel({ onSettingsChange }: KnowledgePrefere
   }
 
   return (
-    <section className="rounded-2xl border border-[#e6d8c8] bg-[#fffdf9] p-4 md:p-5" aria-labelledby="knowledge-preferences-title">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex gap-3">
-          <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#e9eee5] text-[#526650]">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <div>
-            <h2 id="knowledge-preferences-title" className="font-semibold text-[#263d57]">Your library, understood</h2>
-          </div>
-        </div>
-        {saving && <LoaderCircle className="h-4 w-4 animate-spin text-[#526650]" aria-label="Saving preference" />}
-      </div>
-      {!preferences.available && <p className="mt-3 text-xs text-[#7c6954]">Library answers aren’t currently available for this account.</p>}
-      <div className="mt-4 border-t border-[#eee6dc] pt-4">
+    <section className="rounded-2xl border border-[#e6d8c8] bg-[#fffdf9] p-4 md:p-5" aria-label="Photo preferences">
+      {!preferences.available && <p className="mb-3 text-xs text-[#7c6954]">Library answers aren’t currently available for this account.</p>}
+      <div>
         <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-[#f7f4ec] px-3 py-3">
           <span>
             <span className="block text-sm font-medium text-[#263d57]">Include photos</span>
             <span className="mt-0.5 block text-xs text-[#64717b]">Let OpenAI read text and details in saved photos.</span>
           </span>
+          <span className="flex shrink-0 items-center gap-3">
+            {saving && <LoaderCircle className="h-4 w-4 animate-spin text-[#526650]" aria-label="Saving preference" />}
           <input
             type="checkbox"
             className="h-5 w-5 accent-[#526650]"
@@ -106,6 +97,7 @@ export function KnowledgePreferencesPanel({ onSettingsChange }: KnowledgePrefere
             aria-label="Include photos"
             aria-describedby="photo-reading-limit"
           />
+          </span>
         </label>
         <p id="photo-reading-limit" className="mt-2 text-[11px] leading-relaxed text-[#7c847e]">Private, paywalled and blocked pages may not be readable.</p>
       </div>
