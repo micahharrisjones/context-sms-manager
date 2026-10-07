@@ -18,4 +18,4 @@ Aside's default search surface should emphasize finding saved items rather than 
 
 **Why:** On 2026-10-06 the user requested these specific removals to simplify search, while keeping “Include photos” and a brief notice about unreadable private/paywalled/blocked pages. This was a presentation change, not permission to reset privacy choices or stop ingestion.
 
-**How to apply:** Do not reintroduce these sections by default without new agreement. Preserve existing analysis consent when updating photo preferences, and retain backend indexing/backfill capabilities even when their search-page controls are hidden.
+**How to apply:** Do not reintroduce these sections by default without new agreement. Preserve existing analysis consent when updating photo preferences, and retain backend indexing/backfill capabilities even when their search-page controls are hidden. The user further requested photo inclusion be part of the search controls rather than a standalone card; this visual integration does not authorize changing it from a processing opt-in to a results-only filter.

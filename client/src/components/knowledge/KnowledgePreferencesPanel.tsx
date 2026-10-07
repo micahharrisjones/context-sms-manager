@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, Check, LoaderCircle } from "lucide-react";
+import { AlertCircle, LoaderCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import type { KnowledgePreferences } from "@shared/knowledge";
 
@@ -65,42 +65,38 @@ export function KnowledgePreferencesPanel({ onSettingsChange }: KnowledgePrefere
   }
 
   if (loading) {
-    return <div className="h-24 animate-pulse rounded-2xl border border-[#e6d8c8] bg-[#f5efe6]" aria-label="Loading knowledge preferences" />;
+    return <div className="flex min-h-9 items-center gap-2 text-xs text-[#64717b]" role="status"><LoaderCircle className="h-3.5 w-3.5 animate-spin" />Loading photo preference…</div>;
   }
 
   if (!preferences) {
     return (
-      <div className="rounded-2xl border border-[#e8c9bd] bg-[#fff8f3] p-4 text-sm text-[#6c4738]">
-        <div className="flex items-center gap-2"><AlertCircle className="h-4 w-4" />{error}</div>
-        <button className="mt-2 underline underline-offset-2" onClick={() => setReloadKey((key) => key + 1)}>Reload preferences</button>
+      <div className="text-xs text-[#6c4738]">
+        <div className="flex items-center gap-2" role="alert"><AlertCircle className="h-4 w-4" />{error}</div>
+        <button type="button" className="mt-2 min-h-9 underline underline-offset-2" onClick={() => setReloadKey((key) => key + 1)}>Reload preferences</button>
       </div>
     );
   }
 
   return (
-    <section className="rounded-2xl border border-[#e6d8c8] bg-[#fffdf9] p-4 md:p-5" aria-label="Photo preferences">
-      {!preferences.available && <p className="mb-3 text-xs text-[#7c6954]">Library answers aren’t currently available for this account.</p>}
-      <div>
-        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl bg-[#f7f4ec] px-3 py-3">
-          <span>
-            <span className="block text-sm font-medium text-[#263d57]">Include photos</span>
-            <span className="mt-0.5 block text-xs text-[#64717b]">Let OpenAI read text and details in saved photos.</span>
-          </span>
-          <span className="flex shrink-0 items-center gap-3">
-            {saving && <LoaderCircle className="h-4 w-4 animate-spin text-[#526650]" aria-label="Saving preference" />}
+    <div role="group" aria-label="Photo preferences">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 text-sm font-medium text-[#263d57]">
           <input
             type="checkbox"
-            className="h-5 w-5 accent-[#526650]"
+            className="h-4 w-4 accent-[#526650] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#526650]"
             checked={preferences.photoEnabled}
             disabled={saving}
             onChange={(event) => update({ enabled: preferences.enabled, photoEnabled: event.target.checked })}
             aria-label="Include photos"
+            aria-describedby="photo-analysis-description"
           />
-          </span>
+          Include photos
         </label>
+        {saving && <LoaderCircle className="h-3.5 w-3.5 animate-spin text-[#526650]" aria-label="Saving preference" />}
+        <span id="photo-analysis-description" className="text-[11px] text-[#64717b]">Let OpenAI read text and details in saved photos.</span>
       </div>
-      {error && <p className="mt-3 flex items-center gap-2 text-xs text-[#9b4934]" role="alert"><AlertCircle className="h-3.5 w-3.5" />{error}</p>}
-      {preferences.enabled && <p className="mt-3 flex items-center gap-1.5 text-[11px] text-[#637566]"><Check className="h-3.5 w-3.5" />You can change this preference any time.</p>}
-    </section>
+      {!preferences.available && <p className="mt-1 text-xs text-[#7c6954]">Library answers aren’t currently available for this account.</p>}
+      {error && <p className="mt-1 flex items-center gap-2 text-xs text-[#9b4934]" role="alert"><AlertCircle className="h-3.5 w-3.5" />{error}</p>}
+    </div>
   );
 }

@@ -275,7 +275,13 @@ test("simplified search waits for submission and does not request hidden scopes,
   await expect(page.locator("form #search-reading-limit")).toHaveText("Private, paywalled and blocked pages may not be readable.");
   await expect(input).toHaveAttribute("aria-describedby", "search-reading-limit");
   await expect(page.getByText(/Search runs only when you submit|Up to 800 characters/)).toHaveCount(0);
-  await expect(page.getByRole("region", { name: "Photo preferences" }).getByText(/Private, paywalled/)).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Photo preferences" }).getByText(/Private, paywalled/)).toHaveCount(0);
+  await expect(page.locator("form").getByLabel("Include photos")).toBeVisible();
+  const photoGroup = page.getByRole("group", { name: "Photo preferences" });
+  expect(await photoGroup.evaluate(element => {
+    const styles = getComputedStyle(element);
+    return styles.borderTopWidth === "0px" && styles.backgroundColor === "rgba(0, 0, 0, 0)";
+  })).toBe(true);
 
   await input.fill("basil");
   await page.waitForTimeout(850);
@@ -642,6 +648,23 @@ test("photo preference changes preserve the existing analysis consent", async ({
   expect(fixture.preferenceWrites[1]).toEqual({ enabled: true, photoEnabled: false });
   await expect(page.getByLabel("Enable answers from saved content")).toHaveCount(0);
   await expect(page.getByLabel("Search your saved links, photos and notes")).toHaveAttribute("aria-describedby", "search-reading-limit");
+});
+
+test("reloading the inline photo control never submits a draft search", async ({ page }) => {
+  const fixture = createFixture();
+  await installApiFixtures(page, fixture);
+  let reads = 0;
+  await page.route("**/api/knowledge/settings", async route => {
+    if (route.request().method() === "GET" && ++reads === 1) return fulfill(route, { error: "synthetic unavailable" }, 503);
+    await route.fallback();
+  });
+  await page.goto("/search");
+  await expect(page.getByRole("alert")).toContainText("Preferences could not be loaded.");
+  await page.getByLabel("Search your saved links, photos and notes").fill("basil");
+  await page.getByRole("button", { name: "Reload preferences" }).click();
+  await expect(page.locator("form").getByLabel("Include photos")).toBeVisible();
+  expect(fixture.searches).toEqual([]);
+  expect(fixture.preferenceWrites).toEqual([]);
 });
 
 test("photo opt-in does not silently reactivate paused library analysis", async ({ page }) => {

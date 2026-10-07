@@ -153,12 +153,12 @@ export default function SearchPage() {
             </button>
           </div>
           <p id="search-reading-limit" className="mt-2 text-left text-[11px] leading-relaxed text-[#7c847e]">Private, paywalled and blocked pages may not be readable.</p>
+          <div className="mt-2 text-left">
+            <KnowledgePreferencesPanel onSettingsChange={handlePreferencesChange} />
+          </div>
         </form>
       </header>
 
-      <div className="mx-auto max-w-3xl">
-        <KnowledgePreferencesPanel onSettingsChange={handlePreferencesChange} />
-      </div>
       {preferences && !preferences.enabled && (
         <p className="mx-auto max-w-6xl rounded-xl border border-[#e4ddce] bg-[#f7f3e9] px-4 py-3 text-xs leading-relaxed text-[#655d4c]">
           Library analysis is paused. Search can still show saved items, but Aside won’t prepare answers or analyze new saves until you opt in.
