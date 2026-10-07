@@ -7,3 +7,9 @@ Aside's AI rework should build a growing, user-queryable RAG knowledge base from
 **Why:** On 2026-10-06 the user selected “Search and answers,” then clarified that links, photos, and information should form a growing RAG database with enough ingested content to answer useful questions. The user also set aside connecting users' social-platform accounts for now.
 
 **How to apply:** Treat link-content retrieval and photo analysis as evidence acquisition for search and answers, not as unrelated AI features. Preserve source evidence rather than replacing it with summaries. Automatic organization, social-account logins, and audio/video understanding still need separate agreement.
+
+The user described asking about the saved knowledge base through “Hey Aside” texts as a desired experience, including recalling pasta recipes and receiving a short list of matching saves. “Top five” was an illustrative response size, not a confirmed universal SMS limit.
+
+**Why:** On 2026-10-06 the user asked about the earlier SMS prompts and whether they could support natural-language recall from the growing personal library.
+
+**How to apply:** When SMS integration is requested, reuse the authorized knowledge retrieval and source evidence rather than maintaining a separate, shallower search experience. Preserve existing help and login commands; do not treat this discussion alone as approval to change them.
