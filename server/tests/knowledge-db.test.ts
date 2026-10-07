@@ -34,6 +34,11 @@ vi.mock("../safe-preview-fetch", async original => {
     if (url.includes("/timeout")) throw new Error("timeout");
     if (url.includes("/pdf")) return new Response("pdf", { headers: { "content-type": "application/pdf" } });
     if (url.includes("/blocked")) return new Response("Access denied", { status: 403 });
+    if (url.includes("/dish/")) {
+      const id = new URL(url).pathname.split("/").at(-1);
+      return new Response(`<html><head><title>Creamy Baked Pasta ${id}</title></head><body><article><p>${"Pasta baked with tomato sauce, cheese and fresh herbs. ".repeat(12)}</p></article></body></html>`,
+        { headers: { "content-type": "text/html" } });
+    }
     const para = "This cocktail recipe contains gin, freshly squeezed lime juice and agave syrup. Shake with ice and strain into a chilled glass. ";
     return new Response(`<html><head><title>Garden Gin Cocktail</title></head><body><article><h1>Garden Gin Cocktail</h1><p>${para.repeat(9)}</p></article></body></html>`,
       { headers: { "content-type": "text/html" } });
@@ -58,7 +63,7 @@ import { storage } from "../storage";
 import { claimJob as claimFixtureJob, enqueue, finishJob, takeBudget } from "../knowledge/repository";
 import { fingerprint } from "../knowledge/core";
 import { processOneJob as processFixtureJob } from "../knowledge/ingestion";
-import { searchKnowledge } from "../knowledge/search";
+import { searchKnowledge, searchLinkedKnowledge } from "../knowledge/search";
 import { registerKnowledgeRoutes } from "../knowledge/routes";
 import { answer, embed, readPhoto } from "../knowledge/provider";
 
@@ -114,6 +119,33 @@ describe.skipIf(process.env.KNOWLEDGE_DB_TESTS !== "1")("knowledge database inte
     const result = await searchKnowledge(owner, "which cocktails contain gin?");
     expect(result.messages[0].id).toBe(m.id); expect(result.answerStatus).toBe("ready");
     expect(result.citations[0].messageId).toBe(m.id);
+  });
+  it("counts more than twenty distinct linked saves and returns the latest five with original titles and URLs", async () => {
+    const saved = [];
+    for (let i = 1; i <= 25; i++) {
+      const m = await save(`Cook this https://fixtures.example/dish/${i}?ref=original-sms`);
+      await db.update(messages).set({ timestamp: new Date(Date.UTC(2026, 9, 1, 0, i)) }).where(eq(messages.id, m.id));
+      await processFixtureJob(m.id);
+      saved.push(m);
+    }
+    await save("Pasta recipe in a photo or note, with no external URL");
+    await save("Pancake breakfast https://fixtures.example/pancakes");
+    await storage.createMessage({ userId: stranger, senderId: "fixture", content: "Pasta https://fixtures.example/private", tags: [] });
+    // Provider outage still searches extracted page text, not just the original note.
+    control.embeddingFailure = true;
+    const result = await searchLinkedKnowledge(owner, "pasta recipes");
+    expect(result.count).toBe(25); expect(result.exact).toBe(true);
+    expect(result.links.map(link => link.messageId)).toEqual(saved.slice(-5).reverse().map(m => m.id));
+    expect(result.links[0]).toMatchObject({ title: "Creamy Baked Pasta 25", url: "https://fixtures.example/dish/25?ref=original-sms" });
+    expect(result.keywordOnly).toBe(true);
+  });
+  it("does not count stale page passages as SMS matches after a save edit", async () => {
+    const m = await save("Cook this https://fixtures.example/dish/1");
+    await processFixtureJob(m.id);
+    // Simulate the existing save/enqueue interruption without touching other users.
+    await db.update(messages).set({ content: "Pancake breakfast https://fixtures.example/pancakes" }).where(eq(messages.id, m.id));
+    control.embeddingFailure = true;
+    expect((await searchLinkedKnowledge(owner, "pasta")).count).toBe(0);
   });
   it("bounds source records as well as fetches when a save has too many links", async () => {
     const m = await save(Array.from({ length: 12 }, (_, i) => `https://fixtures.example/link${i}`).join(" "));

@@ -8,8 +8,8 @@ Aside's AI rework should build a growing, user-queryable RAG knowledge base from
 
 **How to apply:** Treat link-content retrieval and photo analysis as evidence acquisition for search and answers, not as unrelated AI features. Preserve source evidence rather than replacing it with summaries. Automatic organization, social-account logins, and audio/video understanding still need separate agreement.
 
-The user described asking about the saved knowledge base through “Hey Aside” texts as a desired experience, including recalling pasta recipes and receiving a short list of matching saves. “Top five” was an illustrative response size, not a confirmed universal SMS limit.
+The user confirmed “Hey Aside” SMS recall should return up to five newest matching saves, each with a readable title and the original saved URL directly below it. They also want the total number of matching saves, not just the number displayed.
 
-**Why:** On 2026-10-06 the user asked about the earlier SMS prompts and whether they could support natural-language recall from the growing personal library.
+**Why:** On 2026-10-06 the user approved connecting SMS to the knowledge base, then explicitly specified the five latest results and direct original links using a pasta-recipe example.
 
-**How to apply:** When SMS integration is requested, reuse the authorized knowledge retrieval and source evidence rather than maintaining a separate, shallower search experience. Preserve existing help and login commands; do not treat this discussion alone as approval to change them.
+**How to apply:** Reuse authorized source retrieval, order eligible results by saved date rather than relevance alone, and never substitute a dashboard/login link for the requested original URL. Keep help and login commands intact. Do not label capped or incomplete counts as exhaustive.

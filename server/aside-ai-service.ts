@@ -4,9 +4,15 @@ import { embeddingService } from "./embedding-service";
 import type { IStorage } from "./storage";
 import { shortLinkService } from "./short-link-service";
 import { MagicLinkService } from "./magic-link-service";
+import { queryKnowledgeSms, fallbackSmsIntent, isGlobalSmsStatsQuery } from "./knowledge/sms-query";
+import { settings, takeBudget } from "./knowledge/repository";
+import { LIMITS } from "./knowledge/core";
+import { providerAvailable } from "./knowledge/provider";
 
 const openai = new OpenAI({
   apiKey: process.env.NEW_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+  timeout: 25000,
+  maxRetries: 1,
 });
 
 export interface AsideAIResponse {
@@ -14,6 +20,7 @@ export interface AsideAIResponse {
   intent: 'search' | 'summarize' | 'recommend' | 'analyze' | 'login' | 'help' | 'unknown';
   searchPerformed?: boolean;
   topic?: string;
+  smsParts?: string[];
 }
 
 class AsideAIService {
@@ -27,14 +34,17 @@ class AsideAIService {
     storage: IStorage
   ): Promise<AsideAIResponse> {
     try {
-      log(`🤖 AsideAI processing query: "${query}"`);
+      log("AsideAI processing an SMS question");
 
       // Step 1: Determine intent using OpenAI
-      const intentAnalysis = await this.analyzeIntent(query);
+      const prefs = await settings(userId);
+      const canClassify = prefs.enabled && providerAvailable() &&
+        await takeBudget(userId, "sms_intent", 1, LIMITS.searchesPerDay);
+      const intentAnalysis = canClassify ? await this.analyzeIntent(query) : { intent: fallbackSmsIntent(query), extractedQuery: query };
       log(`📊 Intent detected: ${intentAnalysis.intent}`);
 
       // Step 2: Deterministic guardrail - override intent for data queries misclassified as help
-      let correctedIntent = intentAnalysis.intent;
+      let correctedIntent = intentAnalysis.intent === "unknown" ? fallbackSmsIntent(query) : intentAnalysis.intent;
       const lowerQuery = query.toLowerCase();
       if (correctedIntent === 'help') {
         const isDataQuery = (
@@ -45,29 +55,31 @@ class AsideAIService {
           (lowerQuery.includes('count') && (lowerQuery.includes('board') || lowerQuery.includes('item') || lowerQuery.includes('message')))
         );
         if (isDataQuery) {
-          log(`🔄 Overriding intent from 'help' to 'analyze' - detected data query: "${query}"`);
+          log("Overriding help intent for a personal-library statistics question");
           correctedIntent = 'analyze';
         }
       }
 
+      // Topic-specific recall/counts need source retrieval, not global library stats.
+      if (correctedIntent === "analyze" && !isGlobalSmsStatsQuery(query)) correctedIntent = "search";
       // Step 3: Based on intent, perform appropriate action
       let aiResponse: AsideAIResponse;
       switch (correctedIntent) {
         case 'search':
           // Use AI-extracted query for more accurate search
-          aiResponse = await this.handleSearchQuery(intentAnalysis.extractedQuery || query, userId, storage);
+          aiResponse = await queryKnowledgeSms(intentAnalysis.intent === "unknown" ? query : intentAnalysis.extractedQuery || query, userId);
           break;
         
         case 'summarize':
-          aiResponse = await this.handleSummarizeQuery(query, userId, storage);
+          aiResponse = await queryKnowledgeSms(intentAnalysis.extractedQuery || query, userId, "summarize");
           break;
         
         case 'recommend':
-          aiResponse = await this.handleRecommendQuery(query, userId, storage);
+          aiResponse = await queryKnowledgeSms(intentAnalysis.extractedQuery || query, userId, "recommend");
           break;
         
         case 'analyze':
-          aiResponse = await this.handleAnalyzeQuery(query, userId, storage);
+          aiResponse = await this.handleAnalyzeQuery(query, userId, storage, canClassify);
           break;
         
         case 'login':
@@ -75,7 +87,7 @@ class AsideAIService {
           break;
         
         case 'help':
-          aiResponse = await this.handleHelpQuery(query, userId, storage);
+          aiResponse = await this.handleHelpQuery(query, userId, storage, canClassify);
           break;
         
         default:
@@ -87,13 +99,13 @@ class AsideAIService {
       }
       
       // Attach topic to response if it was detected in intent analysis
-      if (intentAnalysis.topic) {
+      if ("topic" in intentAnalysis && intentAnalysis.topic) {
         aiResponse.topic = intentAnalysis.topic;
       }
       
       return aiResponse;
     } catch (error) {
-      log(`Error in AsideAI processing: ${error instanceof Error ? error.message : String(error)}`);
+      log("AsideAI could not complete an SMS question");
       return {
         response: "Sorry, I'm having trouble understanding that. Please try again or text with #tags to save content.",
         intent: 'unknown',
@@ -126,12 +138,15 @@ IMPORTANT: When a user asks about THEIR personal data (how many boards they have
 Respond with ONLY a JSON object: {"intent": "search|summarize|recommend|analyze|login|help|unknown", "query": "cleaned up keywords", "topic": "specific help topic if help intent"}
 
 For SEARCH intent, extract just the core search keywords without action verbs.
+For SUMMARIZE, RECOMMEND and topic-specific counts, also extract the subject keywords (for example "pasta"), not the requested result count or sort order.
 For HELP intent, include a "topic" field with the specific question category.
 For ANALYZE intent, use it for questions about the user's own data, stats, counts, or listing their content.
 
 Examples:
 "cookie" → {"intent": "search", "query": "cookie"}
 "find my recipes" → {"intent": "search", "query": "recipes"}
+"what was that recipe I saved with pasta?" → {"intent": "search", "query": "pasta"}
+"give me my five latest pasta recipes" → {"intent": "search", "query": "pasta"}
 "show me tech articles" → {"intent": "search", "query": "tech articles"}
 "do I have anything about AI?" → {"intent": "search", "query": "AI"}
 "what have I saved about cooking?" → {"intent": "summarize", "query": "cooking"}
@@ -161,12 +176,12 @@ Examples:
 
       const result = JSON.parse(completion.choices[0].message.content || '{}');
       return {
-        intent: result.intent || 'unknown',
-        extractedQuery: result.query || query,
-        topic: result.topic,
+        intent: ['search', 'summarize', 'recommend', 'analyze', 'login', 'help'].includes(result.intent) ? result.intent : 'unknown',
+        extractedQuery: typeof result.query === "string" && result.query.trim() && result.query.length <= 800 ? result.query : query,
+        topic: typeof result.topic === "string" ? result.topic : undefined,
       };
     } catch (error) {
-      log(`Error analyzing intent: ${error instanceof Error ? error.message : String(error)}`);
+      log("SMS intent classification unavailable; using saved-text search");
       return { intent: 'unknown' };
     }
   }
@@ -470,12 +485,17 @@ Examples:
   private async handleAnalyzeQuery(
     query: string,
     userId: number,
-    storage: IStorage
+    storage: IStorage,
+    allowAI: boolean
   ): Promise<AsideAIResponse> {
     try {
       const allMessages = await storage.getMessages(userId);
       const tags = await storage.getTags(userId);
       const sharedBoards = await storage.getSharedBoards(userId);
+      if (!allowAI || !(await settings(userId)).enabled) {
+        return { response: `You have ${allMessages.length} saved items and ${tags.length} tags. AI analysis is off or unavailable; you can still search your saved text.`,
+          intent: "analyze" };
+      }
 
       if (allMessages.length === 0) {
         return {
@@ -542,7 +562,7 @@ Their data:
         searchPerformed: true,
       };
     } catch (error) {
-      log(`Error in analyze query: ${error instanceof Error ? error.message : String(error)}`);
+      log("SMS library analysis unavailable");
       return {
         response: `I had trouble analyzing your content. Check out your boards at textaside.app for a visual overview.`,
         intent: 'analyze',
@@ -574,7 +594,7 @@ Their data:
         };
       }
       
-      log(`Error generating login link: ${error instanceof Error ? error.message : String(error)}`);
+      log("SMS login link could not be generated");
       return {
         response: "Sorry, I couldn't generate a login link right now. Please try again in a moment.",
         intent: 'login',
@@ -589,7 +609,8 @@ Their data:
   private async handleHelpQuery(
     query: string,
     userId: number,
-    storage: IStorage
+    storage: IStorage,
+    allowAI: boolean
   ): Promise<AsideAIResponse> {
     try {
       // Generate magic link for responses that need it
@@ -599,7 +620,7 @@ Their data:
         const { url } = await MagicLinkService.createMagicLink(userId);
         dashboardLink = url;
       } catch (error) {
-        log(`Could not generate magic link for help response: ${error instanceof Error ? error.message : String(error)}`);
+        log("A login link could not be generated for the help response");
       }
 
       // Get user information for personalized responses
@@ -1141,6 +1162,9 @@ Easy as that!
 
       // Default: Use AI to generate a contextual help response instead of static menu
       try {
+        if (!allowAI || !(await settings(userId)).enabled) {
+          return { intent: "help", response: 'Save links or notes by texting them with a #hashtag. Search by texting "Hey Aside, find my recipes". Ask for a login link to open your library.' };
+        }
         const helpCompletion = await openai.chat.completions.create({
           model: "gpt-4o-mini",
           messages: [
@@ -1170,7 +1194,7 @@ Answer the user's question helpfully and concisely. Keep response under 400 char
         };
       }
     } catch (error) {
-      log(`Error in help query: ${error instanceof Error ? error.message : String(error)}`);
+      log("SMS help could not be completed");
       return {
         response: "I'm here to help! Try asking me a specific question like 'How does Aside work?' or 'How do I create a board?'",
         intent: 'help',

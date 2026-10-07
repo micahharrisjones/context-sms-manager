@@ -52,7 +52,7 @@ class TwilioService {
     
     // Check if this number might be unreachable for SMS
     if (this.isPotentiallyUnreachableNumber(phoneNumber)) {
-      log(`Rejecting potentially unreachable phone number: ${phoneNumber}`);
+      log("Rejecting an invalid or unreachable phone number");
       throw new Error(`Invalid phone number: ${phoneNumber}. This number may be a landline or unable to receive SMS.`);
     }
     
@@ -84,11 +84,8 @@ class TwilioService {
       return false;
     }
 
-    // Format the phone number to E164 format
-    const formattedTo = this.formatPhoneNumber(to);
-    log(`Formatted phone number from ${to} to ${formattedTo}`);
-
     try {
+      const formattedTo = this.formatPhoneNumber(to);
       // Use Twilio REST API to send SMS
       const auth = Buffer.from(`${this.accountSid}:${this.authToken}`).toString('base64');
       
@@ -106,22 +103,21 @@ class TwilioService {
       });
 
       if (!response.ok) {
-        const errorData = await response.text();
-        log(`Failed to send SMS to ${formattedTo}: ${response.status} - ${errorData}`);
+        log(`SMS delivery failed (HTTP ${response.status})`);
         return false;
       }
 
-      const result = await response.json();
-      log(`SMS sent successfully to ${formattedTo}: ${result.sid}`);
+      await response.json();
+      log("SMS sent successfully");
       return true;
     } catch (error) {
       // If it's a phone number validation error, just log and return false without spam
       if (error instanceof Error && error.message.includes('Invalid phone number format')) {
-        log(`Skipping SMS to invalid phone number: ${to} - ${error.message}`);
+        log("Skipping SMS to an invalid phone number");
         return false;
       }
       
-      log(`Error sending SMS to ${formattedTo}:`, error instanceof Error ? error.message : String(error));
+      log("SMS delivery failed");
       return false;
     }
   }

@@ -27,6 +27,7 @@ import { fileTypeFromBuffer } from "file-type";
 import * as cron from "node-cron";
 import { registerPreviewRoute } from "./preview-route";
 import { registerKnowledgeRoutes } from "./knowledge/routes";
+import { createHeyAsideWebhook, heyAsideQuery } from "./hey-aside-webhook";
 
 // Helper function to check MMS rate limit for a user
 function checkMMSRateLimit(userId: number): { allowed: boolean; remaining: number } {
@@ -1032,79 +1033,7 @@ const processSMSWebhook = async (body: unknown, onboardingService?: any) => {
       log(`Found existing user account for phone ${senderId}: User ${user.id}`);
     }
 
-    // ========== HEY ASIDE AI TRIGGER ==========
-    // Check for "Hey Aside" trigger FIRST - this takes precedence over everything
-    const heyAsidePattern = /^hey\s+aside\s*/i;
-    if (heyAsidePattern.test(content)) {
-      const query = content.replace(heyAsidePattern, "").trim();
-      log(`🤖 HEY ASIDE detected! Query: "${query}"`);
-
-      if (!query) {
-        // User just said "Hey Aside" with no query
-        await twilioService.sendSMS(
-          senderId,
-          "Hi! I'm Aside, your AI assistant. Ask me anything about your saved content!\n\nTry:\n• Hey Aside, find my recipes\n• Hey Aside, show me gift ideas\n• Hey Aside, what have I saved about tech?",
-        );
-        return null;
-      }
-
-      try {
-        // Process with AsideAI service first to get intent
-        const aiResponse = await asideAIService.processQuery(
-          query,
-          user.id,
-          storage,
-        );
-
-        // Determine question_type for categorization
-        // For help queries, use the specific topic (e.g., "create_board", "invite")
-        // For other intents, use the intent itself (e.g., "search", "login")
-        const questionType = aiResponse.topic || aiResponse.intent;
-
-        // Track Hey Aside query with question type
-        await pendoServerService.trackEvent(
-          "Hey_Aside_Query_Submitted",
-          senderId,
-          "aside",
-          {
-            query: query,
-            queryLength: query.length,
-            questionType: questionType,
-            intent: aiResponse.intent,
-          },
-        );
-
-        // Track response
-        await pendoServerService.trackEvent(
-          "Hey_Aside_Response_Sent",
-          senderId,
-          "aside",
-          {
-            query: query,
-            intent: aiResponse.intent,
-            searchPerformed: aiResponse.searchPerformed || false,
-            questionType: questionType,
-          },
-        );
-
-        // Send AI response
-        await twilioService.sendSMS(senderId, aiResponse.response);
-        log(`Sent Hey Aside response to ${senderId}`);
-
-        // Don't save the "Hey Aside" query as a message
-        return null;
-      } catch (error) {
-        log(
-          `Error processing Hey Aside query: ${error instanceof Error ? error.message : String(error)}`,
-        );
-        await twilioService.sendSMS(
-          senderId,
-          "Sorry, I had trouble with that. Please try again or text with #tags to save content.",
-        );
-        return null;
-      }
-    }
-    // ========== END HEY ASIDE AI TRIGGER ==========
+    // Hey Aside commands are handled by the signed, non-saving webhook path.
 
     // Check for hashtags FIRST - if present, skip conversational AI and proceed to message processing
     const hasHashtags = extractHashtags(content).length > 0;
@@ -4344,9 +4273,19 @@ You can now text anything with #${boardName} to share with everyone on the board
 
   // Track processed message SIDs to prevent duplicates
   const processedMessageSids = new Set<string>();
+  const handleAsideCommand = createHeyAsideWebhook({
+    token: () => process.env.TWILIO_AUTH_TOKEN || "",
+    user: phone => storage.getUserByPhoneNumber(phone),
+    query: (query, userId) => asideAIService.processQuery(query, userId, storage),
+    send: (phone, message) => twilioService.sendSMS(phone, message),
+    track: (name, phone, properties) => pendoServerService.trackEvent(name, phone, "aside", properties),
+    log: message => log(message),
+  });
 
-  // Twilio webhook endpoint - handle both /api/webhook/sms and /webhook/sms
+  // Twilio's existing primary endpoint: /api/webhook/twilio.
   const handleWebhook = async (req: any, res: any) => {
+    // Do this before raw-payload logging, onboarding or saving anything.
+    if (heyAsideQuery(req.body?.Body) !== null) return handleAsideCommand(req, res);
     log("Entering handleWebhook function");
     try {
       log(

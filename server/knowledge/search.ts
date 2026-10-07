@@ -6,6 +6,8 @@ import { fingerprint, keywordQuery, LIMITS, parseFilters } from "./core";
 import { answer, embed, providerAvailable } from "./provider";
 import { assertScope, decodeMessage, KnowledgeError, scopeCondition, settings, takeBudget } from "./repository";
 import { s3Service } from "../s3-service";
+import { extractPreviewUrls } from "@shared/preview-urls";
+import { savedLink } from "./sms-format";
 
 const embeddings = new Map<string, { vector: number[]; expires: number }>();
 async function queryVector(userId: number, q: string, signal?: AbortSignal) {
@@ -17,9 +19,10 @@ async function queryVector(userId: number, q: string, signal?: AbortSignal) {
   embeddings.set(key, { vector, expires: Date.now() + 5 * 60_000 });
   return vector;
 }
-export async function searchKnowledge(userId: number, q: string, options: {
+type SearchOptions = {
   boardId?: number; from?: string; to?: string; timeZone?: string; signal?: AbortSignal; generateAnswer?: boolean;
-} = {}): Promise<KnowledgeSearchResponse> {
+};
+async function prepareSearch(userId: number, q: string, options: SearchOptions) {
   await assertScope(userId, options.boardId);
   const prefs = await settings(userId);
   const timeZone = options.timeZone || "UTC";
@@ -48,6 +51,12 @@ export async function searchKnowledge(userId: number, q: string, options: {
   const chunkText = sql`(c.content || ' ' || array_to_string(m.tags,' ') || ' ' ||
     COALESCE((SELECT s->>'title' FROM jsonb_array_elements(ki.sources) s WHERE s->>'id'=c.source_id LIMIT 1),''))`;
   const legacyScore = vector ? sql`COALESCE(1-(me.embedding <=> ${query}::vector),0)` : sql`0`;
+  return { prefs, filters, where, warnings, vector, aiAllowed, keyword, chunkScore, chunkText, legacyScore };
+}
+
+export async function searchKnowledge(userId: number, q: string, options: SearchOptions = {}): Promise<KnowledgeSearchResponse> {
+  const { prefs, filters, where, warnings, vector, aiAllowed, keyword, chunkScore, chunkText, legacyScore } =
+    await prepareSearch(userId, q, options);
   const chunkRows = await db.execute(sql`
     SELECT c.id, c.source_id, c.content, ki.fingerprint, ki.sources, ki.status,
       to_jsonb(m) AS message,
@@ -151,4 +160,72 @@ export async function searchKnowledge(userId: number, q: string, options: {
   if (!(await settings(userId)).enabled) { result.aiSummary = null; result.citations = []; result.answerStatus = "disabled"; }
   result.messages = await s3Service.generateSignedUrlsForMessages(selected);
   return result;
+}
+
+// SMS counts saves, not passages. Scan newest-first in bounded pages so an old
+// high-scoring result cannot displace a newer match. Never call a capped count exact.
+export async function searchLinkedKnowledge(userId: number, q: string, signal?: AbortSignal) {
+  const options = { signal, generateAnswer: false };
+  const context = await prepareSearch(userId, q, options);
+  const { where, chunkScore, chunkText, legacyScore } = context;
+  // "recipe(s)" is a content type, not an ingredient constraint. Keep it when
+  // it is the only term; otherwise require the substantive search terms.
+  const terms = keywordQuery(q).split(" | ");
+  const specific = terms.filter(term => !/^(recipes?|items?|links?|latest|five|was|were|about|please|ones|something|anything|remember|recall|give|many|count):\*$/.test(term));
+  const keyword = sql`to_tsquery('simple', ${(specific.length ? specific : terms).join(" & ") || "asideimpossiblesearchterm"})`;
+  const chunkMatch = sql`(to_tsvector('simple', ${chunkText}) @@ ${keyword} OR ${chunkScore} >= 0.38)`;
+  const legacyMatch = sql`(to_tsvector('simple', m.content || ' ' || COALESCE(m.og_title,'') || ' ' ||
+    COALESCE(m.og_description,'') || ' ' || array_to_string(m.tags,' ')) @@ ${keyword} OR ${legacyScore} >= 0.38)`;
+  const selected: ReturnType<typeof savedLink>[] = [];
+  let count = 0, scanned = 0, exact = false;
+  let cursor: { timestamp: Date; id: number } | null = null;
+  while (scanned < 1000) {
+    signal?.throwIfAborted();
+    const rows = await db.execute(sql`
+      SELECT to_jsonb(m) AS message, ki.fingerprint, ${legacyMatch} AS legacy_match,
+        (SELECT jsonb_agg(jsonb_build_object('title', s->>'title', 'url', s->>'url') ORDER BY ${chunkScore} DESC, c.id)
+          FROM knowledge_chunks c, jsonb_array_elements(ki.sources) s
+          WHERE c.message_id=m.id AND c.fingerprint=ki.fingerprint
+            AND s->>'id'=c.source_id AND s->>'kind'='page' AND ${chunkMatch}) AS pages,
+        EXISTS (SELECT 1 FROM knowledge_chunks c WHERE c.message_id=m.id
+          AND c.fingerprint=ki.fingerprint AND ${chunkMatch}) AS chunk_match
+      FROM messages m LEFT JOIN knowledge_items ki ON ki.message_id=m.id
+        LEFT JOIN message_embeddings me ON me.message_id=m.id
+      WHERE ${where} AND m.content ~* 'https?://'
+        ${cursor ? sql`AND (m.timestamp, m.id) < (${cursor.timestamp}, ${cursor.id})` : sql``}
+        AND (${legacyMatch} OR EXISTS (SELECT 1 FROM knowledge_chunks c
+          WHERE c.message_id=m.id AND c.fingerprint=ki.fingerprint AND ${chunkMatch}))
+      ORDER BY m.timestamp DESC, m.id DESC LIMIT 100`);
+    for (const row of rows.rows) {
+      const m = decodeMessage(row.message as Record<string, any>);
+      const current = fingerprint(m) === row.fingerprint;
+      if (!row.legacy_match && (!current || !row.chunk_match)) continue;
+      const urls = extractPreviewUrls(m.content);
+      if (!urls.length) continue;
+      const pages = current ? row.pages as { title: string; url: string }[] | null : null;
+      const link = savedLink(m, pages || [], urls);
+      if (!link) continue;
+      count++;
+      if (selected.length < 5) selected.push(link);
+    }
+    scanned += rows.rows.length;
+    if (rows.rows.length < 100) { exact = true; break; }
+    const last = decodeMessage(rows.rows.at(-1)!.message as Record<string, any>);
+    cursor = { timestamp: last.timestamp, id: last.id };
+  }
+  // Re-read the selected saves after the scan; edits/deletes must not publish stale links.
+  if (selected.length) {
+    const ids = selected.map(link => link!.messageId);
+    const rows = await db.execute(sql`SELECT to_jsonb(m) AS message FROM messages m
+      WHERE ${where} AND m.id IN (${sql.join(ids.map(id => sql`${id}`), sql`,`)})`);
+    if (rows.rows.length !== selected.length || rows.rows.some(row => {
+      const m = decodeMessage(row.message as Record<string, any>);
+      return fingerprint(m) !== selected.find(link => link!.messageId === m.id)!.fingerprint;
+    })) throw new KnowledgeError(409, "Saves changed while searching. Please search again.");
+  }
+  const coverage = await db.execute(sql`SELECT count(*) FILTER (WHERE ki.message_id IS NULL
+      OR ki.status <> 'ready')::int AS incomplete FROM messages m
+    LEFT JOIN knowledge_items ki ON ki.message_id=m.id WHERE ${where}`);
+  return { links: selected.filter((link): link is NonNullable<typeof link> => !!link), count, exact,
+    incomplete: Number(coverage.rows[0]?.incomplete || 0), keywordOnly: !context.vector };
 }
