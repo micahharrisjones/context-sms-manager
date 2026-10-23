@@ -4,3 +4,4 @@
 - [Dependency verification](clean-install-verification.md) — Verify clean lockfile installation and native browser launch separately; incremental test success does not prove either.
 - [AI product scope](ai-product-scope.md) — Prioritize finding and answering from saved content; organization and social-account connections need separate agreement.
 - [GitHub authentication](github-authentication.md) — API permissions and successful fetches do not prove native Git push authentication works.
+- [Hosting migration direction](hosting-migration.md) — User intends to move Aside off Replit; migration advice must cover the running service, data, and API credentials.
