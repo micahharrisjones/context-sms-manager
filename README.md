@@ -1,5 +1,14 @@
 # Aside - Personal Information Management System
 
+## Claude Code / hosting migration
+
+The current migration handoff is [docs/CLAUDE_CODE_HANDOFF.md](docs/CLAUDE_CODE_HANDOFF.md).
+Read it before starting external development or moving production. It includes
+safe setup, API dependencies, pending portability work, data transfer and rollback.
+Also see [CLAUDE.md](CLAUDE.md), [the API inventory](docs/API_CONNECTIONS.md),
+and [.env.example](.env.example). **Preparing these files has not migrated the
+live app.** No destination host or cutover has been approved.
+
 A robust SMS and social media content management platform that enables intelligent message categorization, rich media preview, and seamless cross-platform communication with real-time collaboration features.
 
 ## 🚀 Features
@@ -24,8 +33,8 @@ A robust SMS and social media content management platform that enables intellige
 - **Link Preview Integration**: Social media URLs automatically inherit hashtags from recent messages
 
 ### AI-Powered Features
-- **Hybrid Categorization**: DeepSeek AI assists with intelligent message organization
-- **Daily Affirmations**: Personalized AI-generated affirmations based on your saved content
+- **Saved-content retrieval**: OpenAI-assisted extraction, embeddings, keyword/semantic search and cited answers from saved content.
+- **Older-library indexing**: An optional post-login scan with real progress, indexed/unindexed counts and reasons; photo opt-in and usage limits remain in place.
 
 ## 🛠 Technology Stack
 
@@ -34,7 +43,7 @@ A robust SMS and social media content management platform that enables intellige
 - **Database**: PostgreSQL with Drizzle ORM
 - **Real-time**: WebSocket connections
 - **SMS Integration**: Twilio webhook handling
-- **AI Integration**: DeepSeek for intelligent categorization and personalization
+- **AI Integration**: OpenAI for saved-content indexing, retrieval and SMS assistance
 - **UI Framework**: Tailwind CSS with shadcn/ui components
 - **Authentication**: Express sessions with phone number verification and magic link tokens
 
@@ -64,19 +73,16 @@ A robust SMS and social media content management platform that enables intellige
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- PostgreSQL database
-- Twilio account for SMS webhooks
-- DeepSeek API key (optional, for AI features)
+- A compatible Node runtime; the observed workspace baseline is 20.20.0. Validate a supported LTS before a new production deployment.
+- A disposable Neon-compatible PostgreSQL development database with `pgvector`.
+- Isolated provider resources for live integration checks; do not begin with production messaging or AI credentials.
 
 ### Environment Variables
-```bash
-DATABASE_URL=postgresql://username:password@hostname:port/database
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_PHONE_NUMBER=your_twilio_phone_number
-DEEPSEEK_API_KEY=your_deepseek_api_key
-```
+Use [.env.example](.env.example), which contains names and blank values only.
+Keep real values in an ignored local file or the host's secret manager.
+The npm scripts do not automatically load `.env.local`. Follow the
+[explicit environment-loading instructions](docs/CLAUDE_CODE_HANDOFF.md#2-reproduce-development-safely).
+Preserve the effective existing encryption key for a production restore.
 
 ### Installation
 
@@ -90,24 +96,28 @@ Try it out by sending SMS messages with hashtags to see the intelligent categori
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/micahharrisjones/aside-sms-manager.git
-cd aside-sms-manager
+git clone https://github.com/micahharrisjones/context-sms-manager.git
+cd context-sms-manager
 ```
 
 2. Install dependencies:
 ```bash
-npm install
+npm ci
 ```
 
-3. Set up the database:
-```bash
-npm run db:push
-```
+3. Create `.env.local` from `.env.example` and configure only isolated
+development resources. Follow the handoff for the database driver, `vector`
+extension and schema setup. **Never run `db:push` against production as an
+automatic setup step.**
 
 4. Start the development server:
 ```bash
-npm run dev
+node --env-file=.env.local --import tsx server/index.ts
 ```
+
+The current server listens on port 5000 and starts indexing/scheduled work
+automatically. Do not start it against production or a production data copy
+without reviewed background-work controls.
 
 ## 📱 Usage
 
@@ -175,7 +185,7 @@ Aside uses WebSocket connections to provide:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+The package metadata declares the MIT license.
 
 ## 🤝 Contributing
 
